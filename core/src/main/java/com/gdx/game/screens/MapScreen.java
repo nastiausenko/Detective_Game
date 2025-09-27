@@ -7,10 +7,12 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.InputMultiplexer;
 import com.gdx.game.DetectiveGame;
-
 
 public class MapScreen implements Screen, GestureDetector.GestureListener {
     private final DetectiveGame game;
@@ -19,8 +21,9 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
     private final ScreenViewport viewport;
 
     private float lastZoom = 1f;
-    private float baseScale = 1f;
     private float drawWidth, drawHeight;
+
+    private final Stage stage;
 
     public MapScreen(DetectiveGame game) {
         this.game = game;
@@ -34,7 +37,19 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
         camera.update();
 
         GestureDetector gd = new GestureDetector(this);
-        Gdx.input.setInputProcessor(gd);
+        stage = new Stage(new ScreenViewport(), game.batch);
+        Gdx.input.setInputProcessor(new InputMultiplexer(stage, gd));
+
+        Texture icon = new Texture("menu/note_icon.png");
+        Image notesButton = new Image(icon);
+
+        float scale = 0.2f;
+        notesButton.setSize(notesButton.getWidth() * scale, notesButton.getHeight() * scale);
+
+        notesButton.setPosition(10, Gdx.graphics.getHeight() - notesButton.getHeight() -10);
+
+        // TODO: пізніше сюди додати listener для анімації та відкриття нотаток
+        stage.addActor(notesButton);
     }
 
     @Override
@@ -50,19 +65,22 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
         game.batch.begin();
         game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
         game.batch.end();
+
+        stage.act(delta);
+        stage.draw();
     }
 
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
+        stage.getViewport().update(width, height, true);
 
         float scaleX = viewport.getWorldWidth() / mapTexture.getWidth();
         float scaleY = viewport.getWorldHeight() / mapTexture.getHeight();
 
+        float baseScale = 1f;
         if (viewport.getWorldWidth() > mapTexture.getWidth() || viewport.getWorldHeight() > mapTexture.getHeight()) {
             baseScale = Math.max(scaleX, scaleY);
-        } else {
-            baseScale = 1f;
         }
 
         drawWidth = mapTexture.getWidth() * baseScale;
@@ -72,6 +90,17 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
         camera.update();
 
         lastZoom = 1f;
+
+        Image notesButton = (Image) stage.getActors().first();
+
+        float targetHeight = height * 0.2f;
+        float aspect = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
+        float targetWidth = targetHeight * aspect;
+
+        notesButton.setSize(targetWidth, targetHeight);
+
+        notesButton.setPosition(10, stage.getViewport().getWorldHeight() -
+                stage.getActors().first().getHeight() -10);
     }
 
     private void clampCamera() {
@@ -85,15 +114,15 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
         camera.position.y = MathUtils.clamp(camera.position.y, halfH, scaledHeight - halfH);
     }
 
-    @Override
-    public void pause() {}
-    @Override
-    public void resume() {}
-    @Override
-    public void hide() {}
-    @Override
-    public void dispose() { mapTexture.dispose(); }
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() {}
+    @Override public void dispose() {
+        mapTexture.dispose();
+        stage.dispose();
+    }
 
+    // --- GestureDetector callbacks ---
     @Override
     public boolean pan(float x, float y, float deltaX, float deltaY) {
         camera.translate(-deltaX * camera.zoom, deltaY * camera.zoom);
@@ -111,16 +140,8 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
         return true;
     }
 
-    @Override
-    public boolean pinch(Vector2 vector2, Vector2 vector21, Vector2 vector22, Vector2 vector23) {
-        return false;
-    }
-
-    @Override
-    public void pinchStop() {
-        lastZoom = camera.zoom;
-    }
-
+    @Override public boolean pinch(Vector2 v1, Vector2 v2, Vector2 v3, Vector2 v4) { return false; }
+    @Override public void pinchStop() { lastZoom = camera.zoom; }
     @Override public boolean touchDown(float x, float y, int pointer, int button) { return false; }
     @Override public boolean tap(float x, float y, int count, int button) { return false; }
     @Override public boolean longPress(float x, float y) { return false; }

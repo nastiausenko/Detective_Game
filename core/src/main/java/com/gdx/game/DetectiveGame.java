@@ -2,7 +2,6 @@ package com.gdx.game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.gdx.game.screens.MapScreen;
 
 public class DetectiveGame extends Game {
