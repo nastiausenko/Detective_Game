@@ -58,6 +58,7 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0, 0, 0, 1);
+        handleInput(delta);
 
         camera.update();
         game.batch.setProjectionMatrix(camera.combined);
@@ -68,6 +69,25 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
 
         stage.act(delta);
         stage.draw();
+    }
+
+    private void handleInput(float delta) {
+        float moveSpeed = 500 * delta;
+
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.LEFT)) {
+            camera.translate(-moveSpeed * camera.zoom, 0);
+        }
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.RIGHT)) {
+            camera.translate(moveSpeed * camera.zoom, 0);
+        }
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.UP)) {
+            camera.translate(0, moveSpeed * camera.zoom);
+        }
+        if (Gdx.input.isKeyPressed(com.badlogic.gdx.Input.Keys.DOWN)) {
+            camera.translate(0, -moveSpeed * camera.zoom);
+        }
+
+        clampCamera();
     }
 
     @Override
