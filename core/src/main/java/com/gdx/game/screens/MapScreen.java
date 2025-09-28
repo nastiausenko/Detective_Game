@@ -1,6 +1,7 @@
 package com.gdx.game.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -38,7 +39,7 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
 
         GestureDetector gd = new GestureDetector(this);
         stage = new Stage(new ScreenViewport(), game.batch);
-        Gdx.input.setInputProcessor(new InputMultiplexer(stage, gd));
+        initInput(stage, gd);
 
         Texture icon = new Texture("menu/note_icon.png");
         Image notesButton = new Image(icon);
@@ -88,6 +89,20 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
         }
 
         clampCamera();
+    }
+
+    private void initInput(Stage stage, GestureDetector gd) {
+        InputAdapter scrollHandler = new InputAdapter() {
+            @Override
+            public boolean scrolled(float amountX, float amountY) {
+                float moveSpeed = 10 * camera.zoom;
+                camera.translate(amountX * moveSpeed, amountY * moveSpeed);
+                clampCamera();
+                return true;
+            }
+        };
+
+        Gdx.input.setInputProcessor(new InputMultiplexer(stage, gd, scrollHandler));
     }
 
     @Override
