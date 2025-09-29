@@ -1,6 +1,7 @@
 package com.gdx.game.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -11,7 +12,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.InputMultiplexer;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.MapInputController;
 
@@ -25,6 +25,8 @@ public class MapScreen implements Screen {
     private final Stage stage;
 
     private final MapInputController inputController;
+    private NotePopup notePopup;
+    private final Image notesButton;
 
     public MapScreen(DetectiveGame game) {
         this.game = game;
@@ -44,13 +46,16 @@ public class MapScreen implements Screen {
 
         Gdx.input.setInputProcessor(new InputMultiplexer(stage, gd, inputController));
 
-        Image notesButton = new Image(new Texture("menu/img.png"));
+        notesButton = new Image(new Texture("menu/note_icon.png"));
         notesButton.setPosition(10, Gdx.graphics.getHeight() - notesButton.getHeight() - 10);
 
         notesButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new NoteScreen(game));
+                if (notePopup == null) {
+                    notePopup = new NotePopup(stage, "menu/notes.png");
+                    notePopup.show();
+                }
             }
         });
 
@@ -90,14 +95,18 @@ public class MapScreen implements Screen {
 
         inputController.setMapSize(drawWidth, drawHeight);
 
-        Image notesButton = (Image) stage.getActors().first();
-        float targetHeight = height * 1f;
+        float targetHeight = height * 0.15f;
         float aspect = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
         notesButton.setSize(targetHeight * aspect, targetHeight);
         notesButton.setPosition(10, stage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
+
+        if (notePopup != null) {
+            notePopup.resize(width, height);
+        }
     }
 
-    @Override public void dispose() {
+    @Override
+    public void dispose() {
         mapTexture.dispose();
         stage.dispose();
     }
