@@ -41,10 +41,10 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
         stage = new Stage(new ScreenViewport(), game.batch);
         initInput(stage, gd);
 
-        Texture icon = new Texture("menu/note_icon.png");
+        Texture icon = new Texture("menu/img.png");
         Image notesButton = new Image(icon);
 
-        float scale = 0.2f;
+        float scale = 1f;
         notesButton.setSize(notesButton.getWidth() * scale, notesButton.getHeight() * scale);
 
         notesButton.setPosition(10, Gdx.graphics.getHeight() - notesButton.getHeight() -10);
@@ -128,7 +128,7 @@ public class MapScreen implements Screen, GestureDetector.GestureListener {
 
         Image notesButton = (Image) stage.getActors().first();
 
-        float targetHeight = height * 0.2f;
+        float targetHeight = height * 1f;
         float aspect = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
         float targetWidth = targetHeight * aspect;
 
