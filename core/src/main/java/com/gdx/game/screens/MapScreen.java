@@ -9,6 +9,7 @@ import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -53,7 +54,10 @@ public class MapScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 if (notePopup == null) {
-                    notePopup = new NotePopup(stage, "menu/notes.png");
+                    Skin skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
+                    notePopup = new NotePopup(stage, skin, "menu/notes.png");
+                    notePopup.show();
+                } else {
                     notePopup.show();
                 }
             }
@@ -109,6 +113,9 @@ public class MapScreen implements Screen {
     public void dispose() {
         mapTexture.dispose();
         stage.dispose();
+        if (notePopup != null) {
+            notePopup.dispose();
+        }
     }
 
     @Override public void show() {}
