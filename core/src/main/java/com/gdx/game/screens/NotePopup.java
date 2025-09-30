@@ -1,10 +1,12 @@
 package com.gdx.game.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -75,9 +77,16 @@ public class NotePopup {
             return false;
         });
 
-        textArea2.addListener(event -> {
-            wrapText(textArea2);
-            return false;
+        textArea2.addListener(new InputListener() {
+            @Override
+            public boolean keyDown(InputEvent event, int keycode) {
+                if (keycode == Input.Keys.BACKSPACE && textArea2.getText().isEmpty()) {
+                    stage.setKeyboardFocus(textArea1);
+                    textArea1.setCursorPosition(textArea1.getText().length());
+                    return true;
+                }
+                return false;
+            }
         });
     }
 
@@ -86,6 +95,9 @@ public class NotePopup {
         GlyphLayout layout = new GlyphLayout();
 
         String text = area.getText().replace("\r", "");
+        int originalCursor = area.getCursorPosition();
+        boolean cursorAtEnd = originalCursor == text.length();
+
         StringBuilder wrapped = new StringBuilder();
         StringBuilder currentLine = new StringBuilder();
 
@@ -105,29 +117,37 @@ public class NotePopup {
                 currentLine.deleteCharAt(currentLine.length() - 1);
                 wrapped.append(currentLine).append("\n");
                 currentLine = new StringBuilder();
-                currentLine.append(c);
+                if (c != ' ') {
+                    currentLine.append(c);
+                }
             }
         }
 
         if (currentLine.length() > 0) wrapped.append(currentLine);
 
         area.setText(wrapped.toString());
-        area.setCursorPosition(area.getText().length());
+
+        if (cursorAtEnd) {
+            area.setCursorPosition(area.getText().length());
+        }
     }
 
     private void handleOverflow(TextArea current, TextArea next) {
         BitmapFont font = current.getStyle().font;
         int maxLines = (int) (current.getHeight() / font.getLineHeight());
 
-        String[] lines = current.getText().split("\n");
+        String[] lines = current.getText().split("\n", -1);
         if (lines.length <= maxLines) return;
 
         StringBuilder stay = new StringBuilder();
         StringBuilder overflow = new StringBuilder();
 
         for (int i = 0; i < lines.length; i++) {
-            if (i < maxLines) stay.append(lines[i]).append("\n");
-            else overflow.append(lines[i]).append("\n");
+            if (i < maxLines) {
+                stay.append(lines[i]).append("\n");
+            } else {
+                overflow.append(lines[i]).append("\n");
+            }
         }
 
         current.setText(stay.toString().trim());
