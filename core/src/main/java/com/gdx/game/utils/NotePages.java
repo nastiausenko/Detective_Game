@@ -1,7 +1,6 @@
 package com.gdx.game.utils;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -9,39 +8,49 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.InputListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class NotePages {
     private final Stage stage;
     private final Skin skin;
-    private TextArea left;
-    private TextArea right;
     private float columnWidth;
-    private String savedText = "";
+    private float columnHeight;
+
+    private final List<TextArea[]> pages = new ArrayList<>();
+    private int currentPageIndex = 0;
 
     public NotePages(Stage stage, Skin skin) {
         this.stage = stage;
         this.skin = skin;
-        createTextAreas();
+        createNewPage();
     }
 
-    private void createTextAreas() {
+    private void createNewPage() {
         BitmapFont font = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
         font.getData().lineHeight *= 1.5f;
 
         TextField.TextFieldStyle style = new TextField.TextFieldStyle();
         style.font = font;
         style.fontColor = Color.BLACK;
-        style.background = null;
         style.cursor = skin.newDrawable("cursor", Color.BLACK);
-        style.selection = skin.newDrawable("selection", new Color(0, 0, 1, 0.3f));
+        style.background = null;
 
-        left = new TextArea(savedText, style);
+        TextArea left = new TextArea("", style);
         left.setFocusTraversal(false);
 
-        right = new TextArea("", style);
+        TextArea right = new TextArea("", style);
         right.setFocusTraversal(false);
+
+        TextArea[] page = new TextArea[]{left, right};
+        pages.add(page);
+
+        if (pages.size() == 1) {
+            stage.addActor(left);
+            stage.addActor(right);
+            stage.setKeyboardFocus(left);
+        }
 
         left.addListener(event -> {
             wrapText(left);
@@ -49,16 +58,10 @@ public class NotePages {
             return false;
         });
 
-        right.addListener(new InputListener() {
-            @Override
-            public boolean keyDown(InputEvent event, int keycode) {
-                if (keycode == Input.Keys.BACKSPACE && right.getText().isEmpty()) {
-                    stage.setKeyboardFocus(left);
-                    left.setCursorPosition(left.getText().length());
-                    return true;
-                }
-                return false;
-            }
+        right.addListener(event -> {
+            wrapText(right);
+            handleOverflow(right, null);
+            return false;
         });
     }
 
@@ -67,13 +70,16 @@ public class NotePages {
     }
 
     public void setPosition(float x, float y, float height) {
-        left.setSize(columnWidth, height);
-        left.setPosition(x, y);
+        this.columnHeight = height;
+        for (TextArea[] page : pages) {
+            page[0].setSize(columnWidth, height);
+            page[0].setPosition(x, y);
 
-        float innerPadding = columnWidth * 0.5f;
+            float innerPadding = columnWidth * 0.5f;
 
-        right.setSize(columnWidth, height);
-        right.setPosition(x + columnWidth + innerPadding, y);
+            page[1].setSize(columnWidth, height);
+            page[1].setPosition(x + columnWidth + innerPadding, y);
+        }
     }
 
     private void wrapText(TextArea area) {
@@ -115,7 +121,7 @@ public class NotePages {
 
     private void handleOverflow(TextArea current, TextArea next) {
         BitmapFont font = current.getStyle().font;
-        int maxLines = (int) (current.getHeight() / font.getLineHeight());
+        int maxLines = (int) (columnHeight / font.getLineHeight());
 
         String[] lines = current.getText().split("\n", -1);
         if (lines.length <= maxLines) return;
@@ -132,26 +138,63 @@ public class NotePages {
 
         if (next != null) {
             next.setText(overflow.toString().trim());
+            next.setCursorPosition(overflow.length());
             stage.setKeyboardFocus(next);
+        } else {
+            createNewPage();
+            TextArea[] newPage = pages.get(pages.size() - 1);
+
+            setPositionForNewPage(newPage);
+            newPage[0].setText(overflow.toString().trim());
+            newPage[0].setCursorPosition(newPage[0].getText().length());
+            showPage(pages.size() - 1);
+        }
+    }
+
+    private void setPositionForNewPage(TextArea[] page) {
+        page[0].setSize(columnWidth, columnHeight);
+        page[0].setPosition(pages.get(0)[0].getX(), pages.get(0)[0].getY());
+
+        page[1].setSize(columnWidth, columnHeight);
+        page[1].setPosition(pages.get(0)[1].getX(), pages.get(0)[1].getY());
+    }
+
+    public void showPage(int index) {
+        if (index < 0 || index >= pages.size()) return;
+
+        for (TextArea[] page : pages) {
+            page[0].remove();
+            page[1].remove();
+        }
+
+        TextArea[] page = pages.get(index);
+        stage.addActor(page[0]);
+        stage.addActor(page[1]);
+
+        stage.setKeyboardFocus(page[0]);
+        currentPageIndex = index;
+    }
+
+    public void nextPage() {
+        if (currentPageIndex < pages.size() - 1) {
+            showPage(currentPageIndex + 1);
+        }
+    }
+
+    public void prevPage() {
+        if (currentPageIndex > 0) {
+            showPage(currentPageIndex - 1);
         }
     }
 
     public void show() {
-        stage.addActor(left);
-        stage.addActor(right);
-        stage.setKeyboardFocus(left);
+        showPage(0);
     }
 
     public void remove() {
-        savedText = left.getText();
-        left.remove();
-        right.remove();
+        for (TextArea[] page : pages) {
+            page[0].remove();
+            page[1].remove();
+        }
     }
-
-    public String getSavedText() {
-        return savedText;
-    }
-
-    public TextArea getLeft() { return left; }
-    public TextArea getRight() { return right; }
 }
