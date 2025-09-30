@@ -55,7 +55,7 @@ public class MapScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 if (notePopup == null) {
                     Skin skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
-                    notePopup = new NotePopup(stage, skin, "menu/notes.png");
+                    notePopup = new NotePopup(stage, skin, "menu/img.png");
                     notePopup.show();
                 } else {
                     notePopup.show();

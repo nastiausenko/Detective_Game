@@ -3,6 +3,7 @@ package com.gdx.game.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -18,7 +19,8 @@ public class NotePopup {
     private final Image background;
     private final Stage stage;
     private final Skin skin;
-    private TextArea textArea;
+    private TextArea textArea1;
+    private TextArea textArea2;
     private String savedText = "";
 
     public NotePopup(Stage stage, Skin skin, String texturePath) {
@@ -44,12 +46,13 @@ public class NotePopup {
             }
         });
 
-        createTextArea();
+        createTextAreas();
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
 
-    private void createTextArea() {
+    private void createTextAreas() {
         BitmapFont font = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
+        font.getData().lineHeight *= 1.5f;
 
         TextField.TextFieldStyle style = new TextField.TextFieldStyle();
         style.font = font;
@@ -58,9 +61,11 @@ public class NotePopup {
         style.cursor = skin.newDrawable("cursor", Color.BLACK);
         style.selection = skin.newDrawable("selection", new Color(0, 0, 1, 0.3f));
 
-        textArea = new TextArea(savedText, style);
-        textArea.setFocusTraversal(false);
+        textArea1 = new TextArea(savedText, style);
+        textArea1.setFocusTraversal(false);
 
+        textArea2 = new TextArea("", style);
+        textArea2.setFocusTraversal(false);
     }
 
     public void resize(float screenWidth, float screenHeight) {
@@ -85,29 +90,37 @@ public class NotePopup {
         noteImage.setSize(width, height);
         noteImage.setPosition((screenWidth - width) / 2f, (screenHeight - height) / 2f);
 
-        float paddingLeft = width * 0.29f;
-        float paddingRight = width * 0.17f;
-        float paddingTop = height * 0.23f;
-        float paddingBottom = height * 0.17f;
+        float paddingTop = height * 0.13f;
+        float paddingBottom = height * 0.13f;
 
-        textArea.setSize(width - paddingLeft - paddingRight, height - paddingTop - paddingBottom);
-        textArea.setPosition(noteImage.getX() + paddingLeft, noteImage.getY() + paddingBottom);
+        float columnHeight = height - paddingTop - paddingBottom;
 
-        float fontScale = (textArea.getHeight() / 300f);
-        textArea.getStyle().font.getData().setScale(fontScale);
+        float outerPadding = width * 0.13f;
+        float innerPadding = width * 0.05f;
+
+        float halfWidth = width / 2f;
+
+        float columnWidth = halfWidth - outerPadding - innerPadding;
+        textArea1.setSize(columnWidth, columnHeight);
+        textArea1.setPosition(noteImage.getX() + outerPadding, noteImage.getY() + paddingBottom);
+
+        textArea2.setSize(columnWidth, columnHeight);
+        textArea2.setPosition(noteImage.getX() + halfWidth + innerPadding * 2, noteImage.getY() + paddingBottom);
     }
 
     public void show() {
         stage.addActor(background);
         stage.addActor(noteImage);
-        stage.addActor(textArea);
-        stage.setKeyboardFocus(textArea);
+        stage.addActor(textArea1);
+        stage.addActor(textArea2);
+        stage.setKeyboardFocus(textArea1);
     }
 
     public void remove() {
-        savedText = textArea.getText();
+        savedText = textArea1.getText();
 
-        textArea.remove();
+        textArea1.remove();
+        textArea2.remove();
         noteImage.remove();
         background.remove();
     }
