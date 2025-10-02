@@ -2,7 +2,7 @@ package com.gdx.game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.gdx.game.screens.MapScreen;
+import com.gdx.game.screens.MenuScreen;
 
 public class DetectiveGame extends Game {
     public SpriteBatch batch;
@@ -10,7 +10,7 @@ public class DetectiveGame extends Game {
     @Override
     public void create() {
         batch = new SpriteBatch();
-        this.setScreen(new MapScreen(this));
+        this.setScreen(new MenuScreen(this));
     }
 
     @Override

@@ -31,7 +31,7 @@ public class MapScreen implements Screen {
 
     public MapScreen(DetectiveGame game) {
         this.game = game;
-        mapTexture = new Texture("map.png");
+        mapTexture = new Texture("img.png");
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -47,7 +47,7 @@ public class MapScreen implements Screen {
 
         Gdx.input.setInputProcessor(new InputMultiplexer(stage, gd, inputController));
 
-        notesButton = new Image(new Texture("menu/note_icon.png"));
+        notesButton = new Image(new Texture("menu/note/note_icon.png"));
         notesButton.setPosition(10, Gdx.graphics.getHeight() - notesButton.getHeight() - 10);
 
         notesButton.addListener(new ClickListener() {
