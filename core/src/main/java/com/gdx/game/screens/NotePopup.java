@@ -103,10 +103,10 @@ public class NotePopup {
 
         float btnSize = 60;
         btnPrev.setSize(btnSize, btnSize);
-        btnPrev.setPosition(noteImage.getX() + 10, noteImage.getY() + height / 2 - btnSize / 2);
+        btnPrev.setPosition(noteImage.getX()-25, noteImage.getY() + height / 2 - btnSize / 2);
 
         btnNext.setSize(btnSize, btnSize);
-        btnNext.setPosition(noteImage.getX() + width - 35, noteImage.getY() + height / 2 - btnSize / 2);
+        btnNext.setPosition(noteImage.getX() + width - 40, noteImage.getY() + height / 2 - btnSize / 2);
     }
 
     public void show() {

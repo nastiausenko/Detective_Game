@@ -28,8 +28,9 @@ public class MapScreen implements Screen {
 
     private final MapInputController inputController;
     private NotePopup notePopup;
+    private SettingsPopup settingsPopup;
     private final Image notesButton;
-
+    private final Image settBtn;
     private final FadeTransition transition;
 
     public MapScreen(DetectiveGame game, FadeTransition transition) {
@@ -54,13 +55,13 @@ public class MapScreen implements Screen {
 
         notesButton = new Image(new Texture("menu/note/note_icon.png"));
         notesButton.setPosition(10, Gdx.graphics.getHeight() - notesButton.getHeight() - 10);
-
         notesButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 if (notePopup == null) {
-                    Skin skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
-                    notePopup = new NotePopup(stage, skin, "menu/note/notes.png");
+                    notePopup = new NotePopup(stage,
+                        new Skin(Gdx.files.internal("ui/uiskin.json")),
+                        "menu/note/notes.png");
                     notePopup.show();
                 } else {
                     notePopup.show();
@@ -68,7 +69,25 @@ public class MapScreen implements Screen {
             }
         });
 
+        settBtn = new Image(new Texture("menu/settings/settings_btn.png"));
+        settBtn.setPosition(
+            Gdx.graphics.getWidth() - settBtn.getWidth() - 10,
+            Gdx.graphics.getHeight() - settBtn.getHeight() - 10
+        );
+        settBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (settingsPopup == null) {
+                   settingsPopup = new SettingsPopup(stage, "menu/settings/settings.png", game, transition);
+                   settingsPopup.show();
+                } else {
+                    settingsPopup.show();
+                }
+            }
+        });
+
         stage.addActor(notesButton);
+        stage.addActor(settBtn);
     }
 
     @Override
@@ -107,13 +126,25 @@ public class MapScreen implements Screen {
 
         inputController.setMapSize(drawWidth, drawHeight);
 
-        float targetHeight = height * 0.15f;
-        float aspect = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
-        notesButton.setSize(targetHeight * aspect, targetHeight);
+        float targetHeight = height * 0.12f;
+
+        float aspectNotes = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
+        notesButton.setSize(targetHeight * aspectNotes, targetHeight);
         notesButton.setPosition(10, stage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
+
+        float aspectExit = settBtn.getDrawable().getMinWidth() / settBtn.getDrawable().getMinHeight();
+        settBtn.setSize(targetHeight * aspectExit, targetHeight);
+        settBtn.setPosition(
+            stage.getViewport().getWorldWidth() - settBtn.getWidth() - 10,
+            stage.getViewport().getWorldHeight() - settBtn.getHeight() - 10
+        );
 
         if (notePopup != null) {
             notePopup.resize(width, height);
+        }
+
+        if (settingsPopup != null) {
+            settingsPopup.resize(width, height);
         }
     }
 
@@ -123,6 +154,9 @@ public class MapScreen implements Screen {
         stage.dispose();
         if (notePopup != null) {
             notePopup.dispose();
+        }
+        if (settingsPopup != null) {
+            settingsPopup.dispose();
         }
     }
 

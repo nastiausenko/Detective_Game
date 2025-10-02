@@ -80,7 +80,7 @@ public class MenuScreen implements Screen {
     public void resize(int width, int height) {
         viewport.update(width, height, true);
 
-        float targetHeight = height*1f;
+        float targetHeight = height*0.1f;
         float aspect = startBtn.getDrawable().getMinWidth() / startBtn.getDrawable().getMinHeight();
         startBtn.setSize(targetHeight * aspect, targetHeight);
         startBtn.setPosition(
