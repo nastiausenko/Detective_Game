@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.utils.FadeTransition;
 
 public class MenuScreen implements Screen {
     private final DetectiveGame game;
@@ -18,15 +19,17 @@ public class MenuScreen implements Screen {
     private final ScreenViewport viewport;
     private final Stage stage;
 
-
     private final Texture backgroundTexture;
     private final Texture startBtnTexture;
 
     private final Image background;
     private final Image startBtn;
 
+    private final FadeTransition transition;
+
     public MenuScreen(DetectiveGame game) {
         this.game = game;
+        this.transition = new FadeTransition();
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -45,7 +48,12 @@ public class MenuScreen implements Screen {
         startBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new MapScreen(game));
+                if (!transition.isTransitioning()) {
+                    transition.startFadeOut(0.7f, () -> {
+                        game.setScreen(new MapScreen(game, transition));
+                        transition.startFadeIn(0.7f);
+                    });
+                }
             }
         });
 
@@ -63,6 +71,9 @@ public class MenuScreen implements Screen {
 
         stage.act(delta);
         stage.draw();
+
+        transition.update(delta);
+        transition.render();
     }
 
     @Override
@@ -87,5 +98,6 @@ public class MenuScreen implements Screen {
         stage.dispose();
         backgroundTexture.dispose();
         startBtnTexture.dispose();
+        transition.dispose();
     }
 }

@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
 
 public class MapScreen implements Screen {
@@ -29,8 +30,12 @@ public class MapScreen implements Screen {
     private NotePopup notePopup;
     private final Image notesButton;
 
-    public MapScreen(DetectiveGame game) {
+    private final FadeTransition transition;
+
+    public MapScreen(DetectiveGame game, FadeTransition transition) {
         this.game = game;
+        this.transition = transition;
+
         mapTexture = new Texture("img.png");
 
         camera = new OrthographicCamera();
@@ -55,7 +60,7 @@ public class MapScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 if (notePopup == null) {
                     Skin skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
-                    notePopup = new NotePopup(stage, skin, "menu/img.png");
+                    notePopup = new NotePopup(stage, skin, "menu/note/notes.png");
                     notePopup.show();
                 } else {
                     notePopup.show();
@@ -80,6 +85,9 @@ public class MapScreen implements Screen {
 
         stage.act(delta);
         stage.draw();
+
+        transition.update(delta);
+        transition.render();
     }
 
     @Override

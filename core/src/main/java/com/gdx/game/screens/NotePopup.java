@@ -46,8 +46,7 @@ public class NotePopup {
             }
         });
 
-        // кнопки
-        btnPrevTexture = new Texture("menu/arrow_left.png");
+        btnPrevTexture = new Texture("menu/note/arrow_left.png");
         btnPrev = new Image(btnPrevTexture);
         btnPrev.addListener(new ClickListener() {
             @Override
@@ -56,7 +55,7 @@ public class NotePopup {
             }
         });
 
-        btnNextTexture = new Texture("menu/arrow_right.png");
+        btnNextTexture = new Texture("menu/note/arrow_right.png");
         btnNext = new Image(btnNextTexture);
         btnNext.addListener(new ClickListener() {
             @Override
