@@ -6,14 +6,14 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.input.GestureDetector;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.ui.popup.NotePopup;
+import com.gdx.game.ui.popup.SettingsPopup;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
 
@@ -53,38 +53,33 @@ public class MapScreen implements Screen {
 
         Gdx.input.setInputProcessor(new InputMultiplexer(stage, gd, inputController));
 
-        notesButton = new Image(new Texture("menu/note/note_icon.png"));
-        notesButton.setPosition(10, Gdx.graphics.getHeight() - notesButton.getHeight() - 10);
-        notesButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
+        notesButton = game.getButtonFactory().createButton(
+            "menu/note/note_icon.png",
+            64, 64,
+            () -> {
                 if (notePopup == null) {
                     notePopup = new NotePopup(stage,
-                        new Skin(Gdx.files.internal("ui/uiskin.json")),
-                        "menu/note/notes.png");
-                    notePopup.show();
-                } else {
-                    notePopup.show();
+                        new Skin(Gdx.files.internal("ui/uiskin.json")), game);
                 }
+                notePopup.show();
             }
-        });
+        );
+        notesButton.setPosition(10, Gdx.graphics.getHeight() - notesButton.getHeight() - 10);
 
-        settBtn = new Image(new Texture("menu/settings/settings_btn.png"));
+        settBtn = game.getButtonFactory().createButton(
+            "menu/settings/settings_btn.png",
+            64, 64,
+            () -> {
+                if (settingsPopup == null) {
+                    settingsPopup = new SettingsPopup(stage, "menu/settings/settings.png", game, transition);
+                }
+                settingsPopup.show();
+            }
+        );
         settBtn.setPosition(
             Gdx.graphics.getWidth() - settBtn.getWidth() - 10,
             Gdx.graphics.getHeight() - settBtn.getHeight() - 10
         );
-        settBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (settingsPopup == null) {
-                   settingsPopup = new SettingsPopup(stage, "menu/settings/settings.png", game, transition);
-                   settingsPopup.show();
-                } else {
-                    settingsPopup.show();
-                }
-            }
-        });
 
         stage.addActor(notesButton);
         stage.addActor(settBtn);

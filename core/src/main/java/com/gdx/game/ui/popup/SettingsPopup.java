@@ -1,4 +1,4 @@
-package com.gdx.game.screens;
+package com.gdx.game.ui.popup;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
@@ -7,21 +7,25 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.screens.MenuScreen;
 import com.gdx.game.utils.FadeTransition;
 
 public class SettingsPopup {
+    private final Stage stage;
     private final Texture settTexture;
     private final Image settImage;
     private final Image background;
-    private final Stage stage;
 
     private final Image exitBtn;
     private final Image continueBtn;
-    private final Texture exitBtnTexture;
-    private final Texture continueBtnTexture;
+
+    private final DetectiveGame game;
+    private final FadeTransition transition;
 
     public SettingsPopup(Stage stage, String texturePath, DetectiveGame game, FadeTransition transition) {
         this.stage = stage;
+        this.game = game;
+        this.transition = transition;
 
         background = new Image(new Texture("background.png"));
         background.setColor(0, 0, 0, 0.5f);
@@ -36,30 +40,28 @@ public class SettingsPopup {
             }
         });
 
-        continueBtnTexture = new Texture("menu/settings/continue_btn.png");
-        continueBtn = new Image(continueBtnTexture);
-        continueBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                remove();
-            }
-        });
+        continueBtn = game.getButtonFactory().createButton(
+            "menu/settings/continue_btn.png",
+            0, 0,
+            this::remove
+        );
 
-        exitBtnTexture = new Texture("menu/settings/exit_btn.png");
-        exitBtn = new Image(exitBtnTexture);
-        exitBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (!transition.isTransitioning()) {
-                    transition.startFadeOut(0.7f, () -> {
-                        game.setScreen(new MenuScreen(game));
-                        transition.startFadeIn(0.7f);
-                    });
-                }
-            }
-        });
+        exitBtn = game.getButtonFactory().createButton(
+            "menu/settings/exit_btn.png",
+            0, 0,
+            this::handleExit
+        );
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
+    }
+
+    private void handleExit() {
+        if (!transition.isTransitioning()) {
+            transition.startFadeOut(0.7f, () -> {
+                game.setScreen(new MenuScreen(game));
+                transition.startFadeIn(0.7f);
+            });
+        }
     }
 
     public void resize(float screenWidth, float screenHeight) {
@@ -86,7 +88,6 @@ public class SettingsPopup {
 
         float btnWidth = settImage.getWidth()*0.75f;
         float btnHeight = settImage.getHeight()*0.15f;
-
         float paddingBottom = settImage.getHeight() * 0.43f;
 
         continueBtn.setSize(btnWidth, btnHeight);
@@ -119,7 +120,5 @@ public class SettingsPopup {
 
     public void dispose() {
         settTexture.dispose();
-        exitBtnTexture.dispose();
-        continueBtnTexture.dispose();
     }
 }

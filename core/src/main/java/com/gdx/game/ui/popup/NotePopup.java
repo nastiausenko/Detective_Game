@@ -1,4 +1,4 @@
-package com.gdx.game.screens;
+package com.gdx.game.ui.popup;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.NotePages;
 
 public class NotePopup {
@@ -19,10 +20,8 @@ public class NotePopup {
 
     private final Image btnNext;
     private final Image btnPrev;
-    private final Texture btnNextTexture;
-    private final Texture btnPrevTexture;
 
-    public NotePopup(Stage stage, Skin skin, String texturePath) {
+    public NotePopup(Stage stage, Skin skin, DetectiveGame game) {
         this.stage = stage;
         this.skin = skin;
         this.pages = new NotePages(stage, skin);
@@ -37,7 +36,7 @@ public class NotePopup {
             }
         });
 
-        noteTexture = new Texture(texturePath);
+        noteTexture = new Texture("menu/note/notes.png");
         noteImage = new Image(noteTexture);
         noteImage.addListener(new ClickListener() {
             @Override
@@ -46,23 +45,15 @@ public class NotePopup {
             }
         });
 
-        btnPrevTexture = new Texture("menu/note/arrow_left.png");
-        btnPrev = new Image(btnPrevTexture);
-        btnPrev.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                pages.prevPage();
-            }
-        });
+        btnPrev = game.getButtonFactory().createButton(
+                "menu/note/arrow_left.png", 60, 60,
+                pages::prevPage
+        );
 
-        btnNextTexture = new Texture("menu/note/arrow_right.png");
-        btnNext = new Image(btnNextTexture);
-        btnNext.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                pages.nextPage();
-            }
-        });
+        btnNext = game.getButtonFactory().createButton(
+                "menu/note/arrow_right.png", 60, 60,
+                pages::nextPage
+        );
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
@@ -102,10 +93,8 @@ public class NotePopup {
         pages.setPosition(noteImage.getX() + outerPadding, noteImage.getY() + paddingBottom, columnHeight);
 
         float btnSize = 60;
-        btnPrev.setSize(btnSize, btnSize);
         btnPrev.setPosition(noteImage.getX()-25, noteImage.getY() + height / 2 - btnSize / 2);
 
-        btnNext.setSize(btnSize, btnSize);
         btnNext.setPosition(noteImage.getX() + width - 40, noteImage.getY() + height / 2 - btnSize / 2);
     }
 
@@ -127,8 +116,6 @@ public class NotePopup {
 
     public void dispose() {
         noteTexture.dispose();
-        btnNextTexture.dispose();
-        btnPrevTexture.dispose();
         skin.dispose();
     }
 }

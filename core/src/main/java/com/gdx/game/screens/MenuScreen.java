@@ -4,50 +4,38 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.FadeTransition;
 
 public class MenuScreen implements Screen {
-    private final DetectiveGame game;
-    private final OrthographicCamera camera;
     private final ScreenViewport viewport;
     private final Stage stage;
-
     private final Texture backgroundTexture;
-    private final Texture startBtnTexture;
-
-    private final Image background;
     private final Image startBtn;
-
     private final FadeTransition transition;
 
     public MenuScreen(DetectiveGame game) {
-        this.game = game;
         this.transition = new FadeTransition();
 
-        camera = new OrthographicCamera();
+        OrthographicCamera camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
         viewport.apply();
 
         stage = new Stage(viewport, game.batch);
 
         backgroundTexture = new Texture("background.png");
-        startBtnTexture = new Texture("start_btn.png");
-
-        background = new Image(backgroundTexture);
+        Image background = new Image(backgroundTexture);
         background.setFillParent(true);
         stage.addActor(background);
 
-        startBtn = new Image(startBtnTexture);
-        startBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
+        startBtn = game.getButtonFactory().createButton(
+            "start_btn.png",
+            200, 80,
+            () -> {
                 if (!transition.isTransitioning()) {
                     transition.startFadeOut(0.7f, () -> {
                         game.setScreen(new MapScreen(game, transition));
@@ -55,7 +43,7 @@ public class MenuScreen implements Screen {
                     });
                 }
             }
-        });
+        );
 
         stage.addActor(startBtn);
     }
@@ -97,7 +85,6 @@ public class MenuScreen implements Screen {
     public void dispose() {
         stage.dispose();
         backgroundTexture.dispose();
-        startBtnTexture.dispose();
         transition.dispose();
     }
 }
