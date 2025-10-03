@@ -19,19 +19,22 @@ import com.gdx.game.utils.MapInputController;
 
 public class MapScreen implements Screen {
     private final DetectiveGame game;
-    private final OrthographicCamera camera;
-    private final Texture mapTexture;
-    private final ScreenViewport viewport;
+    private final FadeTransition transition;
 
-    private float drawWidth, drawHeight;
+    private final OrthographicCamera camera;
+    private final ScreenViewport viewport;
     private final Stage stage;
 
+    private final Texture mapTexture;
+    private float drawWidth, drawHeight;
+
     private final MapInputController inputController;
+
     private NotePopup notePopup;
     private SettingsPopup settingsPopup;
+
     private final Image notesButton;
-    private final Image settBtn;
-    private final FadeTransition transition;
+    private final Image settingsButton;
 
     public MapScreen(DetectiveGame game, FadeTransition transition) {
         this.game = game;
@@ -41,48 +44,48 @@ public class MapScreen implements Screen {
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
-        viewport.apply();
-
-        camera.position.set(mapTexture.getWidth() / 2f, mapTexture.getHeight() / 2f, 0);
-        camera.update();
-
         stage = new Stage(new ScreenViewport(), game.batch);
 
         inputController = new MapInputController(camera, viewport);
-        GestureDetector gd = new GestureDetector(inputController);
+        GestureDetector gestureDetector = new GestureDetector(inputController);
+        Gdx.input.setInputProcessor(new InputMultiplexer(stage, gestureDetector, inputController));
 
-        Gdx.input.setInputProcessor(new InputMultiplexer(stage, gd, inputController));
+        notesButton = createNotesButton();
+        settingsButton = createSettingsButton();
 
-        notesButton = game.getButtonFactory().createButton(
-            "menu/note/note_icon.png",
-            64, 64,
+        stage.addActor(notesButton);
+        stage.addActor(settingsButton);
+
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    private Image createNotesButton() {
+        return game.getButtonFactory().createButton(
+            "menu/note/note_icon.png", 64, 64,
             () -> {
                 if (notePopup == null) {
                     notePopup = new NotePopup(stage,
                         new Skin(Gdx.files.internal("ui/uiskin.json")), game);
                 }
                 notePopup.show();
-            }
-        );
-        notesButton.setPosition(10, Gdx.graphics.getHeight() - notesButton.getHeight() - 10);
+            });
+    }
 
-        settBtn = game.getButtonFactory().createButton(
-            "menu/settings/settings_btn.png",
-            64, 64,
+    private Image createSettingsButton() {
+        return game.getButtonFactory().createButton(
+            "menu/settings/settings_btn.png", 64, 64,
             () -> {
                 if (settingsPopup == null) {
                     settingsPopup = new SettingsPopup(stage, "menu/settings/settings.png", game, transition);
                 }
                 settingsPopup.show();
-            }
-        );
-        settBtn.setPosition(
-            Gdx.graphics.getWidth() - settBtn.getWidth() - 10,
-            Gdx.graphics.getHeight() - settBtn.getHeight() - 10
-        );
+            });
+    }
 
-        stage.addActor(notesButton);
-        stage.addActor(settBtn);
+    private void resizeButton(Image button, float targetHeight, float x, float y) {
+        float aspect = button.getDrawable().getMinWidth() / button.getDrawable().getMinHeight();
+        button.setSize(targetHeight * aspect, targetHeight);
+        button.setPosition(x, y);
     }
 
     @Override
@@ -122,37 +125,23 @@ public class MapScreen implements Screen {
         inputController.setMapSize(drawWidth, drawHeight);
 
         float targetHeight = height * 0.12f;
+        resizeButton(notesButton, targetHeight, 10,
+            stage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
 
-        float aspectNotes = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
-        notesButton.setSize(targetHeight * aspectNotes, targetHeight);
-        notesButton.setPosition(10, stage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
+        resizeButton(settingsButton, targetHeight,
+            stage.getViewport().getWorldWidth() - settingsButton.getWidth() - 10,
+            stage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10);
 
-        float aspectExit = settBtn.getDrawable().getMinWidth() / settBtn.getDrawable().getMinHeight();
-        settBtn.setSize(targetHeight * aspectExit, targetHeight);
-        settBtn.setPosition(
-            stage.getViewport().getWorldWidth() - settBtn.getWidth() - 10,
-            stage.getViewport().getWorldHeight() - settBtn.getHeight() - 10
-        );
-
-        if (notePopup != null) {
-            notePopup.resize(width, height);
-        }
-
-        if (settingsPopup != null) {
-            settingsPopup.resize(width, height);
-        }
+        if (notePopup != null) notePopup.resize(width, height);
+        if (settingsPopup != null) settingsPopup.resize(width, height);
     }
 
     @Override
     public void dispose() {
         mapTexture.dispose();
         stage.dispose();
-        if (notePopup != null) {
-            notePopup.dispose();
-        }
-        if (settingsPopup != null) {
-            settingsPopup.dispose();
-        }
+        if (notePopup != null) notePopup.dispose();
+        if (settingsPopup != null) settingsPopup.dispose();
     }
 
     @Override public void show() {}

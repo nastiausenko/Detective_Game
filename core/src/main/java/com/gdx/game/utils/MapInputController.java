@@ -12,8 +12,14 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 public class MapInputController extends InputAdapter implements GestureDetector.GestureListener {
     private final OrthographicCamera camera;
     private final Viewport viewport;
+
     private float drawWidth, drawHeight;
     private float lastZoom = 1f;
+
+    private static final float MIN_ZOOM = 0.5f;
+    private static final float MAX_ZOOM = 3f;
+    private static final float KEYBOARD_SPEED = 500f;
+    private static final float SCROLL_SPEED = 50f;
 
     public MapInputController(OrthographicCamera camera, Viewport viewport) {
         this.camera = camera;
@@ -47,7 +53,7 @@ public class MapInputController extends InputAdapter implements GestureDetector.
     public boolean zoom(float initialDistance, float distance) {
         if (distance == 0) return false;
         float ratio = initialDistance / distance;
-        camera.zoom = MathUtils.clamp(lastZoom * ratio, 0.5f, 3f);
+        camera.zoom = MathUtils.clamp(lastZoom * ratio, MIN_ZOOM, MAX_ZOOM);
         clampCamera();
         return true;
     }
@@ -62,18 +68,20 @@ public class MapInputController extends InputAdapter implements GestureDetector.
 
     @Override
     public boolean scrolled(float amountX, float amountY) {
-        float moveSpeed = 50 * camera.zoom;
+        float moveSpeed = SCROLL_SPEED * camera.zoom;
         camera.translate(amountX * moveSpeed, amountY * moveSpeed);
         clampCamera();
         return true;
     }
 
     public void handleKeyboard(float delta) {
-        float moveSpeed = 500 * delta;
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT))  camera.translate(-moveSpeed * camera.zoom, 0);
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) camera.translate(moveSpeed * camera.zoom, 0);
-        if (Gdx.input.isKeyPressed(Input.Keys.UP))    camera.translate(0, moveSpeed * camera.zoom);
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN))  camera.translate(0, -moveSpeed * camera.zoom);
+        float move = KEYBOARD_SPEED * delta * camera.zoom;
+
+        if (Gdx.input.isKeyPressed(Input.Keys.LEFT))  camera.translate(-move, 0);
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) camera.translate(move, 0);
+        if (Gdx.input.isKeyPressed(Input.Keys.UP))    camera.translate(0, move);
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN))  camera.translate(0, -move);
+
         clampCamera();
     }
 }
