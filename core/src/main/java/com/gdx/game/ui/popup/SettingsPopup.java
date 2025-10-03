@@ -90,18 +90,14 @@ public class SettingsPopup {
         float btnHeight = settImage.getHeight()*0.15f;
         float paddingBottom = settImage.getHeight() * 0.43f;
 
+        exitBtn.setSize(btnWidth, btnHeight);
+        exitBtn.setPosition(settImage.getX() + (width - btnWidth) / 2f, settImage.getY() + paddingBottom);
+
         continueBtn.setSize(btnWidth, btnHeight);
         continueBtn.setPosition(
-            settImage.getX() + (settImage.getWidth() - btnWidth) / 2f,
-            exitBtn.getY() + btnHeight + settImage.getHeight() * 0.5f
+            settImage.getX() + (width - btnWidth) / 2f,
+            exitBtn.getY() + btnHeight + height / 45f
         );
-
-        exitBtn.setSize(btnWidth, btnHeight);
-        exitBtn.setPosition(
-            settImage.getX() + (settImage.getWidth() - btnWidth) / 2f,
-            settImage.getY() + paddingBottom
-        );
-
     }
 
     public void show() {
