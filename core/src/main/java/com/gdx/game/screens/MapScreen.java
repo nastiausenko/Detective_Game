@@ -55,8 +55,6 @@ public class MapScreen implements Screen {
 
         stage.addActor(notesButton);
         stage.addActor(settingsButton);
-
-        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     private Image createNotesButton() {
@@ -80,12 +78,6 @@ public class MapScreen implements Screen {
                 }
                 settingsPopup.show();
             });
-    }
-
-    private void resizeButton(Image button, float targetHeight, float x, float y) {
-        float aspect = button.getDrawable().getMinWidth() / button.getDrawable().getMinHeight();
-        button.setSize(targetHeight * aspect, targetHeight);
-        button.setPosition(x, y);
     }
 
     @Override
@@ -125,12 +117,17 @@ public class MapScreen implements Screen {
         inputController.setMapSize(drawWidth, drawHeight);
 
         float targetHeight = height * 0.12f;
-        resizeButton(notesButton, targetHeight, 10,
-            stage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
 
-        resizeButton(settingsButton, targetHeight,
+        float aspectNotes = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
+        notesButton.setSize(targetHeight * aspectNotes, targetHeight);
+        notesButton.setPosition(10, stage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
+
+        float aspectExit = settingsButton.getDrawable().getMinWidth() / settingsButton.getDrawable().getMinHeight();
+        settingsButton.setSize(targetHeight * aspectExit, targetHeight);
+        settingsButton.setPosition(
             stage.getViewport().getWorldWidth() - settingsButton.getWidth() - 10,
-            stage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10);
+            stage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10
+        );
 
         if (notePopup != null) notePopup.resize(width, height);
         if (settingsPopup != null) settingsPopup.resize(width, height);
