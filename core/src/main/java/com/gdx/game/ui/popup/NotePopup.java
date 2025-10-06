@@ -55,12 +55,17 @@ public class NotePopup extends AbstractPopup {
         float columnHeight = height - paddingTop - paddingBottom;
 
         float outerPadding = width * 0.13f;
-        float innerPadding = width * 0.05f;
+        float innerPadding = width * 0.1f;
         float halfWidth = width / 2f;
         float columnWidth = halfWidth - outerPadding - innerPadding;
 
         pages.setColumnWidth(columnWidth);
-        pages.setPosition(noteImage.getX() + outerPadding, noteImage.getY() + paddingBottom, columnHeight);
+        pages.setPosition(
+                noteImage.getX() + outerPadding,
+                noteImage.getY() + paddingBottom,
+                columnHeight,
+                innerPadding
+        );
 
         float btnSize = 60;
         btnPrev.setPosition(noteImage.getX() - 25, noteImage.getY() + height / 2 - btnSize / 2);

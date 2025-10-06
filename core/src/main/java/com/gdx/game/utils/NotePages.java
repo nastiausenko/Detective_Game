@@ -68,16 +68,15 @@ public class NotePages {
         this.columnWidth = width;
     }
 
-    public void setPosition(float x, float y, float height) {
+    public void setPosition(float x, float y, float height, float innerPadding) {
         this.columnHeight = height;
         for (TextArea[] page : pages) {
             page[0].setSize(columnWidth, height);
             page[0].setPosition(x, y);
 
-            float innerPadding = columnWidth * 0.5f;
-
+            float rightX = x + columnWidth + innerPadding * 2;
             page[1].setSize(columnWidth, height);
-            page[1].setPosition(x + columnWidth + innerPadding, y);
+            page[1].setPosition(rightX, y);
         }
     }
 
