@@ -2,7 +2,6 @@ package com.gdx.game.utils;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -37,6 +36,7 @@ public class NotePages {
         style.fontColor = Color.BLACK;
         style.cursor = skin.newDrawable("cursor", Color.BLACK);
         style.background = null;
+        style.selection = skin.newDrawable("white", new Color(0.3f, 0.5f, 1f, 0.5f));
 
         TextArea left = new TextArea("", style);
         left.setFocusTraversal(false);
@@ -53,16 +53,14 @@ public class NotePages {
             stage.setKeyboardFocus(left);
         }
 
-        left.addListener(event -> {
+        left.setTextFieldListener((textField, c) -> {
             wrapText(left);
             handleOverflow(left, right);
-            return false;
         });
 
-        right.addListener(event -> {
+        right.setTextFieldListener((textField, c) -> {
             wrapText(right);
             handleOverflow(right, null);
-            return false;
         });
     }
 
@@ -114,7 +112,7 @@ public class NotePages {
             }
         }
 
-        if (currentLine.length() > 0) wrapped.append(currentLine);
+        if (!currentLine.isEmpty()) wrapped.append(currentLine);
         area.setText(wrapped.toString());
 
         if (cursorAtEnd) area.setCursorPosition(area.getText().length());
@@ -185,6 +183,18 @@ public class NotePages {
     public void prevPage() {
         if (currentPageIndex > 0) {
             showPage(currentPageIndex - 1);
+            removeEmptyPagesAfterCurrent();
+        }
+    }
+
+    private void removeEmptyPagesAfterCurrent() {
+        for (int i = pages.size() - 1; i > currentPageIndex; i--) {
+            TextArea[] page = pages.get(i);
+            if (page[0].getText().trim().isEmpty() && page[1].getText().trim().isEmpty()) {
+                page[0].remove();
+                page[1].remove();
+                pages.remove(i);
+            }
         }
     }
 
