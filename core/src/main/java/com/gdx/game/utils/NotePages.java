@@ -1,6 +1,7 @@
 package com.gdx.game.utils;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -18,21 +19,58 @@ public class NotePages {
 
     private float columnWidth;
     private float columnHeight;
+    private float baseFontScale = 1.0f;
 
     private final List<TextArea[]> pages = new ArrayList<>();
     private int currentPageIndex = 0;
 
+    private static final String PREFS_NAME = "notes_data";
+    private final Preferences prefs;
+
     private boolean programmaticChange = false;
+    private boolean isVisible = false;
 
     public NotePages(Stage stage, Skin skin) {
         this.stage = stage;
         this.skin = skin;
+        this.prefs = Gdx.app.getPreferences(PREFS_NAME);
+        System.out.println(System.getProperty("user.home") + "/Library/Preferences/" + "notes_data");
         createNewPage();
+        loadNotes();
+    }
+
+    public void saveNotes() {
+        for (int i = 0; i < pages.size(); i++) {
+            TextArea[] page = pages.get(i);
+            prefs.putString("page" + i + "_left", page[0].getText());
+            prefs.putString("page" + i + "_right", page[1].getText());
+        }
+        prefs.putInteger("pages_count", pages.size());
+        prefs.flush();
+    }
+
+    private void loadNotes() {
+        int count = prefs.getInteger("pages_count", 0);
+        if (count == 0) return;
+
+        pages.clear();
+        for (int i = 0; i < count; i++) {
+            createNewPage();
+            TextArea[] page = pages.get(i);
+            page[0].setText(prefs.getString("page" + i + "_left", ""));
+            page[1].setText(prefs.getString("page" + i + "_right", ""));
+        }
+        showPage(0);
+    }
+
+    public void onExit() {
+        saveNotes();
     }
 
     private TextField.TextFieldStyle createTextStyle() {
         BitmapFont font = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
         font.getData().lineHeight *= 1.5f;
+        font.getData().setScale(baseFontScale);
 
         TextField.TextFieldStyle style = new TextField.TextFieldStyle();
         style.font = font;
@@ -86,6 +124,36 @@ public class NotePages {
             float rightX = x + columnWidth + innerPadding * 2;
             page[1].setSize(columnWidth, height);
             page[1].setPosition(rightX, y);
+        }
+    }
+
+    public void setFontScale(float scale) {
+        if (this.baseFontScale == scale) return;
+
+        this.baseFontScale = scale;
+
+        String[][] texts = new String[pages.size()][2];
+        int[][] cursorPositions = new int[pages.size()][2];
+
+        for (int i = 0; i < pages.size(); i++) {
+            TextArea[] page = pages.get(i);
+            texts[i][0] = page[0].getText();
+            texts[i][1] = page[1].getText();
+            cursorPositions[i][0] = page[0].getCursorPosition();
+            cursorPositions[i][1] = page[1].getCursorPosition();
+        }
+
+        for (int i = 0; i < pages.size(); i++) {
+            TextArea[] page = pages.get(i);
+            TextField.TextFieldStyle style = createTextStyle();
+
+            page[0].setStyle(style);
+            page[1].setStyle(style);
+
+            page[0].setText(texts[i][0]);
+            page[1].setText(texts[i][1]);
+            page[0].setCursorPosition(Math.min(cursorPositions[i][0], texts[i][0].length()));
+            page[1].setCursorPosition(Math.min(cursorPositions[i][1], texts[i][1].length()));
         }
     }
 
@@ -173,7 +241,11 @@ public class NotePages {
                 setPositionForNewPage(pages.get(pages.size() - 1));
             }
             target = pages.get(nextPageIndex)[0];
-            showPage(nextPageIndex);
+            if (isVisible) {
+                showPage(nextPageIndex);
+            } else {
+                currentPageIndex = nextPageIndex;
+            }
         }
 
         int cursorPos = area.getCursorPosition();
@@ -182,7 +254,7 @@ public class NotePages {
         String newText = target.getText().isEmpty() ? overflow : target.getText() + "\n" + overflow;
         target.setText(newText);
 
-        if (cursorPos > stay.length()) {
+        if (cursorPos > stay.length() && isVisible) {
             int newCursor = Math.max(0, Math.min(cursorPos - overflowStart, newText.length()));
             stage.setKeyboardFocus(target);
             target.setCursorPosition(newCursor);
@@ -230,10 +302,12 @@ public class NotePages {
     }
 
     public void show() {
+        isVisible = true;
         showPage(0);
     }
 
     public void remove() {
+        isVisible = false;
         for (TextArea[] page : pages) {
             page[0].remove();
             page[1].remove();

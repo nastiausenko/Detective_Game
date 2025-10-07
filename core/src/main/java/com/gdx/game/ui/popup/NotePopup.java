@@ -38,7 +38,10 @@ public class NotePopup extends AbstractPopup {
         btnPrev = game.getButtonFactory().createButton("menu/note/arrow_left.png", 60, 60, pages::prevPage);
         btnNext = game.getButtonFactory().createButton("menu/note/arrow_right.png", 60, 60, pages::nextPage);
         //TODO add close button image
-        closeBtn = game.getButtonFactory().createButton("menu/note/arrow_right.png", 64, 64, this::remove);
+        closeBtn = game.getButtonFactory().createButton("menu/note/arrow_right.png", 64, 64, () -> {
+            pages.onExit();
+            remove();
+        });
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
@@ -59,6 +62,10 @@ public class NotePopup extends AbstractPopup {
         float halfWidth = width / 2f;
         float columnWidth = halfWidth - outerPadding - innerPadding;
 
+        float referenceWidth = 1280f;
+        float scaleFactor = Math.max(0.8f, Math.min(1.5f, screenWidth / referenceWidth));
+
+        pages.setFontScale(scaleFactor);
         pages.setColumnWidth(columnWidth);
         pages.setPosition(
                 noteImage.getX() + outerPadding,
