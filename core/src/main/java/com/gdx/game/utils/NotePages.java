@@ -15,11 +15,14 @@ import java.util.List;
 public class NotePages {
     private final Stage stage;
     private final Skin skin;
+
     private float columnWidth;
     private float columnHeight;
 
     private final List<TextArea[]> pages = new ArrayList<>();
     private int currentPageIndex = 0;
+
+    private boolean programmaticChange = false;
 
     public NotePages(Stage stage, Skin skin) {
         this.stage = stage;
@@ -27,7 +30,7 @@ public class NotePages {
         createNewPage();
     }
 
-    private void createNewPage() {
+    private TextField.TextFieldStyle createTextStyle() {
         BitmapFont font = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
         font.getData().lineHeight *= 1.5f;
 
@@ -37,14 +40,19 @@ public class NotePages {
         style.cursor = skin.newDrawable("cursor", Color.BLACK);
         style.background = null;
         style.selection = skin.newDrawable("white", new Color(0.3f, 0.5f, 1f, 0.5f));
+        return style;
+    }
+
+    private void createNewPage() {
+        TextField.TextFieldStyle style = createTextStyle();
 
         TextArea left = new TextArea("", style);
-        left.setFocusTraversal(false);
-
         TextArea right = new TextArea("", style);
+        left.setFocusTraversal(false);
         right.setFocusTraversal(false);
 
         TextArea[] page = new TextArea[]{left, right};
+        int pageIndex = pages.size();
         pages.add(page);
 
         if (pages.size() == 1) {
@@ -53,19 +61,20 @@ public class NotePages {
             stage.setKeyboardFocus(left);
         }
 
-        left.setTextFieldListener((textField, c) -> {
-            wrapText(left);
-            handleOverflow(left, right);
+        left.setTextFieldListener((tf, c) -> {
+            if (!programmaticChange) rebalanceFromPage(pageIndex);
         });
-
-        right.setTextFieldListener((textField, c) -> {
-            wrapText(right);
-            handleOverflow(right, null);
+        right.setTextFieldListener((tf, c) -> {
+            if (!programmaticChange) rebalanceFromPage(pageIndex);
         });
     }
 
     public void setColumnWidth(float width) {
         this.columnWidth = width;
+        for (TextArea[] page : pages) {
+            page[0].setWidth(width);
+            page[1].setWidth(width);
+        }
     }
 
     public void setPosition(float x, float y, float height, float innerPadding) {
@@ -80,81 +89,106 @@ public class NotePages {
         }
     }
 
-    private void wrapText(TextArea area) {
-        BitmapFont font = area.getStyle().font;
+    private void setPositionForNewPage(TextArea[] page) {
+        if (pages.isEmpty()) return;
+        TextArea[] first = pages.get(0);
+
+        page[0].setSize(columnWidth, columnHeight);
+        page[0].setPosition(first[0].getX(), first[0].getY());
+
+        page[1].setSize(columnWidth, columnHeight);
+        page[1].setPosition(first[1].getX(), first[1].getY());
+    }
+
+
+    private int findOverflowStartIndex(String text, BitmapFont font, float width, int maxLines) {
+        if (text == null || text.isEmpty()) return -1;
+
         GlyphLayout layout = new GlyphLayout();
-
-        String text = area.getText().replace("\r", "");
-        int originalCursor = area.getCursorPosition();
-        boolean cursorAtEnd = originalCursor == text.length();
-
-        StringBuilder wrapped = new StringBuilder();
-        StringBuilder currentLine = new StringBuilder();
+        int lineCount = 0, lineStart = 0, lastSpace = -1;
 
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-
+            if (c == '\r') continue;
             if (c == '\n') {
-                wrapped.append(currentLine).append("\n");
-                currentLine = new StringBuilder();
+                if (++lineCount > maxLines) return lineStart;
+                lineStart = i + 1;
+                lastSpace = -1;
                 continue;
             }
 
-            currentLine.append(c);
-            layout.setText(font, currentLine);
+            if (Character.isWhitespace(c)) lastSpace = i;
 
-            if (layout.width > columnWidth) {
-                currentLine.deleteCharAt(currentLine.length() - 1);
-                wrapped.append(currentLine).append("\n");
-                currentLine = new StringBuilder();
-                if (c != ' ') currentLine.append(c);
+            layout.setText(font, text.substring(lineStart, i + 1));
+            if (layout.width > width) {
+                int breakIndex = (lastSpace >= lineStart) ? lastSpace + 1 : i;
+                if (++lineCount > maxLines) return breakIndex;
+                lineStart = breakIndex;
+                lastSpace = -1;
             }
         }
 
-        if (!currentLine.isEmpty()) wrapped.append(currentLine);
-        area.setText(wrapped.toString());
-
-        if (cursorAtEnd) area.setCursorPosition(area.getText().length());
+        return lineCount + 1 > maxLines ? lineStart : -1;
     }
 
-    private void handleOverflow(TextArea current, TextArea next) {
-        BitmapFont font = current.getStyle().font;
+    private void rebalanceFromPage(int startIndex) {
+        if (startIndex < 0 || startIndex >= pages.size()) return;
+
+        programmaticChange = true;
+        try {
+            boolean changed;
+            do {
+                changed = false;
+                for (int i = startIndex; i < pages.size(); i++) {
+                    TextArea[] page = pages.get(i);
+                    changed |= handleOverflow(page, 0, i);
+                    changed |= handleOverflow(page, 1, i);
+                }
+            } while (changed);
+        } finally {
+            programmaticChange = false;
+        }
+    }
+
+    private boolean handleOverflow(TextArea[] page, int colIndex, int pageIndex) {
+        TextArea area = page[colIndex];
+        BitmapFont font = area.getStyle().font;
         int maxLines = (int) (columnHeight / font.getLineHeight());
 
-        String[] lines = current.getText().split("\n", -1);
-        if (lines.length <= maxLines) return;
+        String text = area.getText();
+        int overflowStart = findOverflowStartIndex(text, font, columnWidth, maxLines);
+        if (overflowStart == -1) return false;
 
-        StringBuilder stay = new StringBuilder();
-        StringBuilder overflow = new StringBuilder();
+        String stay = text.substring(0, overflowStart).trim();
+        String overflow = text.substring(overflowStart).trim();
 
-        for (int i = 0; i < lines.length; i++) {
-            if (i < maxLines) stay.append(lines[i]).append("\n");
-            else overflow.append(lines[i]).append("\n");
-        }
+        TextArea target;
+        int nextPageIndex = pageIndex + (colIndex == 0 ? 0 : 1);
 
-        current.setText(stay.toString().trim());
-
-        if (next != null) {
-            next.setText(overflow.toString().trim());
-            next.setCursorPosition(overflow.length());
-            stage.setKeyboardFocus(next);
+        if (colIndex == 0) {
+            target = page[1];
         } else {
-            createNewPage();
-            TextArea[] newPage = pages.get(pages.size() - 1);
-
-            setPositionForNewPage(newPage);
-            newPage[0].setText(overflow.toString().trim());
-            newPage[0].setCursorPosition(newPage[0].getText().length());
-            showPage(pages.size() - 1);
+            if (nextPageIndex >= pages.size()) {
+                createNewPage();
+                setPositionForNewPage(pages.get(pages.size() - 1));
+            }
+            target = pages.get(nextPageIndex)[0];
+            showPage(nextPageIndex);
         }
-    }
 
-    private void setPositionForNewPage(TextArea[] page) {
-        page[0].setSize(columnWidth, columnHeight);
-        page[0].setPosition(pages.get(0)[0].getX(), pages.get(0)[0].getY());
+        int cursorPos = area.getCursorPosition();
 
-        page[1].setSize(columnWidth, columnHeight);
-        page[1].setPosition(pages.get(0)[1].getX(), pages.get(0)[1].getY());
+        area.setText(stay);
+        String newText = target.getText().isEmpty() ? overflow : target.getText() + "\n" + overflow;
+        target.setText(newText);
+
+        if (cursorPos > stay.length()) {
+            int newCursor = Math.max(0, Math.min(cursorPos - overflowStart, newText.length()));
+            stage.setKeyboardFocus(target);
+            target.setCursorPosition(newCursor);
+        }
+
+        return true;
     }
 
     public void showPage(int index) {
@@ -174,9 +208,7 @@ public class NotePages {
     }
 
     public void nextPage() {
-        if (currentPageIndex < pages.size() - 1) {
-            showPage(currentPageIndex + 1);
-        }
+        if (currentPageIndex + 1 < pages.size()) showPage(currentPageIndex + 1);
     }
 
     public void prevPage() {
