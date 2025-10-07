@@ -12,10 +12,14 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.ui.chars.CharacterIcon;
+import com.gdx.game.ui.chars.CharacterLoader;
 import com.gdx.game.ui.popup.NotePopup;
 import com.gdx.game.ui.popup.SettingsPopup;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
+
+import java.util.List;
 
 public class MapScreen implements Screen {
     private final DetectiveGame game;
@@ -23,7 +27,8 @@ public class MapScreen implements Screen {
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
-    private final Stage stage;
+    private final Stage mapStage;
+    private final Stage uiStage;
 
     private final Texture mapTexture;
     private float drawWidth, drawHeight;
@@ -36,6 +41,8 @@ public class MapScreen implements Screen {
     private final Image notesButton;
     private final Image settingsButton;
 
+    private final List<CharacterIcon> icons;
+
     public MapScreen(DetectiveGame game, FadeTransition transition) {
         this.game = game;
         this.transition = transition;
@@ -44,17 +51,26 @@ public class MapScreen implements Screen {
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
-        stage = new Stage(new ScreenViewport(), game.batch);
+        mapStage = new Stage(viewport, game.batch);
+        uiStage = new Stage(new ScreenViewport(), game.batch);
 
         inputController = new MapInputController(camera, viewport);
         GestureDetector gestureDetector = new GestureDetector(inputController);
-        Gdx.input.setInputProcessor(new InputMultiplexer(stage, gestureDetector, inputController));
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gestureDetector, inputController));
 
         notesButton = createNotesButton();
         settingsButton = createSettingsButton();
 
-        stage.addActor(notesButton);
-        stage.addActor(settingsButton);
+        uiStage.addActor(notesButton);
+        uiStage.addActor(settingsButton);
+
+        icons = CharacterLoader.loadMarkers("characters.json");
+
+        for (CharacterIcon marker : icons) {
+            mapStage.addActor(marker);
+        }
+
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     private Image createNotesButton() {
@@ -62,7 +78,7 @@ public class MapScreen implements Screen {
             "menu/note/note_icon.png", 64, 64,
             () -> {
                 if (notePopup == null) {
-                    notePopup = new NotePopup(stage,
+                    notePopup = new NotePopup(uiStage,
                         new Skin(Gdx.files.internal("ui/uiskin.json")), game);
                 }
                 notePopup.show();
@@ -74,7 +90,7 @@ public class MapScreen implements Screen {
             "menu/settings/settings_btn.png", 64, 64,
             () -> {
                 if (settingsPopup == null) {
-                    settingsPopup = new SettingsPopup(stage, "menu/settings/settings.png", game, transition);
+                    settingsPopup = new SettingsPopup(uiStage, "menu/settings/settings.png", game, transition);
                 }
                 settingsPopup.show();
             });
@@ -92,17 +108,24 @@ public class MapScreen implements Screen {
         game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
         game.batch.end();
 
-        stage.act(delta);
-        stage.draw();
+        mapStage.act(delta);
+        mapStage.draw();
+
+        uiStage.act(delta);
+        uiStage.draw();
 
         transition.update(delta);
         transition.render();
     }
 
+
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true);
-        stage.getViewport().update(width, height, true);
+        float relativeX = camera.position.x / drawWidth;
+        float relativeY = camera.position.y / drawHeight;
+
+        viewport.update(width, height);
+        uiStage.getViewport().update(width, height, true);
 
         float scaleX = viewport.getWorldWidth() / mapTexture.getWidth();
         float scaleY = viewport.getWorldHeight() / mapTexture.getHeight();
@@ -111,7 +134,7 @@ public class MapScreen implements Screen {
         drawWidth = mapTexture.getWidth() * baseScale;
         drawHeight = mapTexture.getHeight() * baseScale;
 
-        camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
+        camera.position.set(drawWidth * relativeX, drawHeight * relativeY, 0);
         camera.update();
 
         inputController.setMapSize(drawWidth, drawHeight);
@@ -120,14 +143,18 @@ public class MapScreen implements Screen {
 
         float aspectNotes = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
         notesButton.setSize(targetHeight * aspectNotes, targetHeight);
-        notesButton.setPosition(10, stage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
+        notesButton.setPosition(10, uiStage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
 
         float aspectExit = settingsButton.getDrawable().getMinWidth() / settingsButton.getDrawable().getMinHeight();
         settingsButton.setSize(targetHeight * aspectExit, targetHeight);
         settingsButton.setPosition(
-            stage.getViewport().getWorldWidth() - settingsButton.getWidth() - 10,
-            stage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10
+            uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - 10,
+            uiStage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10
         );
+
+        for (CharacterIcon marker : icons) {
+            marker.updatePosition(drawWidth, drawHeight, mapTexture.getWidth(), mapTexture.getHeight());
+        }
 
         if (notePopup != null) notePopup.resize(width, height);
         if (settingsPopup != null) settingsPopup.resize(width, height);
@@ -136,7 +163,8 @@ public class MapScreen implements Screen {
     @Override
     public void dispose() {
         mapTexture.dispose();
-        stage.dispose();
+        uiStage.dispose();
+        mapStage.dispose();
         if (notePopup != null) notePopup.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
     }
