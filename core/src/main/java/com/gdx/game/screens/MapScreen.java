@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -118,7 +119,14 @@ public class MapScreen implements Screen {
         game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
         game.batch.end();
 
-        drawBuildingDebugRects();
+//        drawBuildingDebugRects(); //temporary
+
+        float mouseX = mapStage.screenToStageCoordinates(new Vector2(Gdx.input.getX(), Gdx.input.getY())).x;
+        float mouseY = mapStage.screenToStageCoordinates(new Vector2(Gdx.input.getX(), Gdx.input.getY())).y;
+
+        for (CharacterIcon icon : icons) {
+            icon.checkHover(mouseX, mouseY, drawWidth, drawHeight);
+        }
 
         mapStage.act(delta);
         mapStage.draw();
