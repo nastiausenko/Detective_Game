@@ -5,6 +5,7 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -12,6 +13,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.data.BuildingData;
+import com.gdx.game.ui.chars.BuildingLoader;
 import com.gdx.game.ui.chars.CharacterIcon;
 import com.gdx.game.ui.chars.CharacterLoader;
 import com.gdx.game.ui.popup.NotePopup;
@@ -20,6 +23,7 @@ import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
 
 import java.util.List;
+import java.util.Map;
 
 public class MapScreen implements Screen {
     private final DetectiveGame game;
@@ -42,6 +46,8 @@ public class MapScreen implements Screen {
     private final Image settingsButton;
 
     private final List<CharacterIcon> icons;
+    private final List<BuildingData> buildings;
+    private final Map<String, BuildingData> buildingMap;
 
     public MapScreen(DetectiveGame game, FadeTransition transition) {
         this.game = game;
@@ -65,9 +71,13 @@ public class MapScreen implements Screen {
         uiStage.addActor(settingsButton);
 
         icons = CharacterLoader.loadMarkers("characters.json");
+        buildings = BuildingLoader.loadBuildings("buildings.json");
+        buildingMap = BuildingLoader.toMap(buildings);
 
-        for (CharacterIcon marker : icons) {
-            mapStage.addActor(marker);
+        for (CharacterIcon icon : icons) {
+            BuildingData b = buildingMap.get(icon.getBuildingId());
+            icon.setBuilding(b);
+            mapStage.addActor(icon);
         }
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -107,6 +117,8 @@ public class MapScreen implements Screen {
         game.batch.begin();
         game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
         game.batch.end();
+
+        drawBuildingDebugRects();
 
         mapStage.act(delta);
         mapStage.draw();
@@ -153,7 +165,7 @@ public class MapScreen implements Screen {
         );
 
         for (CharacterIcon marker : icons) {
-            marker.updatePosition(drawWidth, drawHeight, mapTexture.getWidth(), mapTexture.getHeight());
+            marker.updatePositionFromBuilding(drawWidth, drawHeight, baseScale);
         }
 
         if (notePopup != null) notePopup.resize(width, height);
@@ -173,4 +185,25 @@ public class MapScreen implements Screen {
     @Override public void pause() {}
     @Override public void resume() {}
     @Override public void hide() {}
+
+    //TODO temporary method for visualizing building coords
+    private void drawBuildingDebugRects() {
+        ShapeRenderer shapeRenderer = new ShapeRenderer();
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(1, 1, 0, 1);
+
+        for (BuildingData b : buildings) {
+            float x, y, w, h;
+
+            x = b.x * drawWidth;
+            y = b.y * drawHeight;
+            w = b.width * drawWidth;
+            h = b.height * drawHeight;
+
+            shapeRenderer.rect(x, y, w, h);
+        }
+
+        shapeRenderer.end();
+    }
 }

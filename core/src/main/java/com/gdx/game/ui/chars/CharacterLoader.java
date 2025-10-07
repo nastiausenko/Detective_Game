@@ -14,7 +14,7 @@ public class CharacterLoader {
 
         List<CharacterIcon> markers = new ArrayList<>();
         for (CharacterData c : characters) {
-            markers.add(new CharacterIcon(c.icon, c.x, c.y, c.size));
+            markers.add(new CharacterIcon(c.id, c.name, c.icon, c.buildingId));
         }
         return markers;
     }
