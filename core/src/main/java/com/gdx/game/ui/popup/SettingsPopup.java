@@ -42,7 +42,7 @@ public class SettingsPopup extends AbstractPopup {
     private void handleExit() {
         if (!transition.isTransitioning()) {
             transition.startFadeOut(0.7f, () -> {
-                game.setScreen(new MenuScreen(game));
+                game.setScreen(new MenuScreen(game, transition));
                 transition.startFadeIn(0.7f);
             });
         }

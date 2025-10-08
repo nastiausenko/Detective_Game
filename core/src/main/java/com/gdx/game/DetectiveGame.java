@@ -6,6 +6,7 @@ import com.gdx.game.screens.MenuScreen;
 import com.gdx.game.ui.GdxResourceProvider;
 import com.gdx.game.ui.ResourceProvider;
 import com.gdx.game.ui.UIButtonFactory;
+import com.gdx.game.utils.FadeTransition;
 
 public class DetectiveGame extends Game {
     public SpriteBatch batch;
@@ -14,9 +15,10 @@ public class DetectiveGame extends Game {
     @Override
     public void create() {
         batch = new SpriteBatch();
+        FadeTransition transition = new FadeTransition();
         ResourceProvider resourceProvider = new GdxResourceProvider();
         buttonFactory = new UIButtonFactory(resourceProvider);
-        this.setScreen(new MenuScreen(this));
+        this.setScreen(new MenuScreen(this, transition));
     }
 
     @Override

@@ -1,12 +1,13 @@
 package com.gdx.game.utils;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 
 public class FadeTransition {
     private final ShapeRenderer shapeRenderer = new ShapeRenderer();
+    private final OrthographicCamera camera = new OrthographicCamera();
 
     private float alpha = 0f;
     private float duration = 1f;
@@ -57,9 +58,13 @@ public class FadeTransition {
     public void render() {
         if (alpha <= 0f) return;
 
+        camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.update();
+        shapeRenderer.setProjectionMatrix(camera.combined);
+
         Gdx.gl.glEnable(GL20.GL_BLEND);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(new Color(0, 0, 0, alpha));
+        shapeRenderer.setColor(0, 0, 0, alpha);
         shapeRenderer.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         shapeRenderer.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
