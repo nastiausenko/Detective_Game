@@ -10,27 +10,30 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.FadeTransition;
+import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class MenuScreen implements Screen {
+    private final DetectiveGame game;
+    private final FadeTransition transition;
+
+    private final OrthographicCamera camera;
     private final ScreenViewport viewport;
     private final Stage stage;
     private final Texture backgroundTexture;
     private final Image startBtn;
-    private final FadeTransition transition;
+    private float drawWidth, drawHeight;
 
-    public MenuScreen(DetectiveGame game) {
-        this.transition = new FadeTransition();
+    public MenuScreen(DetectiveGame game, FadeTransition transition) {
+        this.game = game;
+        this.transition = transition;
 
-        OrthographicCamera camera = new OrthographicCamera();
+        camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
         viewport.apply();
 
-        stage = new Stage(viewport, game.batch);
+        stage = new Stage(new ScreenViewport(), game.batch);
 
         backgroundTexture = new Texture("background.png");
-        Image background = new Image(backgroundTexture);
-        background.setFillParent(true);
-        stage.addActor(background);
 
         startBtn = game.getButtonFactory().createButton(
             "start_btn.png",
@@ -51,11 +54,18 @@ public class MenuScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0, 0, 0, 1);
+
+        camera.update();
+        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.begin();
+        game.batch.draw(backgroundTexture, 0, 0, drawWidth, drawHeight);
+        game.batch.end();
 
         stage.act(delta);
         stage.draw();
@@ -66,14 +76,26 @@ public class MenuScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true);
+        viewport.update(width, height);
+        stage.getViewport().update(width, height, true);
 
-        float targetHeight = height*0.1f;
-        float aspect = startBtn.getDrawable().getMinWidth() / startBtn.getDrawable().getMinHeight();
-        startBtn.setSize(targetHeight * aspect, targetHeight);
-        startBtn.setPosition(
-            (viewport.getWorldWidth() - startBtn.getWidth()) / 2f,
-            viewport.getWorldHeight() * 0.2f
+        float[] size = ScreenUtilsHelper.calculateDrawSize(
+            backgroundTexture.getWidth(),
+            backgroundTexture.getHeight(),
+            viewport.getWorldWidth(),
+            viewport.getWorldHeight()
+        );
+
+        drawWidth = size[0];
+        drawHeight = size[1];
+
+        camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
+        camera.update();
+
+        float targetHeight = height * 0.1f;
+        ScreenUtilsHelper.scaleAndPositionButton(startBtn, targetHeight,
+            ScreenUtilsHelper.centerX(startBtn, stage.getViewport()),
+            stage.getViewport().getWorldHeight() * 0.2f
         );
     }
 

@@ -22,6 +22,7 @@ import com.gdx.game.ui.popup.NotePopup;
 import com.gdx.game.ui.popup.SettingsPopup;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
+import com.gdx.game.utils.ScreenUtilsHelper;
 
 import java.util.List;
 import java.util.Map;
@@ -147,12 +148,15 @@ public class MapScreen implements Screen {
         viewport.update(width, height);
         uiStage.getViewport().update(width, height, true);
 
-        float scaleX = viewport.getWorldWidth() / mapTexture.getWidth();
-        float scaleY = viewport.getWorldHeight() / mapTexture.getHeight();
-        float baseScale = Math.max(1f, Math.max(scaleX, scaleY));
+        float[] size = ScreenUtilsHelper.calculateDrawSize(
+            mapTexture.getWidth(),
+            mapTexture.getHeight(),
+            viewport.getWorldWidth(),
+            viewport.getWorldHeight()
+        );
 
-        drawWidth = mapTexture.getWidth() * baseScale;
-        drawHeight = mapTexture.getHeight() * baseScale;
+        drawWidth = size[0];
+        drawHeight = size[1];
 
         camera.position.set(drawWidth * relativeX, drawHeight * relativeY, 0);
         camera.update();
@@ -161,19 +165,19 @@ public class MapScreen implements Screen {
 
         float targetHeight = height * 0.12f;
 
-        float aspectNotes = notesButton.getDrawable().getMinWidth() / notesButton.getDrawable().getMinHeight();
-        notesButton.setSize(targetHeight * aspectNotes, targetHeight);
-        notesButton.setPosition(10, uiStage.getViewport().getWorldHeight() - notesButton.getHeight() - 10);
+        ScreenUtilsHelper.scaleAndPositionButton(notesButton, targetHeight, 10,
+            uiStage.getViewport().getWorldHeight() - targetHeight - 10);
 
-        float aspectExit = settingsButton.getDrawable().getMinWidth() / settingsButton.getDrawable().getMinHeight();
-        settingsButton.setSize(targetHeight * aspectExit, targetHeight);
-        settingsButton.setPosition(
+        ScreenUtilsHelper.scaleAndPositionButton(settingsButton, targetHeight,
             uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - 10,
-            uiStage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10
+            uiStage.getViewport().getWorldHeight() - targetHeight - 10
         );
 
         for (CharacterIcon marker : icons) {
-            marker.updatePositionFromBuilding(drawWidth, drawHeight, baseScale);
+            marker.updatePositionFromBuilding(drawWidth, drawHeight, Math.max(1f, Math.max(
+                viewport.getWorldWidth() / mapTexture.getWidth(),
+                viewport.getWorldHeight() / mapTexture.getHeight()
+            )));
         }
 
         if (notePopup != null) notePopup.resize(width, height);
