@@ -3,12 +3,10 @@ package com.gdx.game.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -65,7 +63,7 @@ public class MapScreen implements Screen {
 
         inputController = new MapInputController(camera, viewport);
         GestureDetector gestureDetector = new GestureDetector(inputController);
-        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, gestureDetector, inputController));
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, mapStage, gestureDetector, inputController));
 
         notesButton = createNotesButton();
         settingsButton = createSettingsButton();
@@ -122,23 +120,6 @@ public class MapScreen implements Screen {
         game.batch.end();
 
 //        drawBuildingDebugRects(); //temporary
-
-        float mouseX = mapStage.screenToStageCoordinates(new Vector2(Gdx.input.getX(), Gdx.input.getY())).x;
-        float mouseY = mapStage.screenToStageCoordinates(new Vector2(Gdx.input.getX(), Gdx.input.getY())).y;
-
-        boolean anyHovered = false;
-
-        for (CharacterIcon icon : icons) {
-            boolean hovered = icon.checkHover(mouseX, mouseY, drawWidth, drawHeight);
-            if (hovered) anyHovered = true;
-        }
-
-        if (anyHovered) {
-            Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
-        } else {
-            Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
-        }
-
 
         mapStage.act(delta);
         mapStage.draw();

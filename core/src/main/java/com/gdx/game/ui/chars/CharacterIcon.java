@@ -3,6 +3,9 @@ package com.gdx.game.ui.chars;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.gdx.game.data.BuildingData;
 
@@ -20,7 +23,22 @@ public class CharacterIcon extends Image {
         this.buildingId = buildingId;
 
         setSize(baseSize, baseSize * 1.4f);
-        setVisible(false);
+
+        getColor().a = 0.3f;
+
+        addListener(new InputListener() {
+            @Override
+            public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
+                getColor().a = 1f;
+                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
+            }
+
+            @Override
+            public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
+                getColor().a = 0.3f;
+                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
+            }
+        });
     }
 
     public String getBuildingId() {
@@ -52,27 +70,5 @@ public class CharacterIcon extends Image {
 
     public String getId() {
         return id;
-    }
-
-    public boolean checkHover(float mouseX, float mouseY, float mapWidth, float mapHeight) {
-        if (linkedBuilding == null) return false;
-
-        float bx = linkedBuilding.x * mapWidth;
-        float by = linkedBuilding.y * mapHeight;
-        float bw = linkedBuilding.width * mapWidth;
-        float bh = linkedBuilding.height * mapHeight;
-
-        float ix = getX();
-        float iy = getY();
-        float iw = getWidth();
-        float ih = getHeight();
-
-        boolean inside = (mouseX >= bx && mouseX <= bx + bw &&
-            mouseY >= by && mouseY <= by + bh) ||
-            (mouseX >= ix && mouseX <= ix + iw &&
-                mouseY >= iy && mouseY <= iy + ih);
-
-        setVisible(inside);
-        return inside;
     }
 }
