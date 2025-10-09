@@ -1,4 +1,8 @@
 [
-  { "id": "char1", "name": "Officer", "icon": "chars/icons/icon.png", "buildingId": "cafe" }
+  { "id": "char1", "name": "Officer", "icon": "chars/icons/icon.png", "buildingId": "town_hall" },
+  { "id": "char2", "name": "Doctor", "icon": "chars/icons/icon2.png", "buildingId": "hospital" },
+  { "id": "char3", "name": "Student", "icon": "chars/icons/icon3.png", "buildingId": "med_school" },
+  { "id": "char4", "name": "Cashier", "icon": "chars/icons/icon4.png", "buildingId": "shop" },
+  { "id": "char5", "name": "Sister", "icon": "chars/icons/icon5.png", "buildingId": "house2" }
 ]
 

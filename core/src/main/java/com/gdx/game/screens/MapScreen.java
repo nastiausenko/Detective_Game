@@ -3,6 +3,7 @@ package com.gdx.game.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -125,9 +126,19 @@ public class MapScreen implements Screen {
         float mouseX = mapStage.screenToStageCoordinates(new Vector2(Gdx.input.getX(), Gdx.input.getY())).x;
         float mouseY = mapStage.screenToStageCoordinates(new Vector2(Gdx.input.getX(), Gdx.input.getY())).y;
 
+        boolean anyHovered = false;
+
         for (CharacterIcon icon : icons) {
-            icon.checkHover(mouseX, mouseY, drawWidth, drawHeight);
+            boolean hovered = icon.checkHover(mouseX, mouseY, drawWidth, drawHeight);
+            if (hovered) anyHovered = true;
         }
+
+        if (anyHovered) {
+            Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
+        } else {
+            Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
+        }
+
 
         mapStage.act(delta);
         mapStage.draw();

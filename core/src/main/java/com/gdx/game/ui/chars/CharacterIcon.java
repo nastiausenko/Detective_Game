@@ -54,8 +54,8 @@ public class CharacterIcon extends Image {
         return id;
     }
 
-    public void checkHover(float mouseX, float mouseY, float mapWidth, float mapHeight) {
-        if (linkedBuilding == null) return;
+    public boolean checkHover(float mouseX, float mouseY, float mapWidth, float mapHeight) {
+        if (linkedBuilding == null) return false;
 
         float bx = linkedBuilding.x * mapWidth;
         float by = linkedBuilding.y * mapHeight;
@@ -73,11 +73,6 @@ public class CharacterIcon extends Image {
                 mouseY >= iy && mouseY <= iy + ih);
 
         setVisible(inside);
-
-        if (inside) {
-            Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
-        } else {
-            Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
-        }
+        return inside;
     }
 }
