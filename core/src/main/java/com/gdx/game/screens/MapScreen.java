@@ -21,6 +21,7 @@ import com.gdx.game.ui.chars.CharacterIcon;
 import com.gdx.game.ui.chars.CharacterLoader;
 import com.gdx.game.ui.popup.NotePopup;
 import com.gdx.game.ui.popup.SettingsPopup;
+import com.gdx.game.ui.popup.StoryPopup;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
 import com.gdx.game.utils.ScreenUtilsHelper;
@@ -44,6 +45,7 @@ public class MapScreen implements Screen {
 
     private NotePopup notePopup;
     private SettingsPopup settingsPopup;
+    private StoryPopup storyPopup;
 
     private final Image notesButton;
     private final Image settingsButton;
@@ -51,6 +53,7 @@ public class MapScreen implements Screen {
     private final List<CharacterIcon> icons;
     private final List<BuildingData> buildings;
     private final Map<String, BuildingData> buildingMap;
+
 
     public MapScreen(DetectiveGame game, FadeTransition transition) {
         this.game = game;
@@ -62,6 +65,10 @@ public class MapScreen implements Screen {
         viewport = new ScreenViewport(camera);
         mapStage = new Stage(viewport, game.batch);
         uiStage = new Stage(new ScreenViewport(), game.batch);
+
+        //TODO refs for prologue
+        storyPopup = new StoryPopup(uiStage, game);
+        storyPopup.show();
 
         inputController = new MapInputController(camera, viewport);
         GestureDetector gestureDetector = new GestureDetector(inputController);
@@ -146,6 +153,8 @@ public class MapScreen implements Screen {
         uiStage.act(delta);
         uiStage.draw();
 
+        if (storyPopup != null) storyPopup.update(delta);
+
         transition.update(delta);
         transition.render();
     }
@@ -193,6 +202,7 @@ public class MapScreen implements Screen {
 
         if (notePopup != null) notePopup.resize(width, height);
         if (settingsPopup != null) settingsPopup.resize(width, height);
+        if (storyPopup != null) storyPopup.resize(width, height);
     }
 
     @Override
@@ -201,6 +211,8 @@ public class MapScreen implements Screen {
         uiStage.dispose();
         mapStage.dispose();
         if (notePopup != null) notePopup.dispose();
+        if (settingsPopup != null) settingsPopup.dispose();
+        if (transition != null) transition.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
     }
 

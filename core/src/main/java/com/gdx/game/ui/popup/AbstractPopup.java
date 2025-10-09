@@ -18,7 +18,6 @@ public abstract class AbstractPopup {
         );
     }
 
-    /** Масштабування збереженням пропорцій і центруванням */
     protected void resizeCentered(Image image, Texture texture, float screenWidth, float screenHeight) {
         float maxWidth = screenWidth * 0.9f;
         float maxHeight = screenHeight * 0.9f;
