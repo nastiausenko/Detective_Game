@@ -9,7 +9,6 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
@@ -18,6 +17,7 @@ import com.gdx.game.ui.chars.BuildingLoader;
 import com.gdx.game.ui.chars.CharacterIcon;
 import com.gdx.game.ui.chars.CharacterLoader;
 import com.gdx.game.ui.popup.NotePopup;
+import com.gdx.game.ui.popup.PopupFactory;
 import com.gdx.game.ui.popup.SettingsPopup;
 import com.gdx.game.ui.popup.StoryPopup;
 import com.gdx.game.utils.FadeTransition;
@@ -41,9 +41,10 @@ public class MapScreen implements Screen {
 
     private final MapInputController inputController;
 
+    private final PopupFactory popupFactory;
     private NotePopup notePopup;
     private SettingsPopup settingsPopup;
-    private StoryPopup storyPopup;
+    private final StoryPopup storyPopup;
 
     private final Image notesButton;
     private final Image settingsButton;
@@ -64,10 +65,6 @@ public class MapScreen implements Screen {
         mapStage = new Stage(viewport, game.batch);
         uiStage = new Stage(new ScreenViewport(), game.batch);
 
-        //TODO refs for prologue
-        storyPopup = new StoryPopup(uiStage, game);
-        storyPopup.show();
-
         inputController = new MapInputController(camera, viewport);
         GestureDetector gestureDetector = new GestureDetector(inputController);
         Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, mapStage, gestureDetector, inputController));
@@ -77,6 +74,11 @@ public class MapScreen implements Screen {
 
         uiStage.addActor(notesButton);
         uiStage.addActor(settingsButton);
+
+        //TODO refs for prologue
+        popupFactory = new PopupFactory(uiStage, game, transition);
+        storyPopup = popupFactory.createStoryPopup();
+        storyPopup.show();
 
         icons = CharacterLoader.loadMarkers("characters.json");
         buildings = BuildingLoader.loadBuildings("buildings.json");
@@ -96,8 +98,7 @@ public class MapScreen implements Screen {
             "menu/note/note_icon.png", 64, 64,
             () -> {
                 if (notePopup == null) {
-                    notePopup = new NotePopup(uiStage,
-                        new Skin(Gdx.files.internal("ui/uiskin.json")), game);
+                    notePopup = popupFactory.createNotePopup();
                 }
                 notePopup.show();
             });
@@ -108,7 +109,7 @@ public class MapScreen implements Screen {
             "menu/settings/settings_btn.png", 64, 64,
             () -> {
                 if (settingsPopup == null) {
-                    settingsPopup = new SettingsPopup(uiStage, "menu/settings/settings.png", game, transition);
+                    settingsPopup = popupFactory.createSettingsPopup();
                 }
                 settingsPopup.show();
             });
@@ -134,7 +135,7 @@ public class MapScreen implements Screen {
         uiStage.act(delta);
         uiStage.draw();
 
-        if (storyPopup != null) storyPopup.update(delta);
+        storyPopup.update(delta);
 
         transition.update(delta);
         transition.render();
@@ -194,7 +195,6 @@ public class MapScreen implements Screen {
         if (notePopup != null) notePopup.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
         if (transition != null) transition.dispose();
-        if (settingsPopup != null) settingsPopup.dispose();
     }
 
     @Override public void show() {}
