@@ -150,15 +150,12 @@ public class MapScreen implements Screen {
         viewport.update(width, height);
         uiStage.getViewport().update(width, height, true);
 
-        float[] size = ScreenUtilsHelper.calculateDrawSize(
-            mapTexture.getWidth(),
-            mapTexture.getHeight(),
-            viewport.getWorldWidth(),
-            viewport.getWorldHeight()
-        );
+        float scaleX = viewport.getWorldWidth() / mapTexture.getWidth();
+        float scaleY = viewport.getWorldHeight() / mapTexture.getHeight();
+        float baseScale = Math.max(1f, Math.max(scaleX, scaleY));
 
-        drawWidth = size[0];
-        drawHeight = size[1];
+        drawWidth = mapTexture.getWidth() * baseScale;
+        drawHeight = mapTexture.getHeight() * baseScale;
 
         camera.position.set(drawWidth * relativeX, drawHeight * relativeY, 0);
         camera.update();
@@ -170,9 +167,11 @@ public class MapScreen implements Screen {
         ScreenUtilsHelper.scaleAndPositionButton(notesButton, targetHeight, 10,
             uiStage.getViewport().getWorldHeight() - targetHeight - 10);
 
-        ScreenUtilsHelper.scaleAndPositionButton(settingsButton, targetHeight,
+        float aspectExit = settingsButton.getDrawable().getMinWidth() / settingsButton.getDrawable().getMinHeight();
+        settingsButton.setSize(targetHeight * aspectExit, targetHeight);
+        settingsButton.setPosition(
             uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - 10,
-            uiStage.getViewport().getWorldHeight() - targetHeight - 10
+            uiStage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10
         );
 
         for (CharacterIcon marker : icons) {
