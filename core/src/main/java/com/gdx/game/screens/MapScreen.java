@@ -20,6 +20,7 @@ import com.gdx.game.ui.popup.NotePopup;
 import com.gdx.game.ui.popup.PopupFactory;
 import com.gdx.game.ui.popup.SettingsPopup;
 import com.gdx.game.ui.popup.StoryPopup;
+import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
 import com.gdx.game.utils.ScreenUtilsHelper;
@@ -58,7 +59,7 @@ public class MapScreen implements Screen {
         this.game = game;
         this.transition = transition;
 
-        mapTexture = new Texture("img.png");
+        mapTexture = new Texture(Assets.MAP_BACKGROUND);
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -95,7 +96,7 @@ public class MapScreen implements Screen {
 
     private Image createNotesButton() {
         return game.getButtonFactory().createButton(
-            "menu/note/note_icon.png", 64, 64,
+            Assets.NOTE_ICON, 64, 64,
             () -> {
                 if (notePopup == null) {
                     notePopup = popupFactory.createNotePopup();
@@ -106,7 +107,7 @@ public class MapScreen implements Screen {
 
     private Image createSettingsButton() {
         return game.getButtonFactory().createButton(
-            "menu/settings/settings_btn.png", 64, 64,
+            Assets.SETTINGS_BUTTON, 64, 64,
             () -> {
                 if (settingsPopup == null) {
                     settingsPopup = popupFactory.createSettingsPopup();

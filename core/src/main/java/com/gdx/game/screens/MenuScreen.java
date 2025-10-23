@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
@@ -33,10 +34,10 @@ public class MenuScreen implements Screen {
 
         stage = new Stage(new ScreenViewport(), game.batch);
 
-        backgroundTexture = new Texture("background.png");
+        backgroundTexture = new Texture(Assets.MENU_BACKGROUND);
 
         startBtn = game.getButtonFactory().createButton(
-            "start_btn.png",
+            Assets.START_BUTTON,
             200, 80,
             () -> {
                 if (!transition.isTransitioning()) {

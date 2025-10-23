@@ -5,12 +5,12 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.utils.Assets;
 
 public class StoryPopup extends AbstractPopup {
     private final Image storyImage;
@@ -32,7 +32,7 @@ public class StoryPopup extends AbstractPopup {
         this.game = game;
 
         // Картинка прологу
-        storyTexture = new Texture("menu/story/prologue.png");
+        storyTexture = new Texture(Assets.PROLOGUE);
         storyImage = new Image(storyTexture);
 
 
@@ -47,7 +47,7 @@ public class StoryPopup extends AbstractPopup {
         storyLabel.setAlignment(Align.topLeft);
 
         continueButton = game.getButtonFactory().createButton(
-            "menu/story/continue_btn.png", 60, 60,
+            Assets.CONTINUE_BUTTON, 60, 60,
             () -> {
                 if (finished) this.remove();
                 else finishText();

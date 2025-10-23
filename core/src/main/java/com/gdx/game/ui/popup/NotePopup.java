@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.NotePages;
 
 public class NotePopup extends AbstractPopup {
@@ -25,7 +26,7 @@ public class NotePopup extends AbstractPopup {
         this.skin = skin;
         this.pages = new NotePages(stage, skin);
 
-        noteTexture = new Texture("menu/note/notes.png");
+        noteTexture = new Texture(Assets.NOTES);
         noteImage = new Image(noteTexture);
         noteImage.addListener(new ClickListener() {
             @Override
@@ -35,10 +36,10 @@ public class NotePopup extends AbstractPopup {
         });
 
 
-        btnPrev = game.getButtonFactory().createButton("menu/note/arrow_left.png", 60, 60, pages::prevPage);
-        btnNext = game.getButtonFactory().createButton("menu/note/arrow_right.png", 60, 60, pages::nextPage);
+        btnPrev = game.getButtonFactory().createButton(Assets.ARROW_LEFT, 60, 60, pages::prevPage);
+        btnNext = game.getButtonFactory().createButton(Assets.ARROW_RIGHT, 60, 60, pages::nextPage);
         //TODO add close button image
-        closeBtn = game.getButtonFactory().createButton("menu/note/arrow_right.png", 64, 64, () -> {
+        closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, () -> {
             pages.onExit();
             remove();
         });

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.NotePages;
 
@@ -25,7 +26,7 @@ public class PopupFactory {
     }
 
     public SettingsPopup createSettingsPopup() {
-        return new SettingsPopup(stage, "menu/settings/settings.png", game, transition);
+        return new SettingsPopup(stage, Assets.SETTINGS, game, transition);
     }
 
     public StoryPopup createStoryPopup() {

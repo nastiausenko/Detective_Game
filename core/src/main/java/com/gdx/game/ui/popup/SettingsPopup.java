@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.screens.MenuScreen;
+import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 
 public class SettingsPopup extends AbstractPopup {
@@ -33,8 +34,8 @@ public class SettingsPopup extends AbstractPopup {
             }
         });
 
-        continueBtn = game.getButtonFactory().createButton("menu/settings/continue_btn.png", 0, 0, this::remove);
-        exitBtn = game.getButtonFactory().createButton("menu/settings/exit_btn.png", 0, 0, this::handleExit);
+        continueBtn = game.getButtonFactory().createButton(Assets.CONTINUE_BUTTON, 0, 0, this::remove);
+        exitBtn = game.getButtonFactory().createButton(Assets.EXIT_BUTTON, 0, 0, this::handleExit);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }

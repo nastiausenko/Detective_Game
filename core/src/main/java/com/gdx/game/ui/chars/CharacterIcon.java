@@ -24,7 +24,7 @@ public class CharacterIcon extends Image {
 
         setSize(baseSize, baseSize * 1.4f);
 
-        getColor().a = 0.3f;
+        getColor().a = 0.7f;
 
         addListener(new InputListener() {
             @Override
@@ -35,7 +35,7 @@ public class CharacterIcon extends Image {
 
             @Override
             public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
-                getColor().a = 0.3f;
+                getColor().a = 0.7f;
                 Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
             }
         });
