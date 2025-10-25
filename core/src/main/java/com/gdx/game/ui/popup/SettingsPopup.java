@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.screens.MenuScreen;
+import com.gdx.game.ui.timer.GameTimer;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 
@@ -20,12 +21,12 @@ public class SettingsPopup extends AbstractPopup {
     private final DetectiveGame game;
     private final FadeTransition transition;
 
-    public SettingsPopup(Stage stage, String texturePath, DetectiveGame game, FadeTransition transition) {
+    public SettingsPopup(Stage stage, DetectiveGame game, FadeTransition transition) {
         super(stage);
         this.game = game;
         this.transition = transition;
 
-        settTexture = new Texture(texturePath);
+        settTexture = new Texture(Assets.SETTINGS);
         settImage = new Image(settTexture);
         settImage.addListener(new ClickListener() {
             @Override

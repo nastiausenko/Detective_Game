@@ -14,6 +14,7 @@ public class PopupFactory {
     private final FadeTransition transition;
     private final Skin skin;
 
+
     public PopupFactory(Stage stage, DetectiveGame game, FadeTransition transition) {
         this.stage = stage;
         this.game = game;
@@ -26,7 +27,7 @@ public class PopupFactory {
     }
 
     public SettingsPopup createSettingsPopup() {
-        return new SettingsPopup(stage, Assets.SETTINGS, game, transition);
+        return new SettingsPopup(stage, game, transition);
     }
 
     public StoryPopup createStoryPopup() {

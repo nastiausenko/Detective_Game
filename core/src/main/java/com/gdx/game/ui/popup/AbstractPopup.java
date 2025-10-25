@@ -46,4 +46,8 @@ public abstract class AbstractPopup {
     public void remove() {
         background.remove();
     }
+
+    public boolean isVisible() {
+        return background.hasParent();
+    }
 }

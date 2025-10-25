@@ -150,7 +150,12 @@ public class MapScreen implements Screen {
         uiStage.draw();
 
         storyPopup.update(delta);
-        timer.update(delta);
+        if (settingsPopup != null && settingsPopup.isVisible()) {
+            timer.pause();
+        } else {
+            timer.resume();
+            timer.update(delta);
+        }
 
         transition.update(delta);
         transition.render();

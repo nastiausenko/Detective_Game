@@ -23,6 +23,7 @@ public class GameTimer {
     private float elapsedRealTime = 0f;
     private final float totalRealSeconds;
     private boolean timeOver = false;
+    private boolean paused = false;
 
     public GameTimer(Stage stage, float totalRealSeconds) {
         this.stage = stage;
@@ -45,7 +46,7 @@ public class GameTimer {
     }
 
     public void update(float delta) {
-        if (timeOver) {
+        if (paused || timeOver) {
             // TODO time over logic
             return;
         }
@@ -103,9 +104,18 @@ public class GameTimer {
         );
     }
 
+    public void pause() {
+        paused = true;
+    }
+
+    public void resume() {
+        paused = false;
+    }
+
     public void reset() {
         elapsedRealTime = 0f;
         timeOver = false;
+        paused = false;
     }
 
     public boolean isTimeOver() {
