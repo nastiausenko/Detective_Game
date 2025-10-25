@@ -1,9 +1,6 @@
 package com.gdx.game.screens;
 
-import com.badlogic.gdx.Application;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -78,10 +75,17 @@ public class MapScreen implements Screen {
         uiStage.addActor(notesButton);
         uiStage.addActor(settingsButton);
 
-        //TODO refs for prologue
+        Preferences prefs = Gdx.app.getPreferences("game_data");
+        boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
+
         popupFactory = new PopupFactory(uiStage, game, transition);
         storyPopup = popupFactory.createStoryPopup();
-        storyPopup.show();
+
+        if (isFirstRun) {
+            storyPopup.show();
+            prefs.putBoolean("isFirstRun", false);
+            prefs.flush();
+        }
 
         icons = CharacterLoader.loadMarkers("characters.json");
         buildings = BuildingLoader.loadBuildings("buildings.json");
