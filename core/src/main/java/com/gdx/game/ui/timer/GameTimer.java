@@ -2,6 +2,7 @@ package com.gdx.game.ui.timer;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -20,6 +21,8 @@ public class GameTimer {
     private final Label gameTimeLabel;
     private final BitmapFont font;
 
+    private final Preferences prefs;
+
     private float elapsedRealTime = 0f;
     private final float totalRealSeconds;
     private boolean timeOver = false;
@@ -28,6 +31,9 @@ public class GameTimer {
     public GameTimer(Stage stage, float totalRealSeconds) {
         this.stage = stage;
         this.totalRealSeconds = totalRealSeconds;
+        prefs = Gdx.app.getPreferences("game_timer");
+
+        elapsedRealTime = prefs.getFloat("elapsedTime", 0f);
 
         timerBackground = new Image(new Texture(Assets.TIMER));
         stage.addActor(timerBackground);
@@ -110,6 +116,11 @@ public class GameTimer {
 
     public void resume() {
         paused = false;
+    }
+
+    public void saveTime() {
+        prefs.putFloat("elapsedTime", elapsedRealTime);
+        prefs.flush();
     }
 
     public void reset() {

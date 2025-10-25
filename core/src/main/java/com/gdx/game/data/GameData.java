@@ -6,7 +6,8 @@ import com.badlogic.gdx.Preferences;
 public class GameData {
     private static final String[] PREFS_NAMES = {
         "notes_data",
-        "game_data"
+        "game_data",
+        "game_timer",
     };
 
     public static void clearAll() {

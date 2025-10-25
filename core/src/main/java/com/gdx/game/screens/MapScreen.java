@@ -122,6 +122,7 @@ public class MapScreen implements Screen {
                 if (settingsPopup == null) {
                     settingsPopup = popupFactory.createSettingsPopup();
                 }
+                timer.saveTime();
                 settingsPopup.show();
             });
     }
@@ -223,10 +224,17 @@ public class MapScreen implements Screen {
         if (notePopup != null) notePopup.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
         if (transition != null) transition.dispose();
+        if (timer != null) timer.saveTime();
+
     }
 
     @Override public void show() {}
-    @Override public void pause() {}
+    @Override public void pause() {
+        if (timer != null) {
+            timer.saveTime();
+        }
+    }
+
     @Override public void resume() {}
     @Override public void hide() {}
 
