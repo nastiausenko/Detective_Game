@@ -34,7 +34,6 @@ public class NotePages {
         this.stage = stage;
         this.skin = skin;
         this.prefs = Gdx.app.getPreferences(PREFS_NAME);
-        System.out.println(System.getProperty("user.home") + "/Library/Preferences/" + "notes_data");
         createNewPage();
         loadNotes();
     }

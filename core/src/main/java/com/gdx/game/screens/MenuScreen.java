@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.data.GameData;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.ScreenUtilsHelper;
@@ -23,6 +24,8 @@ public class MenuScreen implements Screen {
     private final Texture backgroundTexture;
     private final Texture startTexture;
     private final Image startBtn;
+    private final Image exitBtn;
+    private final Image newGameBtn;
     private float drawWidth, drawHeight;
 
     public MenuScreen(DetectiveGame game, FadeTransition transition) {
@@ -50,7 +53,28 @@ public class MenuScreen implements Screen {
             }
         );
 
+        exitBtn = game.getButtonFactory().createButton(
+            Assets.EXIT_MENU_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
+            () -> Gdx.app.exit()
+        );
+
+        newGameBtn = game.getButtonFactory().createButton(
+            Assets.NEW_GAME_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
+            () -> {
+                if (!transition.isTransitioning()) {
+                    transition.startFadeOut(0.7f, () -> {
+                        GameData.clearAll();
+
+                        game.setScreen(new MapScreen(game, transition));
+                        transition.startFadeIn(0.7f);
+                    });
+                }
+            }
+        );
+
         stage.addActor(startBtn);
+        stage.addActor(newGameBtn);
+        stage.addActor(exitBtn);
     }
 
     @Override
@@ -97,7 +121,19 @@ public class MenuScreen implements Screen {
         float targetHeight = height * 0.1f;
         ScreenUtilsHelper.scaleAndPositionButton(startBtn, targetHeight,
             ScreenUtilsHelper.centerX(startBtn, stage.getViewport()),
-            stage.getViewport().getWorldHeight() * 0.2f
+            stage.getViewport().getWorldHeight() * 0.4f
+        );
+
+        newGameBtn.setSize(startBtn.getWidth(), startBtn.getHeight());
+        ScreenUtilsHelper.scaleAndPositionButton(newGameBtn, targetHeight,
+            ScreenUtilsHelper.centerX(newGameBtn, stage.getViewport()),
+            startBtn.getY() - targetHeight - 20
+        );
+
+        exitBtn.setSize(startBtn.getWidth(), startBtn.getHeight());
+        ScreenUtilsHelper.scaleAndPositionButton(exitBtn, targetHeight,
+            ScreenUtilsHelper.centerX(exitBtn, stage.getViewport()),
+            newGameBtn.getY() - targetHeight - 20
         );
     }
 
@@ -108,6 +144,7 @@ public class MenuScreen implements Screen {
     @Override
     public void dispose() {
         stage.dispose();
+        startTexture.dispose();
         backgroundTexture.dispose();
         transition.dispose();
     }
