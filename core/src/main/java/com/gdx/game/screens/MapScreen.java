@@ -19,6 +19,7 @@ import com.gdx.game.ui.popup.NotePopup;
 import com.gdx.game.ui.popup.PopupFactory;
 import com.gdx.game.ui.popup.SettingsPopup;
 import com.gdx.game.ui.popup.StoryPopup;
+import com.gdx.game.ui.timer.GameTimer;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
@@ -49,6 +50,8 @@ public class MapScreen implements Screen {
     private final Image notesButton;
     private final Image settingsButton;
 
+    private final GameTimer timer;
+
     private final List<CharacterIcon> icons;
     private final List<BuildingData> buildings;
     private final Map<String, BuildingData> buildingMap;
@@ -71,6 +74,7 @@ public class MapScreen implements Screen {
 
         notesButton = createNotesButton();
         settingsButton = createSettingsButton();
+        timer = new GameTimer(uiStage, 60 * 60f);
 
         uiStage.addActor(notesButton);
         uiStage.addActor(settingsButton);
@@ -146,6 +150,7 @@ public class MapScreen implements Screen {
         uiStage.draw();
 
         storyPopup.update(delta);
+        timer.update(delta);
 
         transition.update(delta);
         transition.render();
@@ -197,6 +202,8 @@ public class MapScreen implements Screen {
                 viewport.getWorldHeight() / mapTexture.getHeight()
             )));
         }
+
+        timer.setPositions(targetHeight);
 
         if (notePopup != null) notePopup.resize(width, height);
         if (settingsPopup != null) settingsPopup.resize(width, height);

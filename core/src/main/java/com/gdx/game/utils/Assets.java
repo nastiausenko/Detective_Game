@@ -9,6 +9,7 @@ public class Assets {
     public static final String MAP_BACKGROUND = "img.png";
     public static final String NOTE_ICON = "menu/note/note_icon.png";
     public static final String SETTINGS_BUTTON = "menu/settings/settings_btn.png";
+    public static final String TIMER = "menu/timer.png";
 
     public static final String NOTES = "menu/note/notes.png";
     public static final String ARROW_LEFT = "menu/note/arrow_left.png";
