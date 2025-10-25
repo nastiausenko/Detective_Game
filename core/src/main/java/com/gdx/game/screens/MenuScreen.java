@@ -21,6 +21,7 @@ public class MenuScreen implements Screen {
     private final ScreenViewport viewport;
     private final Stage stage;
     private final Texture backgroundTexture;
+    private final Texture startTexture;
     private final Image startBtn;
     private float drawWidth, drawHeight;
 
@@ -36,9 +37,9 @@ public class MenuScreen implements Screen {
 
         backgroundTexture = new Texture(Assets.MENU_BACKGROUND);
 
+        startTexture = new Texture(Assets.START_BUTTON);
         startBtn = game.getButtonFactory().createButton(
-            Assets.START_BUTTON,
-            200, 80,
+            Assets.START_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
             () -> {
                 if (!transition.isTransitioning()) {
                     transition.startFadeOut(0.7f, () -> {

@@ -1,10 +1,12 @@
 package com.gdx.game.screens;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -118,15 +120,18 @@ public class MapScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        boolean isIOS = Gdx.app.getType() == Application.ApplicationType.iOS;
         ScreenUtils.clear(0, 0, 0, 1);
 
         inputController.handleKeyboard(delta);
         camera.update();
 
         game.batch.setProjectionMatrix(camera.combined);
-        game.batch.begin();
-        game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
-        game.batch.end();
+        if (isIOS) {
+            renderTiledMap();
+        } else {
+            renderSingleTexture();
+        }
 
 //        drawBuildingDebugRects(); //temporary
 
@@ -145,8 +150,10 @@ public class MapScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
-        float relativeX = camera.position.x / drawWidth;
-        float relativeY = camera.position.y / drawHeight;
+        boolean firstResize = (drawWidth == 0 || drawHeight == 0);
+
+        float relativeX = camera.position.x / (drawWidth == 0 ? 1 : drawWidth);
+        float relativeY = camera.position.y / (drawHeight == 0 ? 1 : drawHeight);
 
         viewport.update(width, height);
         uiStage.getViewport().update(width, height, true);
@@ -158,7 +165,12 @@ public class MapScreen implements Screen {
         drawWidth = mapTexture.getWidth() * baseScale;
         drawHeight = mapTexture.getHeight() * baseScale;
 
-        camera.position.set(drawWidth * relativeX, drawHeight * relativeY, 0);
+        if (firstResize) {
+            camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
+        } else {
+            camera.position.set(drawWidth * relativeX, drawHeight * relativeY, 0);
+        }
+
         camera.update();
 
         inputController.setMapSize(drawWidth, drawHeight);
@@ -221,5 +233,57 @@ public class MapScreen implements Screen {
         }
 
         shapeRenderer.end();
+    }
+
+    private void renderSingleTexture() {
+        game.batch.begin();
+        game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
+        game.batch.end();
+    }
+
+    private TextureRegion[][] splitWithRemainder(Texture texture, int tileSize) {
+        int texWidth = texture.getWidth();
+        int texHeight = texture.getHeight();
+
+        int cols = (int)Math.ceil((float)texWidth / tileSize);
+        int rows = (int)Math.ceil((float)texHeight / tileSize);
+
+        TextureRegion[][] regions = new TextureRegion[rows][cols];
+
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                int x = col * tileSize;
+                int y = row * tileSize;
+                int w = Math.min(tileSize, texWidth - x);
+                int h = Math.min(tileSize, texHeight - y);
+                regions[row][col] = new TextureRegion(texture, x, y, w, h);
+            }
+        }
+        return regions;
+    }
+
+    private void renderTiledMap() {
+        int TILE_SIZE = 256;
+        TextureRegion[][] tiles = splitWithRemainder(mapTexture, TILE_SIZE);
+
+        int rows = tiles.length;
+        int cols = tiles[0].length;
+
+        float scale = Math.min(drawWidth / mapTexture.getWidth(), drawHeight / mapTexture.getHeight());
+        float offsetX = (drawWidth - mapTexture.getWidth() * scale) / 2f;
+        float offsetY = (drawHeight - mapTexture.getHeight() * scale) / 2f;
+
+        game.batch.begin();
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                TextureRegion region = tiles[row][col];
+                float x = offsetX + col * TILE_SIZE * scale;
+                float y = offsetY + (rows - 1 - row) * TILE_SIZE * scale;
+                float w = region.getRegionWidth() * scale;
+                float h = region.getRegionHeight() * scale;
+                game.batch.draw(region, x, y, w, h);
+            }
+        }
+        game.batch.end();
     }
 }
