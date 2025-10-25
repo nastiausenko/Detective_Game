@@ -55,7 +55,7 @@ public class MapScreen implements Screen {
     private final List<CharacterIcon> icons;
     private final List<BuildingData> buildings;
     private final Map<String, BuildingData> buildingMap;
-
+    private boolean firstShow = true;
 
     public MapScreen(DetectiveGame game, FadeTransition transition) {
         this.game = game;
@@ -65,40 +65,48 @@ public class MapScreen implements Screen {
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
+
         mapStage = new Stage(viewport, game.batch);
         uiStage = new Stage(new ScreenViewport(), game.batch);
 
         inputController = new MapInputController(camera, viewport);
-        GestureDetector gestureDetector = new GestureDetector(inputController);
-        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, mapStage, gestureDetector, inputController));
 
         notesButton = createNotesButton();
         settingsButton = createSettingsButton();
-        timer = new GameTimer(uiStage, 60 * 60f);
 
         uiStage.addActor(notesButton);
         uiStage.addActor(settingsButton);
 
-        Preferences prefs = Gdx.app.getPreferences("game_data");
-        boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
+        timer = new GameTimer(uiStage, 60 * 60f);
 
         popupFactory = new PopupFactory(uiStage, game, transition);
         storyPopup = popupFactory.createStoryPopup();
 
-        if (isFirstRun) {
-            storyPopup.show();
-            prefs.putBoolean("isFirstRun", false);
-            prefs.flush();
-        }
-
         icons = CharacterLoader.loadMarkers("characters.json");
         buildings = BuildingLoader.loadBuildings("buildings.json");
         buildingMap = BuildingLoader.toMap(buildings);
+    }
+
+    @Override
+    public void show() {
+        if (!firstShow) return;
+        firstShow = false;
+
+        GestureDetector gestureDetector = new GestureDetector(inputController);
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, mapStage, gestureDetector, inputController));
 
         for (CharacterIcon icon : icons) {
             BuildingData b = buildingMap.get(icon.getBuildingId());
             icon.setBuilding(b);
             mapStage.addActor(icon);
+        }
+
+        Preferences prefs = Gdx.app.getPreferences("game_data");
+        boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
+        if (isFirstRun) {
+            storyPopup.show();
+            prefs.putBoolean("isFirstRun", false);
+            prefs.flush();
         }
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -154,8 +162,10 @@ public class MapScreen implements Screen {
         if (settingsPopup != null && settingsPopup.isVisible()) {
             timer.pause();
         } else {
+            if (!storyPopup.isVisible()) {
+                timer.update(delta);
+            }
             timer.resume();
-            timer.update(delta);
         }
 
         transition.update(delta);
@@ -228,7 +238,6 @@ public class MapScreen implements Screen {
 
     }
 
-    @Override public void show() {}
     @Override public void pause() {
         if (timer != null) {
             timer.saveTime();

@@ -78,7 +78,7 @@ public class GameTimer {
         int hour = (minutesInDay / 60 + startHour) % 24;
         int minute = minutesInDay % 60;
 
-        gameTimeLabel.setText(String.format("Day %d  %02d:%02d", day, hour, minute));
+        gameTimeLabel.setText(String.format("Day %d %02d:%02d", day, hour, minute));
     }
 
     public void setPositions(float targetHeight) {
