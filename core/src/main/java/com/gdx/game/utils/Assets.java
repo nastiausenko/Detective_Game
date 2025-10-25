@@ -2,7 +2,7 @@ package com.gdx.game.utils;
 
 public class Assets {
     public static final String MENU_BACKGROUND = "background.png";
-    public static final String START_BUTTON = "start_btn.png";
+    public static final String START_BUTTON = "start.png";
 
     public static final String MAP_BACKGROUND = "img.png";
     public static final String NOTE_ICON = "menu/note/note_icon.png";
