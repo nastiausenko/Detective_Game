@@ -41,7 +41,18 @@ public class MenuScreen implements Screen {
         backgroundTexture = new Texture(Assets.MENU_BACKGROUND);
 
         startTexture = new Texture(Assets.START_BUTTON);
-        startBtn = game.getButtonFactory().createButton(
+
+        startBtn = createStartButton();
+        exitBtn = createExitButton();
+        newGameBtn = createNewGameButton();
+
+        stage.addActor(startBtn);
+        stage.addActor(newGameBtn);
+        stage.addActor(exitBtn);
+    }
+
+    private Image createStartButton() {
+        return game.getButtonFactory().createButton(
             Assets.START_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
             () -> {
                 if (!transition.isTransitioning()) {
@@ -52,13 +63,10 @@ public class MenuScreen implements Screen {
                 }
             }
         );
+    }
 
-        exitBtn = game.getButtonFactory().createButton(
-            Assets.EXIT_MENU_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
-            () -> Gdx.app.exit()
-        );
-
-        newGameBtn = game.getButtonFactory().createButton(
+    private Image createNewGameButton() {
+        return game.getButtonFactory().createButton(
             Assets.NEW_GAME_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
             () -> {
                 if (!transition.isTransitioning()) {
@@ -71,10 +79,13 @@ public class MenuScreen implements Screen {
                 }
             }
         );
+    }
 
-        stage.addActor(startBtn);
-        stage.addActor(newGameBtn);
-        stage.addActor(exitBtn);
+    private Image createExitButton() {
+        return game.getButtonFactory().createButton(
+            Assets.EXIT_MENU_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
+            () -> Gdx.app.exit()
+        );
     }
 
     @Override

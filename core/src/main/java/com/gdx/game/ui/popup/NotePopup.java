@@ -1,6 +1,5 @@
 package com.gdx.game.ui.popup;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -10,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.NotePages;
+import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class NotePopup extends AbstractPopup {
     private final Texture noteTexture;
@@ -36,8 +36,8 @@ public class NotePopup extends AbstractPopup {
         });
 
 
-        btnPrev = game.getButtonFactory().createButton(Assets.ARROW_LEFT, 60, 60, pages::prevPage);
-        btnNext = game.getButtonFactory().createButton(Assets.ARROW_RIGHT, 60, 60, pages::nextPage);
+        btnPrev = game.getButtonFactory().createButton(Assets.ARROW_LEFT, 64, 64, pages::prevPage);
+        btnNext = game.getButtonFactory().createButton(Assets.ARROW_RIGHT, 64, 64, pages::nextPage);
         //TODO add close button image
         closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, () -> {
             pages.onExit();
@@ -75,10 +75,17 @@ public class NotePopup extends AbstractPopup {
                 innerPadding
         );
 
-        float btnSize = 60;
-        btnPrev.setPosition(noteImage.getX() - 25, noteImage.getY() + height / 2 - btnSize / 2);
-        btnNext.setPosition(noteImage.getX() + width - 40, noteImage.getY() + height / 2 - btnSize / 2);
-        closeBtn.setPosition(10, Gdx.graphics.getHeight() - closeBtn.getHeight() - 10);
+        float targetHeight = screenHeight * 0.12f;
+        float btnSize = 64;
+
+        ScreenUtilsHelper.scaleAndPositionButton(btnPrev, targetHeight, noteImage.getX() - 25,
+            noteImage.getY() + height / 2 - btnSize / 2);
+
+        ScreenUtilsHelper.scaleAndPositionButton(btnNext, targetHeight, noteImage.getX() + width - 40,
+            noteImage.getY() + height / 2 - btnSize / 2);
+
+        ScreenUtilsHelper.scaleAndPositionButton(closeBtn, targetHeight, 10,
+            screenHeight - targetHeight - 10);
     }
 
     @Override
