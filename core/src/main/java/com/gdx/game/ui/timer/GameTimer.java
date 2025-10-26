@@ -51,6 +51,7 @@ public class GameTimer {
         stage.addActor(gameTimeLabel);
     }
 
+    // TODO fix game time
     public void update(float delta) {
         if (paused || timeOver) {
             // TODO time over logic

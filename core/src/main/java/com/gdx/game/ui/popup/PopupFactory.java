@@ -35,6 +35,6 @@ public class PopupFactory {
     }
 
     public DossierPopup createDossierPopup() {
-        return new DossierPopup(stage);
+        return new DossierPopup(stage, game);
     }
 }

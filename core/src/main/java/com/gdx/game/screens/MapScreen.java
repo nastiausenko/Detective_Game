@@ -266,6 +266,7 @@ public class MapScreen implements Screen {
         timer.setPositions(targetHeight);
 
         if (notePopup != null) notePopup.resize(width, height);
+        if (dossierPopup != null) dossierPopup.resize(width, height);
         if (settingsPopup != null) settingsPopup.resize(width, height);
         if (storyPopup != null) storyPopup.resize(width, height);
     }
@@ -278,6 +279,7 @@ public class MapScreen implements Screen {
         arrowDownTexture.dispose();
         arrowUpTexture.dispose();
         if (notePopup != null) notePopup.dispose();
+        if (dossierPopup != null) dossierPopup.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
         if (transition != null) transition.dispose();
         if (timer != null) timer.saveTime();

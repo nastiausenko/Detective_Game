@@ -17,9 +17,13 @@ public class Assets {
     public static final String NOTES = "menu/note/notes.png";
     public static final String ARROW_LEFT = "menu/note/arrow_left.png";
     public static final String ARROW_RIGHT = "menu/note/arrow_right.png";
-    public static final String CLOSE_BUTTON = "menu/note/arrow_left.png";
+    public static final String CLOSE_BUTTON = "menu/note/close_btn.png";
 
     public static final String SETTINGS = "menu/settings/settings.png";
+
+    public static final String DOSSIER_1 = "menu/dossier/dossier_1.png";
+    public static final String DOSSIER_2 = "menu/dossier/dossier_2.png";
+    public static final String DOSSIER_3 = "menu/dossier/dossier_3.png";
 
     public static final String CONTINUE_BUTTON = "menu/settings/continue_btn.png";
     public static final String EXIT_BUTTON = "menu/settings/exit_btn.png";
