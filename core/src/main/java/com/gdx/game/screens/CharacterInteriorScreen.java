@@ -40,6 +40,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     @Override
     public void show() {
         game.overlay.setVisible(true);
+        game.overlay.setInInterior(true);
 
         imageWidth = background.getWidth();
         imageHeight = background.getHeight();
@@ -101,7 +102,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         return false;
     }
 
-    // --- GestureDetector methods ---
     @Override public boolean touchDown(float x, float y, int pointer, int button) { return false; }
     @Override public boolean tap(float x, float y, int count, int button) { return false; }
     @Override public boolean longPress(float x, float y) { return false; }
@@ -116,12 +116,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     @Override
     public void hide() {
-        // 🔹 При виході забираємо кнопку зі сцени, щоб не лишалась в оверлеї
         if (backButton != null) {
             backButton.remove();
             backButton = null;
         }
         game.overlay.hideAllPopups();
+        game.overlay.setInInterior(false);
     }
 
     @Override

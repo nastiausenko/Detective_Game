@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.data.BuildingData;
 import com.gdx.game.screens.CharacterInteriorScreen;
+import com.gdx.game.utils.FadeTransition;
 
 public class CharacterIcon extends Image {
     private final String id;
@@ -44,16 +45,19 @@ public class CharacterIcon extends Image {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 if (linkedBuilding != null) {
-                    // Переходимо на екран інтер'єру
-                    Gdx.app.postRunnable(() -> {
-                        CharacterInteriorScreen interiorScreen = new CharacterInteriorScreen(
-                            game,
-                            linkedBuilding.interiorBackground,
-                            buildingId,
-                            name
-                        );
-                        game.setScreen(interiorScreen);
-                    });
+                    FadeTransition transition = game.getTransition();
+                    if (!transition.isTransitioning()) {
+                        transition.startFadeOut(0.7f, () -> {
+                            CharacterInteriorScreen interiorScreen = new CharacterInteriorScreen(
+                                game,
+                                linkedBuilding.interiorBackground,
+                                buildingId,
+                                name
+                            );
+                            game.setScreen(interiorScreen);
+                            transition.startFadeIn(0.7f);
+                        });
+                    }
                 }
                 return true;
             }

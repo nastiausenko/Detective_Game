@@ -5,16 +5,19 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.screens.MapScreen;
 import com.gdx.game.ui.popup.*;
 import com.gdx.game.ui.timer.GameTimer;
 
 public class UIOverlayManager {
+    private final DetectiveGame game;
     public final Stage uiStage;
 
     private final Image toggleButton;
     private final Image notesButton;
     private final Image dossierButton;
     private final Image settingsButton;
+    private final Image homeButton;
 
     private final Texture arrowDownTexture;
     private final Texture arrowUpTexture;
@@ -28,8 +31,10 @@ public class UIOverlayManager {
 
     private boolean menuOpened = false;
     private boolean visible = true;
+    private boolean inInterior = false;
 
     public UIOverlayManager(DetectiveGame game) {
+        this.game = game;
         this.uiStage = new Stage(new ScreenViewport(), game.batch);
 
         arrowDownTexture = new Texture(Assets.TOGGLE_BUTTON_DOWN);
@@ -39,6 +44,7 @@ public class UIOverlayManager {
         notesButton = game.getButtonFactory().createButton(Assets.NOTE_ICON, 64, 64, this::showNotes);
         dossierButton = game.getButtonFactory().createButton(Assets.DOSSIER_BUTTON, 64, 64, this::showDossier);
         settingsButton = game.getButtonFactory().createButton(Assets.SETTINGS_BUTTON, 64, 64, this::showSettings);
+        homeButton = game.getButtonFactory().createButton(Assets.HOME_BUTTON, 64, 64, this::backToMap);
 
         notesButton.setVisible(false);
         dossierButton.setVisible(false);
@@ -57,6 +63,15 @@ public class UIOverlayManager {
         notesButton.setVisible(menuOpened);
         dossierButton.setVisible(menuOpened);
         toggleButton.setDrawable(new Image(menuOpened ? arrowUpTexture : arrowDownTexture).getDrawable());
+    }
+
+    private void backToMap() {
+        if (!inInterior) return;
+
+        game.getTransition().startFadeOut(0.7f, () -> {
+            game.setScreen(new MapScreen(game, game.getTransition()));
+            game.getTransition().startFadeIn(0.7f);
+        });
     }
 
     private void showNotes() {
@@ -88,10 +103,34 @@ public class UIOverlayManager {
         timer.update(delta);
     }
 
+    public void setInInterior(boolean value) {
+        this.inInterior = value;
+        updateUIVisibility();
+    }
+
+    private void updateUIVisibility() {
+        if (inInterior) {
+            if (!uiStage.getActors().contains(homeButton, true)) {
+                uiStage.addActor(homeButton);
+            }
+
+            float margin = 10f;
+            float size = toggleButton.getWidth();
+            float y = toggleButton.getY();
+
+            homeButton.setSize(size, size);
+            homeButton.setPosition(toggleButton.getX() - size - margin, y);
+
+        } else {
+            homeButton.remove();
+        }
+    }
+
+    // --- Масштабування ---
     public void resize(int width, int height) {
         uiStage.getViewport().update(width, height, true);
 
-        float margin = 10;
+        float margin = 10f;
         float targetHeight = height * 0.12f;
 
         ScreenUtilsHelper.scaleAndPositionButton(toggleButton, targetHeight, margin,
@@ -104,9 +143,14 @@ public class UIOverlayManager {
         float aspectExit = settingsButton.getDrawable().getMinWidth() / settingsButton.getDrawable().getMinHeight();
         settingsButton.setSize(targetHeight * aspectExit, targetHeight);
         settingsButton.setPosition(
-                uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - 10,
-                uiStage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10
+                uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - margin,
+                uiStage.getViewport().getWorldHeight() - settingsButton.getHeight() - margin
         );
+
+        if (inInterior) {
+            ScreenUtilsHelper.scaleAndPositionButton(homeButton, targetHeight, toggleButton.getWidth() + margin,
+                    uiStage.getViewport().getWorldHeight() - targetHeight - margin);
+        }
 
         timer.setPositions(targetHeight);
 
@@ -125,14 +169,15 @@ public class UIOverlayManager {
     }
 
     public void dispose() {
-        if (uiStage != null) uiStage.dispose();
-        if (arrowDownTexture != null) arrowDownTexture.dispose();
-        if (arrowUpTexture != null) arrowUpTexture.dispose();
+        uiStage.dispose();
+        arrowDownTexture.dispose();
+        arrowUpTexture.dispose();
 
         if (notePopup != null) notePopup.dispose();
         if (dossierPopup != null) dossierPopup.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
-        if (timer != null) timer.saveTime();
+
+        timer.saveTime();
     }
 
     public void hideAllPopups() {
