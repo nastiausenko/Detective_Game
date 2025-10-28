@@ -6,4 +6,5 @@ public class BuildingData {
     public float y;
     public float width;
     public float height;
+    public String interiorBackground;
 }

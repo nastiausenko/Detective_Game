@@ -29,4 +29,6 @@ public class Assets {
     public static final String EXIT_BUTTON = "menu/settings/exit_btn.png";
 
     public static final String PROLOGUE = "menu/story/prologue.png";
+
+    public static final String HOME_BUTTON = "map/back.png";
 }

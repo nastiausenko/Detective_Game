@@ -59,7 +59,7 @@ public class MapScreen implements Screen {
         PopupFactory popupFactory = new PopupFactory(game.overlay.getStage(), game, transition);
         storyPopup = popupFactory.createStoryPopup();
 
-        icons = CharacterLoader.loadMarkers("characters.json");
+        icons = CharacterLoader.loadMarkers(game, "characters.json");
         buildings = BuildingLoader.loadBuildings("buildings.json");
         buildingMap = BuildingLoader.toMap(buildings);
     }

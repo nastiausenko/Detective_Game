@@ -7,7 +7,9 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.gdx.game.DetectiveGame;
 import com.gdx.game.data.BuildingData;
+import com.gdx.game.screens.CharacterInteriorScreen;
 
 public class CharacterIcon extends Image {
     private final String id;
@@ -16,7 +18,7 @@ public class CharacterIcon extends Image {
     private BuildingData linkedBuilding;
     private final float baseSize = 50;
 
-    public CharacterIcon(String id, String name, String iconPath, String buildingId) {
+    public CharacterIcon(DetectiveGame game, String id, String name, String iconPath, String buildingId) {
         super(new Texture(iconPath));
         this.id = id;
         this.name = name;
@@ -37,6 +39,23 @@ public class CharacterIcon extends Image {
             public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
                 getColor().a = 0.7f;
                 Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
+            }
+
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                if (linkedBuilding != null) {
+                    // Переходимо на екран інтер'єру
+                    Gdx.app.postRunnable(() -> {
+                        CharacterInteriorScreen interiorScreen = new CharacterInteriorScreen(
+                            game,
+                            linkedBuilding.interiorBackground,
+                            buildingId,
+                            name
+                        );
+                        game.setScreen(interiorScreen);
+                    });
+                }
+                return true;
             }
         });
     }
