@@ -72,6 +72,7 @@ public class MenuScreen implements Screen {
                 if (!transition.isTransitioning()) {
                     transition.startFadeOut(0.7f, () -> {
                         GameData.clearAll();
+                        game.overlay.resetTimer();
 
                         game.setScreen(new MapScreen(game, transition));
                         transition.startFadeIn(0.7f);
@@ -90,6 +91,8 @@ public class MenuScreen implements Screen {
 
     @Override
     public void show() {
+        game.overlay.setVisible(false);
+
         Gdx.input.setInputProcessor(stage);
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
@@ -106,9 +109,6 @@ public class MenuScreen implements Screen {
 
         stage.act(delta);
         stage.draw();
-
-        transition.update(delta);
-        transition.render();
     }
 
     @Override

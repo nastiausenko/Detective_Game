@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
@@ -15,12 +14,11 @@ import com.gdx.game.data.BuildingData;
 import com.gdx.game.ui.chars.BuildingLoader;
 import com.gdx.game.ui.chars.CharacterIcon;
 import com.gdx.game.ui.chars.CharacterLoader;
-import com.gdx.game.ui.popup.*;
-import com.gdx.game.ui.timer.GameTimer;
+import com.gdx.game.ui.popup.PopupFactory;
+import com.gdx.game.ui.popup.StoryPopup;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
-import com.gdx.game.utils.ScreenUtilsHelper;
 
 import java.util.List;
 import java.util.Map;
@@ -32,34 +30,19 @@ public class MapScreen implements Screen {
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
     private final Stage mapStage;
-    private final Stage uiStage;
 
     private final Texture mapTexture;
     private float drawWidth, drawHeight;
 
     private final MapInputController inputController;
 
-    private final PopupFactory popupFactory;
-    private NotePopup notePopup;
-    private DossierPopup dossierPopup;
-    private SettingsPopup settingsPopup;
     private final StoryPopup storyPopup;
-
-    private final Image toggleButton;
-    private final Texture arrowDownTexture = new Texture(Assets.TOGGLE_BUTTON_DOWN);
-    private final Texture arrowUpTexture = new Texture(Assets.TOGGLE_BUTTON_UP);
-
-    private final Image notesButton;
-    private final Image dossierButton;
-    private final Image settingsButton;
-
-    private final GameTimer timer;
 
     private final List<CharacterIcon> icons;
     private final List<BuildingData> buildings;
     private final Map<String, BuildingData> buildingMap;
+
     private boolean firstShow = true;
-    private boolean menuOpened = false;
 
     public MapScreen(DetectiveGame game, FadeTransition transition) {
         this.game = game;
@@ -69,29 +52,11 @@ public class MapScreen implements Screen {
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
-
         mapStage = new Stage(viewport, game.batch);
-        uiStage = new Stage(new ScreenViewport(), game.batch);
 
         inputController = new MapInputController(camera, viewport);
 
-        toggleButton = createToggleButton();
-        notesButton = createNotesButton();
-        notesButton.setVisible(false);
-
-        dossierButton = createDossierButton();
-        dossierButton.setVisible(false);
-
-        settingsButton = createSettingsButton();
-
-        uiStage.addActor(toggleButton);
-        uiStage.addActor(notesButton);
-        uiStage.addActor(dossierButton);
-        uiStage.addActor(settingsButton);
-
-        timer = new GameTimer(uiStage, 60 * 60f);
-
-        popupFactory = new PopupFactory(uiStage, game, transition);
+        PopupFactory popupFactory = new PopupFactory(game.overlay.getStage(), game, transition);
         storyPopup = popupFactory.createStoryPopup();
 
         icons = CharacterLoader.loadMarkers("characters.json");
@@ -101,11 +66,13 @@ public class MapScreen implements Screen {
 
     @Override
     public void show() {
+        game.overlay.setVisible(true);
+
         if (!firstShow) return;
         firstShow = false;
 
         GestureDetector gestureDetector = new GestureDetector(inputController);
-        Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, mapStage, gestureDetector, inputController));
+        Gdx.input.setInputProcessor(new InputMultiplexer(game.overlay.getStage(), mapStage, gestureDetector, inputController));
 
         for (CharacterIcon icon : icons) {
             BuildingData b = buildingMap.get(icon.getBuildingId());
@@ -124,54 +91,6 @@ public class MapScreen implements Screen {
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
-    private Image createToggleButton() {
-        return game.getButtonFactory().createButton(Assets.TOGGLE_BUTTON_DOWN, 64, 64, this::toggleMenu);
-    }
-
-    private Image createNotesButton() {
-        return game.getButtonFactory().createButton(
-            Assets.NOTE_ICON, 64, 64,
-            () -> {
-                if (notePopup == null) {
-                    notePopup = popupFactory.createNotePopup();
-                }
-                notePopup.show();
-            });
-    }
-
-    private Image createDossierButton() {
-        return game.getButtonFactory().createButton(Assets.DOSSIER_BUTTON, 64, 64, () -> {
-            if (dossierPopup == null) {
-                dossierPopup = popupFactory.createDossierPopup();
-            }
-            dossierPopup.show();
-        });
-    }
-
-    private Image createSettingsButton() {
-        return game.getButtonFactory().createButton(
-            Assets.SETTINGS_BUTTON, 64, 64,
-            () -> {
-                if (settingsPopup == null) {
-                    settingsPopup = popupFactory.createSettingsPopup();
-                }
-                timer.saveTime();
-                settingsPopup.show();
-            });
-    }
-
-    private void toggleMenu() {
-        menuOpened = !menuOpened;
-        notesButton.setVisible(menuOpened);
-        dossierButton.setVisible(menuOpened);
-
-        if (menuOpened) {
-            toggleButton.setDrawable(new Image(arrowUpTexture).getDrawable());
-        } else {
-            toggleButton.setDrawable(new Image(arrowDownTexture).getDrawable());
-        }
-    }
-
     @Override
     public void render(float delta) {
         boolean isIOS = Gdx.app.getType() == Application.ApplicationType.iOS;
@@ -187,28 +106,19 @@ public class MapScreen implements Screen {
             renderSingleTexture();
         }
 
-//        drawBuildingDebugRects(); //temporary
-
         mapStage.act(delta);
         mapStage.draw();
 
-        uiStage.act(delta);
-        uiStage.draw();
-
         storyPopup.update(delta);
-        if (settingsPopup != null && settingsPopup.isVisible()) {
-            timer.pause();
+
+        game.overlay.render(delta);
+
+        if (!storyPopup.isVisible()) {
+            game.overlay.resumeTimer();
         } else {
-            if (!storyPopup.isVisible()) {
-                timer.update(delta);
-            }
-            timer.resume();
+            game.overlay.pauseTimer();
         }
-
-        transition.update(delta);
-        transition.render();
     }
-
 
     @Override
     public void resize(int width, int height) {
@@ -218,7 +128,7 @@ public class MapScreen implements Screen {
         float relativeY = camera.position.y / (drawHeight == 0 ? 1 : drawHeight);
 
         viewport.update(width, height);
-        uiStage.getViewport().update(width, height, true);
+        game.overlay.resize(width, height);
 
         float scaleX = viewport.getWorldWidth() / mapTexture.getWidth();
         float scaleY = viewport.getWorldHeight() / mapTexture.getHeight();
@@ -232,29 +142,9 @@ public class MapScreen implements Screen {
         } else {
             camera.position.set(drawWidth * relativeX, drawHeight * relativeY, 0);
         }
-
         camera.update();
 
         inputController.setMapSize(drawWidth, drawHeight);
-
-        float margin = 10;
-        float targetHeight = height * 0.12f;
-
-        ScreenUtilsHelper.scaleAndPositionButton(toggleButton, targetHeight, margin,
-            uiStage.getViewport().getWorldHeight() - targetHeight - margin);
-
-        ScreenUtilsHelper.scaleAndPositionButton(notesButton, targetHeight, margin,
-            toggleButton.getY() - targetHeight);
-
-        ScreenUtilsHelper.scaleAndPositionButton(dossierButton, targetHeight, margin,
-            notesButton.getY() - targetHeight);
-
-        float aspectExit = settingsButton.getDrawable().getMinWidth() / settingsButton.getDrawable().getMinHeight();
-        settingsButton.setSize(targetHeight * aspectExit, targetHeight);
-        settingsButton.setPosition(
-            uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - 10,
-            uiStage.getViewport().getWorldHeight() - settingsButton.getHeight() - 10
-        );
 
         for (CharacterIcon marker : icons) {
             marker.updatePositionFromBuilding(drawWidth, drawHeight, Math.max(1f, Math.max(
@@ -263,37 +153,21 @@ public class MapScreen implements Screen {
             )));
         }
 
-        timer.setPositions(targetHeight);
-
-        if (notePopup != null) notePopup.resize(width, height);
-        if (dossierPopup != null) dossierPopup.resize(width, height);
-        if (settingsPopup != null) settingsPopup.resize(width, height);
         if (storyPopup != null) storyPopup.resize(width, height);
     }
 
     @Override
     public void dispose() {
         mapTexture.dispose();
-        uiStage.dispose();
         mapStage.dispose();
-        arrowDownTexture.dispose();
-        arrowUpTexture.dispose();
-        if (notePopup != null) notePopup.dispose();
-        if (dossierPopup != null) dossierPopup.dispose();
-        if (settingsPopup != null) settingsPopup.dispose();
         if (transition != null) transition.dispose();
-        if (timer != null) timer.saveTime();
-
     }
 
-    @Override public void pause() {
-        if (timer != null) {
-            timer.saveTime();
-        }
-    }
-
+    @Override public void pause() {}
     @Override public void resume() {}
-    @Override public void hide() {}
+    @Override public void hide() {
+        game.overlay.hideAllPopups();
+    }
 
     //TODO temporary method for visualizing building coords
     private void drawBuildingDebugRects() {
