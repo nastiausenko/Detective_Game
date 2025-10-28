@@ -70,44 +70,51 @@ public class GameTimer {
         countdownLabel.setText(String.format("Time Left: %02d:%02d", minutes, seconds));
 
         float realToGameMinutes = 1.2f;
-        float elapsedGameMinutes = elapsedRealTime * realToGameMinutes;
-        int totalGameMinutes = (int) elapsedGameMinutes;
+        int elapsedGameMinutes = (int) (elapsedRealTime * realToGameMinutes);
 
-        int day = (totalGameMinutes / (24 * 60)) + 1;
-        int minutesInDay = totalGameMinutes % (24 * 60);
         int startHour = 9;
-        int hour = (minutesInDay / 60 + startHour) % 24;
-        int minute = minutesInDay % 60;
+        int minutesInDay = elapsedGameMinutes + startHour * 60;
+
+        int day = (minutesInDay / (24 * 60)) + 1;
+        int minutesOfCurrentDay = minutesInDay % (24 * 60);
+        int hour = minutesOfCurrentDay / 60;
+        int minute = minutesOfCurrentDay % 60;
 
         gameTimeLabel.setText(String.format("Day %d %02d:%02d", day, hour, minute));
     }
 
     public void setPositions(float targetHeight) {
-        float screenHeight = stage.getViewport().getWorldHeight();
+        float worldWidth = stage.getViewport().getWorldWidth();
+        float worldHeight = stage.getViewport().getWorldHeight();
         boolean isMobile = Gdx.app.getType() == Application.ApplicationType.iOS
-            || Gdx.app.getType() == Application.ApplicationType.Android;
+                || Gdx.app.getType() == Application.ApplicationType.Android;
 
         float scale;
         if (isMobile) {
-            scale = (screenHeight / 1100f) * Gdx.graphics.getDensity() * 0.5f;
+            scale = (worldHeight / 1100f) * Gdx.graphics.getDensity() * 0.5f;
         } else {
-            scale = screenHeight / 800f;
+            scale = worldHeight / 800f;
         }
 
         font.getData().setScale(scale);
 
-        ScreenUtilsHelper.scaleAndPositionButton(timerBackground, targetHeight,
-            stage.getViewport().getWorldWidth() / 2f - timerBackground.getWidth() / 2f,
-            stage.getViewport().getWorldHeight() - targetHeight - 10);
+        ScreenUtilsHelper.scaleAndPositionButton(timerBackground, targetHeight, 0, 0);
+
+        timerBackground.setPosition(
+                (worldWidth - timerBackground.getWidth()) / 2f,
+                worldHeight - timerBackground.getHeight() - 10
+        );
 
         countdownLabel.setSize(timerBackground.getWidth(), timerBackground.getHeight());
         countdownLabel.setPosition(timerBackground.getX(), timerBackground.getY());
+        countdownLabel.setAlignment(Align.center);
 
+        // 4️⃣ Game time — у правому нижньому куті
         float padding = 20f;
         gameTimeLabel.pack();
         gameTimeLabel.setPosition(
-            stage.getViewport().getWorldWidth() - gameTimeLabel.getWidth() - padding,
-            padding
+                worldWidth - gameTimeLabel.getWidth() - padding,
+                padding
         );
     }
 
