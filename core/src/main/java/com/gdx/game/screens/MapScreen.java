@@ -19,6 +19,7 @@ import com.gdx.game.ui.popup.StoryPopup;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;
+import com.gdx.game.utils.TiledTextureHelper;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.Map;
 public class MapScreen implements Screen {
     private final DetectiveGame game;
     private final FadeTransition transition;
+    private TiledTextureHelper tiledHelper;
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
@@ -49,6 +51,7 @@ public class MapScreen implements Screen {
         this.transition = transition;
 
         mapTexture = new Texture(Assets.MAP_BACKGROUND);
+        tiledHelper = new TiledTextureHelper(mapTexture, 256);
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -101,9 +104,11 @@ public class MapScreen implements Screen {
 
         game.batch.setProjectionMatrix(camera.combined);
         if (isIOS) {
-            renderTiledMap();
+            tiledHelper.renderTiled(game.batch, drawWidth, drawHeight);
         } else {
-            renderSingleTexture();
+            game.batch.begin();
+            game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
+            game.batch.end();
         }
 
         mapStage.act(delta);
@@ -188,57 +193,5 @@ public class MapScreen implements Screen {
         }
 
         shapeRenderer.end();
-    }
-
-    private void renderSingleTexture() {
-        game.batch.begin();
-        game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
-        game.batch.end();
-    }
-
-    private TextureRegion[][] splitWithRemainder(Texture texture, int tileSize) {
-        int texWidth = texture.getWidth();
-        int texHeight = texture.getHeight();
-
-        int cols = (int)Math.ceil((float)texWidth / tileSize);
-        int rows = (int)Math.ceil((float)texHeight / tileSize);
-
-        TextureRegion[][] regions = new TextureRegion[rows][cols];
-
-        for (int row = 0; row < rows; row++) {
-            for (int col = 0; col < cols; col++) {
-                int x = col * tileSize;
-                int y = row * tileSize;
-                int w = Math.min(tileSize, texWidth - x);
-                int h = Math.min(tileSize, texHeight - y);
-                regions[row][col] = new TextureRegion(texture, x, y, w, h);
-            }
-        }
-        return regions;
-    }
-
-    private void renderTiledMap() {
-        int TILE_SIZE = 256;
-        TextureRegion[][] tiles = splitWithRemainder(mapTexture, TILE_SIZE);
-
-        int rows = tiles.length;
-        int cols = tiles[0].length;
-
-        float scale = Math.min(drawWidth / mapTexture.getWidth(), drawHeight / mapTexture.getHeight());
-        float offsetX = (drawWidth - mapTexture.getWidth() * scale) / 2f;
-        float offsetY = (drawHeight - mapTexture.getHeight() * scale) / 2f;
-
-        game.batch.begin();
-        for (int row = 0; row < rows; row++) {
-            for (int col = 0; col < cols; col++) {
-                TextureRegion region = tiles[row][col];
-                float x = offsetX + col * TILE_SIZE * scale;
-                float y = offsetY + (rows - 1 - row) * TILE_SIZE * scale;
-                float w = region.getRegionWidth() * scale;
-                float h = region.getRegionHeight() * scale;
-                game.batch.draw(region, x, y, w, h);
-            }
-        }
-        game.batch.end();
     }
 }
