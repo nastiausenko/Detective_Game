@@ -1,5 +1,6 @@
 package com.gdx.game.screens;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
@@ -12,14 +13,16 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.utils.TiledTextureHelper;
 
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
 
     private final DetectiveGame game;
-    private Texture background;
+    private final Texture background;
     private Image backButton;
     private final String buildingId;
     private final String characterName;
+    private final TiledTextureHelper tiledHelper;
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
@@ -35,6 +38,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
+        tiledHelper = new TiledTextureHelper(background, 256);
     }
 
     @Override
@@ -53,14 +57,19 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     @Override
     public void render(float delta) {
+        boolean isIOS = Gdx.app.getType() == Application.ApplicationType.iOS;
         ScreenUtils.clear(0, 0, 0, 1);
 
         camera.update();
         game.batch.setProjectionMatrix(camera.combined);
 
-        game.batch.begin();
-        game.batch.draw(background, 0, 0, drawWidth, drawHeight);
-        game.batch.end();
+        if (isIOS) {
+            tiledHelper.renderTiled(game.batch, drawWidth, drawHeight);
+        } else {
+            game.batch.begin();
+            game.batch.draw(background, 0, 0, drawWidth, drawHeight);
+            game.batch.end();
+        }
 
         game.overlay.render(delta);
     }
@@ -126,6 +135,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     @Override
     public void dispose() {
-        if (background != null) background.dispose();
+        background.dispose();
     }
 }
