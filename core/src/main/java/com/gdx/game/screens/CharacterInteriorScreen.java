@@ -23,6 +23,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final String buildingId;
     private final String characterName;
     private final TiledTextureHelper tiledHelper;
+    private final Texture characterTexture;
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
@@ -30,11 +31,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private float drawWidth, drawHeight;
     private float imageWidth, imageHeight;
 
-    public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String buildingId, String characterName) {
+    public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String buildingId, String characterName, String fullBody) {
         this.game = game;
         this.background = new Texture(backgroundPath);
         this.buildingId = buildingId;
         this.characterName = characterName;
+        this.characterTexture = new Texture(fullBody);
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -70,6 +72,26 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             game.batch.draw(background, 0, 0, drawWidth, drawHeight);
             game.batch.end();
         }
+
+        game.batch.begin();
+
+        float charWidth = characterTexture.getWidth();
+        float charHeight = characterTexture.getHeight();
+
+        float worldHeight = viewport.getWorldHeight();
+        float scale = (worldHeight * 0.8f) / charHeight;
+        float drawW = charWidth * scale;
+        float drawH = charHeight * scale;
+
+        float camCenterX = camera.position.x;
+        float camCenterY = camera.position.y;
+
+        float y = camCenterY - (viewport.getWorldHeight() / 2f) + 20f;
+        float x = camCenterX - (drawW / 2f);
+
+        game.batch.draw(characterTexture, x, y, drawW, drawH);
+
+        game.batch.end();
 
         game.overlay.render(delta);
     }
@@ -136,5 +158,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     @Override
     public void dispose() {
         background.dispose();
+        characterTexture.dispose();
     }
 }
