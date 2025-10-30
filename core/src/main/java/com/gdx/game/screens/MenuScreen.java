@@ -113,7 +113,7 @@ public class MenuScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height);
+        viewport.update(width, height, true);
         stage.getViewport().update(width, height, true);
 
         float[] size = ScreenUtilsHelper.calculateDrawSize(
@@ -130,21 +130,26 @@ public class MenuScreen implements Screen {
         camera.update();
 
         float targetHeight = height * 0.1f;
-        ScreenUtilsHelper.scaleAndPositionButton(startBtn, targetHeight,
+
+        float spacing = 20f;
+        float startY = stage.getViewport().getWorldHeight() * 0.4f;
+
+        startBtn.setSize(targetHeight * ((float) startTexture.getWidth() / startTexture.getHeight()), targetHeight);
+        startBtn.setPosition(
             ScreenUtilsHelper.centerX(startBtn, stage.getViewport()),
-            stage.getViewport().getWorldHeight() * 0.4f
+            startY
         );
 
         newGameBtn.setSize(startBtn.getWidth(), startBtn.getHeight());
         ScreenUtilsHelper.scaleAndPositionButton(newGameBtn, targetHeight,
             ScreenUtilsHelper.centerX(newGameBtn, stage.getViewport()),
-            startBtn.getY() - targetHeight - 20
+            startBtn.getY() - targetHeight - spacing
         );
 
         exitBtn.setSize(startBtn.getWidth(), startBtn.getHeight());
         ScreenUtilsHelper.scaleAndPositionButton(exitBtn, targetHeight,
             ScreenUtilsHelper.centerX(exitBtn, stage.getViewport()),
-            newGameBtn.getY() - targetHeight - 20
+            newGameBtn.getY() - targetHeight - spacing
         );
     }
 
