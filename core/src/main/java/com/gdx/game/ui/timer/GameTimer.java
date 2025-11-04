@@ -109,7 +109,6 @@ public class GameTimer {
         countdownLabel.setPosition(timerBackground.getX(), timerBackground.getY());
         countdownLabel.setAlignment(Align.center);
 
-        // 4️⃣ Game time — у правому нижньому куті
         float padding = 20f;
         gameTimeLabel.pack();
         gameTimeLabel.setPosition(

@@ -134,14 +134,12 @@ public class UIOverlayManager {
         float targetHeight = height * 0.12f;
 
         ScreenUtilsHelper.scaleAndPositionButton(toggleButton, targetHeight, margin,
-                uiStage.getViewport().getWorldHeight() - targetHeight - margin);
+                uiStage.getViewport().getWorldHeight() - toggleButton.getHeight() - margin);
         ScreenUtilsHelper.scaleAndPositionButton(notesButton, targetHeight, margin,
-                toggleButton.getY() - targetHeight);
+                toggleButton.getY() - notesButton.getHeight());
         ScreenUtilsHelper.scaleAndPositionButton(dossierButton, targetHeight, margin,
-                notesButton.getY() - targetHeight);
-
-        float aspectExit = settingsButton.getDrawable().getMinWidth() / settingsButton.getDrawable().getMinHeight();
-        settingsButton.setSize(targetHeight * aspectExit, targetHeight);
+                notesButton.getY() - dossierButton.getHeight());
+        ScreenUtilsHelper.scaleAndPositionButton(settingsButton, targetHeight, 0, 0);
         settingsButton.setPosition(
                 uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - margin,
                 uiStage.getViewport().getWorldHeight() - settingsButton.getHeight() - margin
@@ -149,7 +147,7 @@ public class UIOverlayManager {
 
         if (inInterior) {
             ScreenUtilsHelper.scaleAndPositionButton(homeButton, targetHeight, toggleButton.getWidth() + margin,
-                    uiStage.getViewport().getWorldHeight() - targetHeight - margin);
+                    uiStage.getViewport().getWorldHeight() - homeButton.getHeight() - margin);
         }
 
         timer.setPositions(targetHeight);

@@ -1,5 +1,6 @@
 package com.gdx.game.utils;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
@@ -14,7 +15,12 @@ public class ScreenUtilsHelper {
 
     public static void scaleAndPositionButton(Image button, float targetHeight, float posX, float posY) {
         float aspect = button.getDrawable().getMinWidth() / button.getDrawable().getMinHeight();
-        button.setSize(targetHeight * aspect, targetHeight);
+        float screenAspect = (float) Gdx.graphics.getWidth() / Gdx.graphics.getHeight();
+
+        float widthScaleFactor = Math.min(1f, screenAspect / 1.2f);
+        float adjustedHeight = targetHeight * widthScaleFactor;
+
+        button.setSize(adjustedHeight * aspect, adjustedHeight);
         button.setPosition(posX, posY);
     }
 
