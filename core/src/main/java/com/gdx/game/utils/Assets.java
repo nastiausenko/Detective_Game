@@ -31,4 +31,6 @@ public class Assets {
     public static final String PROLOGUE = "menu/story/prologue.png";
 
     public static final String HOME_BUTTON = "map/back.png";
+    public static final String QUESTION_AREA = "map/question.png";
+    public static final String ANSWER_AREA = "map/answer.png";
 }

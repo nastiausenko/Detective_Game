@@ -14,7 +14,6 @@ import com.gdx.game.utils.FadeTransition;
 
 public class CharacterIcon extends Image {
     private final String id;
-    private final String fullBodyPath;
     private String buildingId;
     private BuildingData linkedBuilding;
     private final float baseSize = 50;
@@ -22,7 +21,6 @@ public class CharacterIcon extends Image {
     public CharacterIcon(DetectiveGame game, String id, String name, String iconPath, String fullBodyPath, String buildingId) {
         super(new Texture(iconPath));
         this.id = id;
-        this.fullBodyPath = fullBodyPath;
         this.buildingId = buildingId;
 
         setSize(baseSize, baseSize * 1.4f);

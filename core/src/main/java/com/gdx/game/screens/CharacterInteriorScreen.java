@@ -4,15 +4,22 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.TiledTextureHelper;
 
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
@@ -28,8 +35,20 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
 
+    private final Stage dialogueStage;
+    private TextField inputField;
+    private Label dialogueLabel;
+    private final Texture questionAreaTexture;
+    private final Image questionAreaImage;
+
+    private final Texture answerAreaTexture;
+    private final Image answerAreaImage;
+
     private float drawWidth, drawHeight;
     private float imageWidth, imageHeight;
+    private String currentResponse = ""; // збереження останньої відповіді
+    private float bubblePadding = 50f;
+    private float bubbleMaxWidthRatio = 0.4f;
 
     public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String buildingId, String characterName, String fullBody) {
         this.game = game;
@@ -41,6 +60,16 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
         tiledHelper = new TiledTextureHelper(background, 256);
+
+        dialogueStage = new Stage(new ScreenViewport());
+        questionAreaTexture = new Texture(Assets.QUESTION_AREA);
+        questionAreaImage = new Image(questionAreaTexture);
+        dialogueStage.addActor(questionAreaImage);
+
+        answerAreaTexture = new Texture(Assets.ANSWER_AREA);
+        answerAreaImage = new Image(answerAreaTexture);
+        answerAreaImage.setVisible(false);
+        dialogueStage.addActor(answerAreaImage);
     }
 
     @Override
@@ -51,7 +80,38 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         imageWidth = background.getWidth();
         imageHeight = background.getHeight();
 
+        Skin skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
+
+        dialogueLabel = new Label("", skin);
+        dialogueLabel.setWrap(true);
+        dialogueLabel.setColor(Color.BLACK);
+        dialogueLabel.setVisible(false);
+
+        TextField.TextFieldStyle style = new TextField.TextFieldStyle();
+        style.font = skin.getFont("default-font");
+        style.fontColor = Color.BLACK;
+        style.messageFontColor = Color.BLACK;
+        style.cursor = skin.newDrawable("cursor", Color.BLACK);
+        style.background = null;
+        style.selection = skin.newDrawable("white", new Color(0.3f, 0.5f, 1f, 0.5f));
+
+        inputField = new TextField("", style);
+        inputField.setMessageText("Запитайте персонажа...");
+        inputField.setWidth(Gdx.graphics.getWidth() * 0.8f);
+        inputField.setPosition(Gdx.graphics.getWidth() * 0.1f, 40);
+
+        inputField.setTextFieldListener((textField, c) -> {
+            if (c == '\n' || c == '\r') {
+                handleQuestion(inputField.getText());
+                inputField.setText("");
+            }
+        });
+
+        dialogueStage.addActor(dialogueLabel);
+        dialogueStage.addActor(inputField);
+
         Gdx.input.setInputProcessor(new InputMultiplexer(
+            dialogueStage,
             game.overlay.getStage(),
             new GestureDetector(this)
         ));
@@ -93,6 +153,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         game.batch.end();
 
+        dialogueStage.act(delta);
+        dialogueStage.draw();
+
         game.overlay.render(delta);
     }
 
@@ -113,10 +176,41 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             drawWidth = imageWidth * scale;
         }
 
+        float baseWidth = questionAreaTexture.getWidth();
+        float baseHeight = questionAreaTexture.getHeight();
+        float aspect = baseWidth / baseHeight;
+
+        float desiredWidth = width * 0.8f;
+        float desiredHeight = desiredWidth / aspect * 0.5f;
+
+        questionAreaImage.setSize(desiredWidth, desiredHeight);
+        questionAreaImage.setPosition(
+            (width - desiredWidth) / 2f,
+            20f
+        );
+
+        float inputPadding = 50f;
+        float inputWidth = desiredWidth - inputPadding * 2f;
+        float inputHeight = desiredHeight * 0.4f;
+
+        inputField.setSize(inputWidth, inputHeight);
+        inputField.setPosition(
+            questionAreaImage.getX() + (desiredWidth - inputWidth) / 2f,
+            questionAreaImage.getY() + (desiredHeight - inputHeight) / 2f
+        );
+
+        float baseFontScale = 1.0f;
+        float scaleFactor = Math.min(width, height) / 800f;
+        inputField.getStyle().font.getData().setScale(baseFontScale * scaleFactor);
+
+
+        dialogueStage.getViewport().update(width, height, true);
+
         camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
         camera.update();
 
         game.overlay.resize(width, height);
+        updateAnswerBubbleLayout(width, height);
     }
 
     @Override
@@ -159,5 +253,76 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     public void dispose() {
         background.dispose();
         characterTexture.dispose();
+    }
+
+    private void handleQuestion(String question) {
+        if (question.isEmpty()) return;
+
+        if (question.toLowerCase().contains("жертву")) {
+            currentResponse = "Так, я знав жертву. Вона приходила сюди кілька разів...";
+        } else if (question.toLowerCase().contains("де ти був")) {
+            currentResponse = "Я... був удома. Один.";
+        } else {
+            currentResponse = "Не розумію, до чого це питання.";
+        }
+
+        dialogueLabel.setText(currentResponse);
+        dialogueLabel.setVisible(true);
+        answerAreaImage.setVisible(true);
+
+        updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    private void updateAnswerBubbleLayout(float width, float height) {
+        if (!dialogueLabel.isVisible()) return;
+
+        float originalBubbleWidth = answerAreaTexture.getWidth();
+
+        float scale = Math.min(width / 1920f, height / 1080f);
+        float scaledBubbleWidth = originalBubbleWidth * scale;
+
+        float innerPaddingX = bubblePadding * 0.8f;
+        float innerPaddingY = bubblePadding;
+
+        float maxTextWidth = scaledBubbleWidth - innerPaddingX * 2f;
+
+        dialogueLabel.setWrap(true);
+        dialogueLabel.setAlignment(Align.center);
+        dialogueLabel.setWidth(maxTextWidth);
+        dialogueLabel.layout();
+
+        float textWidth = dialogueLabel.getPrefWidth();
+        float textHeight = dialogueLabel.getPrefHeight();
+
+        float bubbleWidth = Math.max(textWidth + innerPaddingX * 2f, scaledBubbleWidth * 0.5f);
+
+        bubbleWidth = Math.min(bubbleWidth, scaledBubbleWidth);
+
+        float bubbleHeight = textHeight + innerPaddingY * 2f;
+
+        float worldHeight = viewport.getWorldHeight();
+        float charHeight = characterTexture.getHeight();
+        float charWidth = characterTexture.getWidth();
+        float charScale = (worldHeight * 0.8f) / charHeight;
+        float drawW = charWidth * charScale;
+        float drawH = charHeight * charScale;
+
+        float camCenterX = camera.position.x;
+        float charX = camCenterX - (drawW / 2f);
+
+        float bubbleX = charX - drawW * 0.9f;
+        float bubbleY = drawH - bubbleHeight * 0.9f;
+
+        answerAreaImage.setSize(bubbleWidth, bubbleHeight);
+        answerAreaImage.setPosition(bubbleX, bubbleY);
+
+        dialogueLabel.setSize(bubbleWidth - innerPaddingX * 2f, textHeight);
+
+        float tailOffset = bubbleHeight * 0.05f;
+
+        dialogueLabel.setPosition(
+            bubbleX + innerPaddingX,
+            bubbleY + (bubbleHeight - textHeight) / 2f + tailOffset
+        );
     }
 }
