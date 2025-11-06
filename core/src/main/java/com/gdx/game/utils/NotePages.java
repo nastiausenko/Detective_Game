@@ -67,12 +67,8 @@ public class NotePages {
     }
 
     private TextField.TextFieldStyle createTextStyle() {
-        BitmapFont font = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
-        font.getData().lineHeight *= 1.5f;
-        font.getData().setScale(baseFontScale);
-
         TextField.TextFieldStyle style = new TextField.TextFieldStyle();
-        style.font = font;
+        style.font = skin.getFont("default-font");
         style.fontColor = Color.BLACK;
         style.cursor = skin.newDrawable("cursor", Color.BLACK);
         style.background = null;
@@ -124,13 +120,10 @@ public class NotePages {
             page[1].setSize(columnWidth, height);
             page[1].setPosition(rightX, y);
         }
+        setFontScale();
     }
 
-    public void setFontScale(float scale) {
-        if (this.baseFontScale == scale) return;
-
-        this.baseFontScale = scale;
-
+    private void setFontScale() {
         String[][] texts = new String[pages.size()][2];
         int[][] cursorPositions = new int[pages.size()][2];
 
@@ -145,6 +138,8 @@ public class NotePages {
         for (int i = 0; i < pages.size(); i++) {
             TextArea[] page = pages.get(i);
             TextField.TextFieldStyle style = createTextStyle();
+
+            FontScaler.applyScale(style.font);
 
             page[0].setStyle(style);
             page[1].setStyle(style);

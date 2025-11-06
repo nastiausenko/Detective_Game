@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.Assets;
+import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.NotePages;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
@@ -62,10 +63,6 @@ public class NotePopup extends AbstractPopup {
         float halfWidth = width / 2f;
         float columnWidth = halfWidth - outerPadding - innerPadding;
 
-        float referenceWidth = 1280f;
-        float scaleFactor = Math.max(0.8f, Math.min(1.5f, screenWidth / referenceWidth));
-
-        pages.setFontScale(scaleFactor);
         pages.setColumnWidth(columnWidth);
         pages.setPosition(
                 noteImage.getX() + outerPadding,

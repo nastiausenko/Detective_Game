@@ -8,9 +8,11 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.Assets;
+import com.gdx.game.utils.FontScaler;
 
 public class StoryPopup extends AbstractPopup {
     private final Image storyImage;
@@ -29,6 +31,7 @@ public class StoryPopup extends AbstractPopup {
     private boolean finished = false;
 
     private final DetectiveGame game;
+    private final Skin skin;
 
     public StoryPopup(Stage stage, DetectiveGame game) {
         super(stage);
@@ -37,11 +40,10 @@ public class StoryPopup extends AbstractPopup {
         storyTexture = new Texture(Assets.PROLOGUE);
         storyImage = new Image(storyTexture);
 
-        BitmapFont font = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
-        font.getData().lineHeight *= 1.5f;
+        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = font;
+        labelStyle.font = skin.getFont("default-font");
         labelStyle.fontColor = new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f);
 
         storyLabel = new Label("", labelStyle);
@@ -88,16 +90,7 @@ public class StoryPopup extends AbstractPopup {
                 storyImage.getY() + storyImage.getHeight() * 0.52f
         );
 
-        boolean isMobile = Gdx.app.getType() == Application.ApplicationType.iOS
-            || Gdx.app.getType() == Application.ApplicationType.Android;
-
-        float scale;
-        if (isMobile) {
-            scale = (screenHeight / 1100f) * Gdx.graphics.getDensity() * 0.5f;
-        } else {
-            scale = screenHeight / 800f;
-        }
-        storyLabel.getStyle().font.getData().setScale(scale);
+        FontScaler.applyScale(skin.getFont("default-font"));
 
         continueButton.setSize(btnWidth, btnHeight);
         continueButton.setPosition(storyImage.getX() + (storyImage.getWidth() - btnWidth) / 2f, storyImage.getY() + paddingBottom);

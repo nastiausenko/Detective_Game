@@ -20,6 +20,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.Assets;
+import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.TiledTextureHelper;
 
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
@@ -34,6 +35,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
+    private final Skin skin;
 
     private final Stage dialogueStage;
     private TextField inputField;
@@ -46,7 +48,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private float drawWidth, drawHeight;
     private float imageWidth, imageHeight;
-    private String currentResponse = ""; // збереження останньої відповіді
+    private String currentResponse = "";
     private float bubblePadding = 50f;
     private float bubbleMaxWidthRatio = 0.4f;
 
@@ -60,6 +62,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
         tiledHelper = new TiledTextureHelper(background, 256);
+        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         dialogueStage = new Stage(new ScreenViewport());
         questionAreaTexture = new Texture(Assets.QUESTION_AREA);
@@ -80,22 +83,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         imageWidth = background.getWidth();
         imageHeight = background.getHeight();
 
-        Skin skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
-
         dialogueLabel = new Label("", skin);
         dialogueLabel.setWrap(true);
         dialogueLabel.setColor(Color.BLACK);
         dialogueLabel.setVisible(false);
 
-        TextField.TextFieldStyle style = new TextField.TextFieldStyle();
-        style.font = skin.getFont("default-font");
-        style.fontColor = Color.BLACK;
-        style.messageFontColor = Color.BLACK;
-        style.cursor = skin.newDrawable("cursor", Color.BLACK);
-        style.background = null;
-        style.selection = skin.newDrawable("white", new Color(0.3f, 0.5f, 1f, 0.5f));
-
-        inputField = new TextField("", style);
+        inputField = new TextField("", createTextFieldStyle());
         inputField.setMessageText("Запитайте персонажа...");
         inputField.setWidth(Gdx.graphics.getWidth() * 0.8f);
         inputField.setPosition(Gdx.graphics.getWidth() * 0.1f, 40);
@@ -115,6 +108,18 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             game.overlay.getStage(),
             new GestureDetector(this)
         ));
+    }
+
+    private TextField.TextFieldStyle createTextFieldStyle() {
+        TextField.TextFieldStyle style = new TextField.TextFieldStyle();
+        style.font = skin.getFont("default-font");
+        FontScaler.applyScale(style.font);
+        style.fontColor = Color.BLACK;
+        style.messageFontColor = Color.BLACK;
+        style.cursor = skin.newDrawable("cursor", Color.BLACK);
+        style.background = null;
+        style.selection = skin.newDrawable("white", new Color(0.3f, 0.5f, 1f, 0.5f));
+        return style;
     }
 
     @Override
@@ -199,10 +204,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             questionAreaImage.getY() + (desiredHeight - inputHeight) / 2f
         );
 
-        float baseFontScale = 1.0f;
-        float scaleFactor = Math.min(width, height) / 800f;
-        inputField.getStyle().font.getData().setScale(baseFontScale * scaleFactor);
-
+        inputField.setStyle(createTextFieldStyle());
 
         dialogueStage.getViewport().update(width, height, true);
 

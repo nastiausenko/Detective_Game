@@ -4,13 +4,18 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.utils.Assets;
+import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class GameTimer {
@@ -19,9 +24,9 @@ public class GameTimer {
     private final Image timerBackground;
     private final Label countdownLabel;
     private final Label gameTimeLabel;
-    private final BitmapFont font;
 
     private final Preferences prefs;
+    private final Skin skin;
 
     private float elapsedRealTime = 0f;
     private final float totalRealSeconds;
@@ -32,15 +37,15 @@ public class GameTimer {
         this.stage = stage;
         this.totalRealSeconds = totalRealSeconds;
         prefs = Gdx.app.getPreferences("game_timer");
+        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         elapsedRealTime = prefs.getFloat("elapsedTime", 0f);
 
         timerBackground = new Image(new Texture(Assets.TIMER));
         stage.addActor(timerBackground);
 
-        font = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
-
-        Label.LabelStyle labelStyle = new Label.LabelStyle(font, new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f));
+        Label.LabelStyle labelStyle = new Label.LabelStyle(skin.getFont("default-font"),
+                new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f));
 
         countdownLabel = new Label("Time Left: 60:00", labelStyle);
         countdownLabel.setAlignment(Align.center);
@@ -86,18 +91,8 @@ public class GameTimer {
     public void setPositions(float targetHeight) {
         float worldWidth = stage.getViewport().getWorldWidth();
         float worldHeight = stage.getViewport().getWorldHeight();
-        boolean isMobile = Gdx.app.getType() == Application.ApplicationType.iOS
-                || Gdx.app.getType() == Application.ApplicationType.Android;
 
-        float scale;
-        if (isMobile) {
-            scale = (worldHeight / 1100f) * Gdx.graphics.getDensity() * 0.5f;
-        } else {
-            scale = worldHeight / 800f;
-        }
-
-        font.getData().setScale(scale);
-
+        FontScaler.applyScale(skin.getFont("default-font"));
         ScreenUtilsHelper.scaleAndPositionButton(timerBackground, targetHeight, 0, 0);
 
         timerBackground.setPosition(
