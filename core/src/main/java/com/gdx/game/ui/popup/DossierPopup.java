@@ -1,5 +1,6 @@
 package com.gdx.game.ui.popup;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -72,11 +73,11 @@ public class DossierPopup extends AbstractPopup {
         float targetHeight = screenHeight * 0.12f;
 
         ScreenUtilsHelper.scaleAndPositionButton(btnPrev, targetHeight,
-            pageImage.getX() - targetHeight * 0.5f, pageImage.getY() + pageHeight / 2 - targetHeight / 2);
+            pageImage.getX() - btnPrev.getWidth() * 0.5f, pageImage.getY() + pageHeight / 2 - btnPrev.getHeight() / 2);
         ScreenUtilsHelper.scaleAndPositionButton(btnNext, targetHeight,
-            pageImage.getX() + pageWidth - targetHeight * 0.5f, pageImage.getY() + pageHeight / 2 - targetHeight / 2);
+            pageImage.getX() + pageWidth - btnNext.getWidth() * 0.5f, pageImage.getY() + pageHeight / 2 - btnNext.getHeight() / 2);
         ScreenUtilsHelper.scaleAndPositionButton(closeBtn, targetHeight,
-            10, screenHeight - targetHeight - 10);
+            10, screenHeight - closeBtn.getHeight() - 10);
     }
 
     @Override
@@ -86,6 +87,8 @@ public class DossierPopup extends AbstractPopup {
         stage.addActor(btnPrev);
         stage.addActor(btnNext);
         stage.addActor(closeBtn);
+
+        resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
 
     @Override

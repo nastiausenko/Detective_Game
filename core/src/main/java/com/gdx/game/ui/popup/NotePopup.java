@@ -38,7 +38,6 @@ public class NotePopup extends AbstractPopup {
 
         btnPrev = game.getButtonFactory().createButton(Assets.ARROW_LEFT, 64, 64, pages::prevPage);
         btnNext = game.getButtonFactory().createButton(Assets.ARROW_RIGHT, 64, 64, pages::nextPage);
-        //TODO add close button image
         closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, () -> {
             pages.onExit();
             remove();
@@ -76,16 +75,15 @@ public class NotePopup extends AbstractPopup {
         );
 
         float targetHeight = screenHeight * 0.12f;
-        float btnSize = 64;
 
-        ScreenUtilsHelper.scaleAndPositionButton(btnPrev, targetHeight, noteImage.getX() - 25,
-            noteImage.getY() + height / 2 - btnSize / 2);
+        ScreenUtilsHelper.scaleAndPositionButton(btnPrev, targetHeight, noteImage.getX() - btnPrev.getWidth() * 0.5f,
+            noteImage.getY() + height / 2 - btnPrev.getHeight() / 2);
 
-        ScreenUtilsHelper.scaleAndPositionButton(btnNext, targetHeight, noteImage.getX() + width - 40,
-            noteImage.getY() + height / 2 - btnSize / 2);
+        ScreenUtilsHelper.scaleAndPositionButton(btnNext, targetHeight, noteImage.getX() + width - btnNext.getWidth() * 0.5f,
+            noteImage.getY() + height / 2 - btnNext.getHeight() / 2);
 
         ScreenUtilsHelper.scaleAndPositionButton(closeBtn, targetHeight, 10,
-            screenHeight - targetHeight - 10);
+            screenHeight - closeBtn.getHeight() - 10);
     }
 
     @Override
@@ -96,6 +94,8 @@ public class NotePopup extends AbstractPopup {
         stage.addActor(btnPrev);
         stage.addActor(btnNext);
         stage.addActor(closeBtn);
+
+        resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
 
     @Override

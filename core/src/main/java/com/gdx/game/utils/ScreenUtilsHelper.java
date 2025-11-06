@@ -17,7 +17,7 @@ public class ScreenUtilsHelper {
         float aspect = button.getDrawable().getMinWidth() / button.getDrawable().getMinHeight();
         float screenAspect = (float) Gdx.graphics.getWidth() / Gdx.graphics.getHeight();
 
-        float widthScaleFactor = Math.min(1f, screenAspect / 1.2f);
+        float widthScaleFactor = Math.min(1f, screenAspect / 1.1f);
         float adjustedHeight = targetHeight * widthScaleFactor;
 
         button.setSize(adjustedHeight * aspect, adjustedHeight);
