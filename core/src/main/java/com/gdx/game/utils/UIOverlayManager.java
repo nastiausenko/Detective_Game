@@ -17,6 +17,7 @@ public class UIOverlayManager {
     private final Image notesButton;
     private final Image dossierButton;
     private final Image settingsButton;
+    private final Image accuseButton;
     private final Image homeButton;
 
     private final Texture arrowDownTexture;
@@ -27,6 +28,7 @@ public class UIOverlayManager {
 
     private NotePopup notePopup;
     private DossierPopup dossierPopup;
+    private AccusationPopup accusationPopup;
     private SettingsPopup settingsPopup;
 
     private boolean menuOpened = false;
@@ -44,14 +46,17 @@ public class UIOverlayManager {
         notesButton = game.getButtonFactory().createButton(Assets.NOTE_ICON, 64, 64, this::showNotes);
         dossierButton = game.getButtonFactory().createButton(Assets.DOSSIER_BUTTON, 64, 64, this::showDossier);
         settingsButton = game.getButtonFactory().createButton(Assets.SETTINGS_BUTTON, 64, 64, this::showSettings);
+        accuseButton = game.getButtonFactory().createButton(Assets.ACCUSATION_BUTTON, 64, 64, this::showAccusation); // TODO ACCUSATION POPUP
         homeButton = game.getButtonFactory().createButton(Assets.HOME_BUTTON, 64, 64, this::backToMap);
 
         notesButton.setVisible(false);
         dossierButton.setVisible(false);
+        accuseButton.setVisible(false);
 
         uiStage.addActor(toggleButton);
         uiStage.addActor(notesButton);
         uiStage.addActor(dossierButton);
+        uiStage.addActor(accuseButton);
         uiStage.addActor(settingsButton);
 
         popupFactory = new PopupFactory(uiStage, game, game.getTransition());
@@ -62,6 +67,7 @@ public class UIOverlayManager {
         menuOpened = !menuOpened;
         notesButton.setVisible(menuOpened);
         dossierButton.setVisible(menuOpened);
+        accuseButton.setVisible(menuOpened);
         toggleButton.setDrawable(new Image(menuOpened ? arrowUpTexture : arrowDownTexture).getDrawable());
     }
 
@@ -82,6 +88,11 @@ public class UIOverlayManager {
     private void showDossier() {
         if (dossierPopup == null) dossierPopup = popupFactory.createDossierPopup();
         dossierPopup.show();
+    }
+
+    private void showAccusation() {
+        if (accusationPopup == null) accusationPopup = popupFactory.createAccusationPopup();
+        accusationPopup.show();
     }
 
     private void showSettings() {
@@ -126,7 +137,6 @@ public class UIOverlayManager {
         }
     }
 
-    // --- Масштабування ---
     public void resize(int width, int height) {
         uiStage.getViewport().update(width, height, true);
 
@@ -135,10 +145,16 @@ public class UIOverlayManager {
 
         ScreenUtilsHelper.scaleAndPositionButton(toggleButton, targetHeight, margin,
                 uiStage.getViewport().getWorldHeight() - toggleButton.getHeight() - margin);
+        toggleButton.setPosition(margin,
+                uiStage.getViewport().getWorldHeight() - toggleButton.getHeight() - margin);
         ScreenUtilsHelper.scaleAndPositionButton(notesButton, targetHeight, margin,
+                toggleButton.getY() - notesButton.getHeight());
+        notesButton.setPosition(margin,
                 toggleButton.getY() - notesButton.getHeight());
         ScreenUtilsHelper.scaleAndPositionButton(dossierButton, targetHeight, margin,
                 notesButton.getY() - dossierButton.getHeight());
+        ScreenUtilsHelper.scaleAndPositionButton(accuseButton, targetHeight, margin,
+                dossierButton.getY() - accuseButton.getHeight());
         ScreenUtilsHelper.scaleAndPositionButton(settingsButton, targetHeight, 0, 0);
         settingsButton.setPosition(
                 uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - margin,
@@ -155,6 +171,7 @@ public class UIOverlayManager {
         if (notePopup != null) notePopup.resize(width, height);
         if (dossierPopup != null) dossierPopup.resize(width, height);
         if (settingsPopup != null) settingsPopup.resize(width, height);
+        if (accusationPopup != null) accusationPopup.resize(width, height);
     }
 
     public void setVisible(boolean visible) {
@@ -174,6 +191,7 @@ public class UIOverlayManager {
         if (notePopup != null) notePopup.dispose();
         if (dossierPopup != null) dossierPopup.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
+        if (accusationPopup != null) accusationPopup.dispose();
 
         timer.saveTime();
     }
@@ -182,6 +200,7 @@ public class UIOverlayManager {
         if (settingsPopup != null) settingsPopup.remove();
         if (notePopup != null) notePopup.remove();
         if (dossierPopup != null) dossierPopup.remove();
+        if (accusationPopup != null) accusationPopup.remove();
     }
 
     public void pauseTimer() {

@@ -1,10 +1,8 @@
 package com.gdx.game.ui.popup;
 
-import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -79,8 +77,8 @@ public class StoryPopup extends AbstractPopup {
         background.setSize(screenWidth, screenHeight);
         resizeCentered(storyImage, storyTexture, screenWidth, screenHeight);
 
-        float btnWidth = storyImage.getWidth() * 0.75f;
-        float btnHeight = storyImage.getHeight() * 0.15f;
+        float btnWidth = storyImage.getWidth() * 0.5f;
+        float btnHeight = storyImage.getHeight() * 0.1f;
         float paddingBottom = storyImage.getHeight() * 0.1f;
 
 
@@ -94,7 +92,6 @@ public class StoryPopup extends AbstractPopup {
 
         continueButton.setSize(btnWidth, btnHeight);
         continueButton.setPosition(storyImage.getX() + (storyImage.getWidth() - btnWidth) / 2f, storyImage.getY() + paddingBottom);
-
     }
 
     private void finishText() {

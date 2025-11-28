@@ -164,6 +164,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         game.overlay.render(delta);
     }
 
+    // TODO fix bubble and input scaling
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height);
@@ -194,7 +195,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             20f
         );
 
-        float inputPadding = 50f;
+        float inputPadding = 50f * screenAspect;
         float inputWidth = desiredWidth - inputPadding * 2f;
         float inputHeight = desiredHeight * 0.4f;
 

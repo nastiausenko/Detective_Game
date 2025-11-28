@@ -37,4 +37,8 @@ public class PopupFactory {
     public DossierPopup createDossierPopup() {
         return new DossierPopup(stage, game);
     }
+
+    public AccusationPopup createAccusationPopup() {
+        return new AccusationPopup(stage, game);
+    }
 }
