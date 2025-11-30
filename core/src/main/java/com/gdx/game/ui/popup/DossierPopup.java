@@ -87,13 +87,13 @@ public class DossierPopup extends AbstractPopup {
 
     public void loadDatabase(DossierDatabase db) {
         this.database = db;
-        this.characterKeys = new Array<>(db.characters.keys().toArray());
+        this.characterKeys = new Array<>(db.characters.orderedKeys());
         currentPage = 0;
         updateContent();
     }
 
     private void nextPage() {
-        if (currentPage < characterKeys.size - 1) {
+        if (currentPage < pages.length - 1) {
             currentPage++;
             updateContent();
         }
@@ -175,19 +175,15 @@ public class DossierPopup extends AbstractPopup {
 
         float btnSize = screenHeight * 0.12f;
 
-        ScreenUtilsHelper.scaleAndPositionButton(btnPrev, btnSize,
-            pageImage.getX() - btnPrev.getWidth() * 0.4f,
-            pageImage.getY() + h / 2 - btnPrev.getHeight() / 2
-        );
+        ScreenUtilsHelper.scaleButton(btnPrev, btnSize, stage);
+        ScreenUtilsHelper.scaleButton(btnNext, btnSize, stage);
+        ScreenUtilsHelper.scaleButton(closeBtn, btnSize, stage);
 
-        ScreenUtilsHelper.scaleAndPositionButton(btnNext, btnSize,
-            pageImage.getX() + w - btnNext.getWidth() * 0.6f,
-            pageImage.getY() + h / 2 - btnNext.getHeight() / 2
-        );
-
-        ScreenUtilsHelper.scaleAndPositionButton(closeBtn, btnSize,
-            10, screenHeight - closeBtn.getHeight() - 10
-        );
+        btnPrev.setPosition(pageImage.getX() - btnPrev.getWidth() * 0.4f,
+            pageImage.getY() + h / 2 - btnPrev.getHeight() / 2);
+        btnNext.setPosition(pageImage.getX() + w - btnNext.getWidth() * 0.6f,
+            pageImage.getY() + h / 2 - btnNext.getHeight() / 2);
+        closeBtn.setPosition(10, screenHeight - closeBtn.getHeight() - 10);
     }
 
     @Override

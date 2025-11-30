@@ -1,6 +1,6 @@
 package com.gdx.game.utils;
 
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
@@ -13,15 +13,14 @@ public class ScreenUtilsHelper {
         return new float[]{textureWidth * baseScale, textureHeight * baseScale};
     }
 
-    public static void scaleAndPositionButton(Image button, float targetHeight, float posX, float posY) {
+    public static void scaleButton(Image button, float targetHeight, Stage stage) {
         float aspect = button.getDrawable().getMinWidth() / button.getDrawable().getMinHeight();
-        float screenAspect = (float) Gdx.graphics.getWidth() / Gdx.graphics.getHeight();
+        float screenAspect = stage.getViewport().getWorldWidth() / stage.getViewport().getWorldHeight();
 
         float widthScaleFactor = Math.min(1f, screenAspect / 1.1f);
         float adjustedHeight = targetHeight * widthScaleFactor;
 
         button.setSize(adjustedHeight * aspect, adjustedHeight);
-        button.setPosition(posX, posY);
     }
 
     public static float centerX(Image button, Viewport viewport) {

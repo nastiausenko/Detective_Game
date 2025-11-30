@@ -73,13 +73,15 @@ public class NotePopup extends AbstractPopup {
 
         float targetHeight = screenHeight * 0.12f;
 
-        ScreenUtilsHelper.scaleAndPositionButton(btnPrev, targetHeight, noteImage.getX() - btnPrev.getWidth() * 0.5f,
+        ScreenUtilsHelper.scaleButton(btnPrev, targetHeight, stage);
+        ScreenUtilsHelper.scaleButton(btnNext, targetHeight, stage);
+        ScreenUtilsHelper.scaleButton(closeBtn, targetHeight, stage);
+
+        btnPrev.setPosition(noteImage.getX() - btnPrev.getWidth() * 0.5f,
             noteImage.getY() + height / 2 - btnPrev.getHeight() / 2);
-
-        ScreenUtilsHelper.scaleAndPositionButton(btnNext, targetHeight, noteImage.getX() + width - btnNext.getWidth() * 0.5f,
+        btnNext.setPosition(noteImage.getX() + width - btnNext.getWidth() * 0.5f,
             noteImage.getY() + height / 2 - btnNext.getHeight() / 2);
-
-        ScreenUtilsHelper.scaleAndPositionButton(closeBtn, targetHeight, 10,
+        closeBtn.setPosition(10,
             screenHeight - closeBtn.getHeight() - 10);
     }
 

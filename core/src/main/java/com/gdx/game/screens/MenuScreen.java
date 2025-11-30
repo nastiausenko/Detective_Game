@@ -133,15 +133,14 @@ public class MenuScreen implements Screen {
         float spacing = height * 0.03f;
         float startY = stage.getViewport().getWorldHeight() * 0.3f + targetHeight;
 
-        ScreenUtilsHelper.scaleAndPositionButton(startBtn, targetHeight,
-            ScreenUtilsHelper.centerX(startBtn, stage.getViewport()), startY);
+        ScreenUtilsHelper.scaleButton(startBtn, targetHeight, stage);
+        ScreenUtilsHelper.scaleButton(newGameBtn, targetHeight, stage);
+        ScreenUtilsHelper.scaleButton(exitBtn, targetHeight, stage);
 
-        ScreenUtilsHelper.scaleAndPositionButton(newGameBtn, targetHeight,
-            ScreenUtilsHelper.centerX(newGameBtn, stage.getViewport()),
+        startBtn.setPosition(ScreenUtilsHelper.centerX(startBtn, stage.getViewport()), startY);
+        newGameBtn.setPosition( ScreenUtilsHelper.centerX(newGameBtn, stage.getViewport()),
             startBtn.getY() - newGameBtn.getHeight() - spacing);
-
-        ScreenUtilsHelper.scaleAndPositionButton(exitBtn, targetHeight,
-            ScreenUtilsHelper.centerX(exitBtn, stage.getViewport()),
+        exitBtn.setPosition(ScreenUtilsHelper.centerX(exitBtn, stage.getViewport()),
             newGameBtn.getY() - exitBtn.getHeight() - spacing);
     }
 

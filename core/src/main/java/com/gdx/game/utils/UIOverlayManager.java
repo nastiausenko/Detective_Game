@@ -153,29 +153,32 @@ public class UIOverlayManager {
         uiStage.getViewport().update(width, height, true);
 
         float margin = 10f;
+        float worldWidth = uiStage.getViewport().getWorldWidth();
+        float worldHeight = uiStage.getViewport().getWorldHeight();
         float targetHeight = height * 0.12f;
 
-        ScreenUtilsHelper.scaleAndPositionButton(toggleButton, targetHeight, margin,
-                uiStage.getViewport().getWorldHeight() - toggleButton.getHeight() - margin);
-        toggleButton.setPosition(margin,
-                uiStage.getViewport().getWorldHeight() - toggleButton.getHeight() - margin);
-        ScreenUtilsHelper.scaleAndPositionButton(notesButton, targetHeight, margin,
-                toggleButton.getY() - notesButton.getHeight());
-        notesButton.setPosition(margin,
-                toggleButton.getY() - notesButton.getHeight());
-        ScreenUtilsHelper.scaleAndPositionButton(dossierButton, targetHeight, margin,
-                notesButton.getY() - dossierButton.getHeight());
-        ScreenUtilsHelper.scaleAndPositionButton(accuseButton, targetHeight, margin,
-                dossierButton.getY() - accuseButton.getHeight());
-        ScreenUtilsHelper.scaleAndPositionButton(settingsButton, targetHeight, 0, 0);
+        ScreenUtilsHelper.scaleButton(toggleButton, targetHeight, uiStage);
+        ScreenUtilsHelper.scaleButton(notesButton, targetHeight, uiStage);
+        ScreenUtilsHelper.scaleButton(dossierButton, targetHeight, uiStage);
+        ScreenUtilsHelper.scaleButton(accuseButton, targetHeight, uiStage);
+        ScreenUtilsHelper.scaleButton(settingsButton, targetHeight, uiStage);
+
+        toggleButton.setPosition(margin, worldHeight - toggleButton.getHeight() - margin);
+        notesButton.setPosition(margin, toggleButton.getY() - notesButton.getHeight());
+        dossierButton.setPosition(margin, notesButton.getY() - dossierButton.getHeight());
+        accuseButton.setPosition(margin, dossierButton.getY() - accuseButton.getHeight());
+
         settingsButton.setPosition(
-                uiStage.getViewport().getWorldWidth() - settingsButton.getWidth() - margin,
-                uiStage.getViewport().getWorldHeight() - settingsButton.getHeight() - margin
+            worldWidth - settingsButton.getWidth() - margin,
+            worldHeight - settingsButton.getHeight() - margin
         );
 
         if (inInterior) {
-            ScreenUtilsHelper.scaleAndPositionButton(homeButton, targetHeight, toggleButton.getWidth() + margin,
-                    uiStage.getViewport().getWorldHeight() - homeButton.getHeight() - margin);
+            ScreenUtilsHelper.scaleButton(homeButton, targetHeight, uiStage);
+            homeButton.setPosition(
+                toggleButton.getX() + toggleButton.getWidth() + margin,
+                worldHeight - homeButton.getHeight() - margin
+            );
         }
 
         timer.setPositions(targetHeight);

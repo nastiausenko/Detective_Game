@@ -141,9 +141,8 @@ public class AccusationPopup extends AbstractPopup {
             accusationBackground.getY() + paddingBottom
         );
 
-        ScreenUtilsHelper.scaleAndPositionButton(
-            closeButton, screenHeight * 0.12f, 10, screenHeight - closeButton.getHeight() - 10
-        );
+        ScreenUtilsHelper.scaleButton(closeButton, screenHeight * 0.12f, stage);
+        closeButton.setPosition(10, screenHeight - closeButton.getHeight() - 10);
     }
 
     @Override

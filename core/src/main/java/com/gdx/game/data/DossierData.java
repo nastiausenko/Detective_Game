@@ -8,7 +8,6 @@ public class DossierData {
     public String role;
     public String personality;
     public int lieRisk;
-    public String trustLevel;
 
     public List<String> publicFacts;
     public List<String> hiddenFacts;

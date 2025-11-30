@@ -93,7 +93,8 @@ public class GameTimer {
         float worldHeight = stage.getViewport().getWorldHeight();
 
         FontScaler.applyScale(skin.getFont("default-font"));
-        ScreenUtilsHelper.scaleAndPositionButton(timerBackground, targetHeight, 0, 0);
+        ScreenUtilsHelper.scaleButton(timerBackground, targetHeight, stage);
+        timerBackground.setPosition(worldWidth / 2f, worldHeight / 2f);
 
         timerBackground.setPosition(
                 (worldWidth - timerBackground.getWidth()) / 2f,
