@@ -1,13 +1,19 @@
 package com.gdx.game.utils;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.data.DossierData;
+import com.gdx.game.data.DossierDatabase;
 import com.gdx.game.screens.MapScreen;
 import com.gdx.game.ui.popup.*;
 import com.gdx.game.ui.timer.GameTimer;
+
+import static com.badlogic.gdx.net.HttpRequestBuilder.json;
 
 public class UIOverlayManager {
     private final DetectiveGame game;
@@ -86,7 +92,13 @@ public class UIOverlayManager {
     }
 
     private void showDossier() {
-        if (dossierPopup == null) dossierPopup = popupFactory.createDossierPopup();
+        if (dossierPopup == null)
+            dossierPopup = popupFactory.createDossierPopup();
+
+        Json json = new Json();
+        DossierDatabase db = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier.json"));
+
+        dossierPopup.loadDatabase(db);
         dossierPopup.show();
     }
 
