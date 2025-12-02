@@ -7,7 +7,7 @@ public class DossierData {
     public int age;
     public String role;
     public String personality;
-    public int lieRisk;
+    public Integer lieRisk;
 
     public List<String> publicFacts;
     public List<String> hiddenFacts;

@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.npc.LlmClient;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.TiledTextureHelper;
@@ -26,6 +27,7 @@ import com.gdx.game.utils.TiledTextureHelper;
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
 
     private final DetectiveGame game;
+    private final LlmClient llmClient;
     private final Texture background;
     private Image backButton;
     private final String buildingId;
@@ -59,6 +61,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         this.characterName = characterName;
         this.characterTexture = new Texture(fullBody);
 
+        llmClient = new LlmClient("API_TOKEN");
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
         tiledHelper = new TiledTextureHelper(background, 256);
@@ -259,21 +262,40 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     }
 
     private void handleQuestion(String question) {
-        if (question.isEmpty()) return;
+        if (question == null || question.trim().isEmpty()) return;
 
-        if (question.toLowerCase().contains("жертву")) {
-            currentResponse = "Так, я знав жертву. Вона приходила сюди кілька разів...";
-        } else if (question.toLowerCase().contains("де ти був")) {
-            currentResponse = "Я... був удома. Один.";
-        } else {
-            currentResponse = "Не розумію, до чого це питання.";
-        }
-
+        currentResponse = "…";
         dialogueLabel.setText(currentResponse);
         dialogueLabel.setVisible(true);
         answerAreaImage.setVisible(true);
-
         updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        final String systemPrompt =
+            "You are " + characterName + ", a character in a detective game. " +
+                "The player is a detective asking you questions about a mysterious death in the town of Rosenfeld. " +
+                "Answer briefly (1-3 sentences) in Ukrainian, stay in character.";
+
+        final String userMessage = question;
+
+        new Thread(() -> {
+            String answer;
+            try {
+                answer = llmClient.ask(systemPrompt, userMessage);
+            } catch (Exception e) {
+                e.fillInStackTrace();
+                answer = "Вибач, але я зараз не можу відповісти.";
+            }
+
+            final String finalAnswer = answer;
+
+            Gdx.app.postRunnable(() -> {
+                currentResponse = finalAnswer;
+                dialogueLabel.setText(currentResponse);
+                dialogueLabel.setVisible(true);
+                answerAreaImage.setVisible(true);
+                updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            });
+        }).start();
     }
 
     private void updateAnswerBubbleLayout(float width, float height) {

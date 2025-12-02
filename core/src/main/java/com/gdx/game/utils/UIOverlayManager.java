@@ -7,13 +7,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.data.DossierData;
 import com.gdx.game.data.DossierDatabase;
 import com.gdx.game.screens.MapScreen;
 import com.gdx.game.ui.popup.*;
 import com.gdx.game.ui.timer.GameTimer;
-
-import static com.badlogic.gdx.net.HttpRequestBuilder.json;
 
 public class UIOverlayManager {
     private final DetectiveGame game;

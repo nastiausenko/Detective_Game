@@ -30,13 +30,13 @@ public class Assets {
     public static final String EXIT_BUTTON = "menu/settings/exit_btn.png";
 
     public static final String ACCUSE = "menu/accusation/accuse.png";
-    public static final String ACCUSATION_POPUP = "menu/accusation/accusation.png";
+    public static final String ACCUSATION_POPUP = "menu/accusation/img.png";
 
-    public static final String OFFICER_PORTRAIT = "chars/portrait/officer.png";
-    public static final String CASHIER_PORTRAIT = "chars/portrait/cashier.png";
-    public static final String SISTER_PORTRAIT = "chars/portrait/sister.png";
-    public static final String STUDENT_PORTRAIT = "chars/portrait/student.png";
-    public static final String DOCTOR_PORTRAIT = "chars/portrait/doctor.png";
+    public static final String OFFICER_PORTRAIT = "chars/portrait/img.png";
+    public static final String CASHIER_PORTRAIT = "chars/portrait/img.png";
+    public static final String SISTER_PORTRAIT = "chars/portrait/img.png";
+    public static final String STUDENT_PORTRAIT = "chars/portrait/img.png";
+    public static final String DOCTOR_PORTRAIT = "chars/portrait/img.png";
 
     public static final String PROLOGUE = "menu/story/prologue.png";
 

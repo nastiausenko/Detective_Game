@@ -66,7 +66,6 @@ public class AccusationPopup extends AbstractPopup {
 
     public void resize(float screenWidth, float screenHeight) {
         background.setSize(screenWidth, screenHeight);
-        accusationBackground.setSize(screenWidth, screenHeight);
         resizeCentered(accusationBackground, accusationTexture, screenWidth, screenHeight);
 
         FontScaler.applyScale(skin.getFont("default-font"));
