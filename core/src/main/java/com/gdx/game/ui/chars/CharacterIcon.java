@@ -18,7 +18,7 @@ public class CharacterIcon extends Image {
     private BuildingData linkedBuilding;
     private final float baseSize = 50;
 
-    public CharacterIcon(DetectiveGame game, String id, String name, String iconPath, String fullBodyPath, String buildingId) {
+    public CharacterIcon(DetectiveGame game, String id, String iconPath, String fullBodyPath, String buildingId) {
         super(new Texture(iconPath));
         this.id = id;
         this.buildingId = buildingId;
@@ -50,7 +50,7 @@ public class CharacterIcon extends Image {
                                 game,
                                 linkedBuilding.interiorBackground,
                                 buildingId,
-                                name,
+                                id,
                                 fullBodyPath
                             );
                             game.setScreen(interiorScreen);

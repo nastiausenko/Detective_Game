@@ -1,8 +1,8 @@
 [
-  { "id": "char1", "name": "Officer", "icon": "chars/icons/icon.png", "fullBody": "chars/full/officer.png", "buildingId": "town_hall" },
-  { "id": "char2", "name": "Doctor", "icon": "chars/icons/icon2.png", "fullBody": "chars/full/doctor.png", "buildingId": "hospital" },
-  { "id": "char3", "name": "Student", "icon": "chars/icons/icon3.png", "fullBody": "chars/full/student.png", "buildingId": "med_school" },
-  { "id": "char4", "name": "Cashier", "icon": "chars/icons/icon4.png", "fullBody": "chars/full/cashier.png", "buildingId": "shop" },
-  { "id": "char5", "name": "Sister", "icon": "chars/icons/icon5.png", "fullBody": "chars/full/sister.png", "buildingId": "house2" }
+  { "id": "ernst", "name": "Ernst Bauer", "icon": "chars/icons/icon.png", "fullBody": "chars/full/officer.png", "buildingId": "town_hall" },
+  { "id": "mara", "name": "Mara Kovács", "icon": "chars/icons/icon2.png", "fullBody": "chars/full/doctor.png", "buildingId": "hospital" },
+  { "id": "liam", "name": "Liam Becker", "icon": "chars/icons/icon3.png", "fullBody": "chars/full/student.png", "buildingId": "med_school" },
+  { "id": "elena", "name": "Elena Varga", "icon": "chars/icons/icon4.png", "fullBody": "chars/full/cashier.png", "buildingId": "shop" },
+  { "id": "clara", "name": "Clara Weiss", "icon": "chars/icons/icon5.png", "fullBody": "chars/full/sister.png", "buildingId": "house2" }
 ]
 

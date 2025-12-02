@@ -19,7 +19,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.npc.LlmClient;
+import com.gdx.game.npc.NpcDialogueService;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.TiledTextureHelper;
@@ -27,11 +27,11 @@ import com.gdx.game.utils.TiledTextureHelper;
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
 
     private final DetectiveGame game;
-    private final LlmClient llmClient;
+    private final NpcDialogueService npcService;
     private final Texture background;
     private Image backButton;
     private final String buildingId;
-    private final String characterName;
+    private final String characterId;
     private final TiledTextureHelper tiledHelper;
     private final Texture characterTexture;
 
@@ -54,14 +54,14 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private float bubblePadding = 50f;
     private float bubbleMaxWidthRatio = 0.4f;
 
-    public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String buildingId, String characterName, String fullBody) {
+    public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String buildingId, String characterId, String fullBody) {
         this.game = game;
         this.background = new Texture(backgroundPath);
         this.buildingId = buildingId;
-        this.characterName = characterName;
+        this.characterId = characterId;
         this.characterTexture = new Texture(fullBody);
+        this.npcService = game.getNpcDialogueService();
 
-        llmClient = new LlmClient("API_TOKEN");
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
         tiledHelper = new TiledTextureHelper(background, 256);
@@ -270,24 +270,21 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         answerAreaImage.setVisible(true);
         updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        final String systemPrompt =
-            "You are " + characterName + ", a character in a detective game. " +
-                "The player is a detective asking you questions about a mysterious death in the town of Rosenfeld. " +
-                "Answer briefly (1-3 sentences) in Ukrainian, stay in character.";
+        final String q = question.trim();
 
-        final String userMessage = question;
-
+        // Робимо виклик у окремому потоці
         new Thread(() -> {
             String answer;
             try {
-                answer = llmClient.ask(systemPrompt, userMessage);
+                answer = npcService.askNpcSync(characterId, q);
             } catch (Exception e) {
-                e.fillInStackTrace();
+                e.printStackTrace();
                 answer = "Вибач, але я зараз не можу відповісти.";
             }
 
             final String finalAnswer = answer;
 
+            // Оновлюємо UI на головному потоці
             Gdx.app.postRunnable(() -> {
                 currentResponse = finalAnswer;
                 dialogueLabel.setText(currentResponse);

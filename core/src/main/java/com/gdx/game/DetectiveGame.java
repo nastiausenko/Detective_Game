@@ -3,6 +3,10 @@ package com.gdx.game;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.Json;
+import com.gdx.game.data.DossierDatabase;
+import com.gdx.game.npc.LlmClient;
+import com.gdx.game.npc.NpcDialogueService;
 import com.gdx.game.screens.MenuScreen;
 import com.gdx.game.ui.GdxResourceProvider;
 import com.gdx.game.ui.UIButtonFactory;
@@ -16,11 +20,22 @@ public class DetectiveGame extends Game {
     private UIButtonFactory buttonFactory;
     private FadeTransition transition;
 
+    private DossierDatabase dossierDb;
+    private NpcDialogueService npcDialogueService;
+
     @Override
     public void create() {
         batch = new SpriteBatch();
         transition = new FadeTransition();
         buttonFactory = new UIButtonFactory(new GdxResourceProvider());
+
+        Json json = new Json();
+        dossierDb = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier.json"));
+
+        String apiKey = "API_KEY";
+        LlmClient llmClient = new LlmClient(apiKey);
+
+        npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
 
         overlay = new UIOverlayManager(this);
 
@@ -47,5 +62,13 @@ public class DetectiveGame extends Game {
 
     public FadeTransition getTransition() {
         return transition;
+    }
+
+    public DossierDatabase getDossierDb() {
+        return dossierDb;
+    }
+
+    public NpcDialogueService getNpcDialogueService() {
+        return npcDialogueService;
     }
 }

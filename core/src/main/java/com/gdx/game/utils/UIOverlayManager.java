@@ -92,10 +92,7 @@ public class UIOverlayManager {
         if (dossierPopup == null)
             dossierPopup = popupFactory.createDossierPopup();
 
-        Json json = new Json();
-        DossierDatabase db = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier.json"));
-
-        dossierPopup.loadDatabase(db);
+        dossierPopup.loadDatabase(game.getDossierDb());
         dossierPopup.show();
     }
 
