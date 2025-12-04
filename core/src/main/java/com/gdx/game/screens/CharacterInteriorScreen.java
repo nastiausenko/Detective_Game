@@ -7,6 +7,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
@@ -15,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -28,12 +30,15 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private final DetectiveGame game;
     private final NpcDialogueService npcService;
+
     private final Texture background;
+    private float imageWidth, imageHeight;
     private Image backButton;
-    private final String buildingId;
-    private final String characterId;
     private final TiledTextureHelper tiledHelper;
+
+    private final String characterId;
     private final Texture characterTexture;
+    private final Image characterImage;
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
@@ -42,6 +47,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final Stage dialogueStage;
     private TextField inputField;
     private Label dialogueLabel;
+
     private final Texture questionAreaTexture;
     private final Image questionAreaImage;
 
@@ -49,15 +55,13 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final Image answerAreaImage;
 
     private float drawWidth, drawHeight;
-    private float imageWidth, imageHeight;
-    private String currentResponse = "";
-    private float bubblePadding = 50f;
-    private float bubbleMaxWidthRatio = 0.4f;
 
-    public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String buildingId, String characterId, String fullBody) {
+    private String currentResponse = "";
+    private final GlyphLayout glyphLayout = new GlyphLayout();
+
+    public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String characterId, String fullBody) {
         this.game = game;
         this.background = new Texture(backgroundPath);
-        this.buildingId = buildingId;
         this.characterId = characterId;
         this.characterTexture = new Texture(fullBody);
         this.npcService = game.getNpcDialogueService();
@@ -66,8 +70,11 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         viewport = new ScreenViewport(camera);
         tiledHelper = new TiledTextureHelper(background, 256);
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
-
         dialogueStage = new Stage(new ScreenViewport());
+
+        characterImage = new Image(characterTexture);
+        dialogueStage.addActor(characterImage);
+
         questionAreaTexture = new Texture(Assets.QUESTION_AREA);
         questionAreaImage = new Image(questionAreaTexture);
         dialogueStage.addActor(questionAreaImage);
@@ -141,26 +148,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             game.batch.end();
         }
 
-        game.batch.begin();
-
-        float charWidth = characterTexture.getWidth();
-        float charHeight = characterTexture.getHeight();
-
-        float worldHeight = viewport.getWorldHeight();
-        float scale = (worldHeight * 0.8f) / charHeight;
-        float drawW = charWidth * scale;
-        float drawH = charHeight * scale;
-
-        float camCenterX = camera.position.x;
-        float camCenterY = camera.position.y;
-
-        float y = camCenterY - (viewport.getWorldHeight() / 2f) + 20f;
-        float x = camCenterX - (drawW / 2f);
-
-        game.batch.draw(characterTexture, x, y, drawW, drawH);
-
-        game.batch.end();
-
         dialogueStage.act(delta);
         dialogueStage.draw();
 
@@ -210,13 +197,29 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         inputField.setStyle(createTextFieldStyle());
 
+        float texW = characterTexture.getWidth();
+        float texH = characterTexture.getHeight();
+
+        float scaleByWidth  = (width  * 0.45f) / texW;
+        float scaleByHeight = (height * 0.70f) / texH;
+
+        float scale = Math.min(scaleByWidth, scaleByHeight);
+
+        float characterDrawW = texW * scale;
+        float characterDrawH = texH * scale;
+
+        float charY = height * 0.1f;
+        float charX = width  * 0.5f - characterDrawW / 2f;
+
+        characterImage.setBounds(charX, charY, characterDrawW, characterDrawH);
+        updateAnswerBubbleLayout(width, height);
+
         dialogueStage.getViewport().update(width, height, true);
 
         camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
         camera.update();
 
         game.overlay.resize(width, height);
-        updateAnswerBubbleLayout(width, height);
     }
 
     @Override
@@ -272,7 +275,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         final String q = question.trim();
 
-        // Робимо виклик у окремому потоці
         new Thread(() -> {
             String answer;
             try {
@@ -284,7 +286,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
             final String finalAnswer = answer;
 
-            // Оновлюємо UI на головному потоці
             Gdx.app.postRunnable(() -> {
                 currentResponse = finalAnswer;
                 dialogueLabel.setText(currentResponse);
@@ -295,56 +296,69 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         }).start();
     }
 
-    private void updateAnswerBubbleLayout(float width, float height) {
+    private void updateAnswerBubbleLayout(float screenWidth, float screenHeight) {
         if (!dialogueLabel.isVisible()) return;
 
-        float originalBubbleWidth = answerAreaTexture.getWidth();
+        float paddingX  = 22f;
+        float paddingY  = 16f;
+        float tailHeight = 21f;
 
-        float scale = Math.min(width / 1920f, height / 1080f);
-        float scaledBubbleWidth = originalBubbleWidth * scale;
+        boolean portrait = screenHeight > screenWidth;
 
-        float innerPaddingX = bubblePadding * 0.8f;
-        float innerPaddingY = bubblePadding;
+        float charW = characterImage.getWidth();
+        float charH = characterImage.getHeight();
+        float charX = characterImage.getX();
+        float charY = characterImage.getY();
 
-        float maxTextWidth = scaledBubbleWidth - innerPaddingX * 2f;
+        float anchorRight = charX + charW * 0.5f - paddingX;
+
+        float maxBubbleWidth = answerAreaTexture.getWidth()*0.4f;
+
+        float screenLimit = screenWidth * (portrait ? 0.85f : 0.8f);
+        maxBubbleWidth = Math.min(maxBubbleWidth, screenLimit);
+
+        maxBubbleWidth = Math.min(maxBubbleWidth, anchorRight-paddingX);
+
+        Label.LabelStyle style = dialogueLabel.getStyle();
+        String text = currentResponse != null ? currentResponse : "";
+
+        glyphLayout.setText(style.font, text);
+        float singleLineWidth = glyphLayout.width;
+
+        float maxInnerWidth = maxBubbleWidth - paddingX * 2f;
+        if (maxInnerWidth < 0) maxInnerWidth = 0;
+
+        float innerWidth = Math.min(singleLineWidth, maxInnerWidth);
 
         dialogueLabel.setWrap(true);
         dialogueLabel.setAlignment(Align.center);
-        dialogueLabel.setWidth(maxTextWidth);
+        dialogueLabel.setWidth(innerWidth);
+        dialogueLabel.setText(text);
         dialogueLabel.layout();
-
-        float textWidth = dialogueLabel.getPrefWidth();
         float textHeight = dialogueLabel.getPrefHeight();
 
-        float bubbleWidth = Math.max(textWidth + innerPaddingX * 2f, scaledBubbleWidth * 0.5f);
+        float bubbleWidth  = innerWidth + paddingX * 2f;
+        float bubbleHeight = textHeight + paddingY * 2f + tailHeight;
 
-        bubbleWidth = Math.min(bubbleWidth, scaledBubbleWidth);
+        float maxBubbleHeight = screenHeight * 0.45f;
+        if (bubbleHeight > maxBubbleHeight) {
+            bubbleHeight = maxBubbleHeight;
+        }
 
-        float bubbleHeight = textHeight + innerPaddingY * 2f;
+        float bubbleX = anchorRight - bubbleWidth;
+        float bubbleY = charY + charH * 0.7f;
 
-        float worldHeight = viewport.getWorldHeight();
-        float charHeight = characterTexture.getHeight();
-        float charWidth = characterTexture.getWidth();
-        float charScale = (worldHeight * 0.8f) / charHeight;
-        float drawW = charWidth * charScale;
-        float drawH = charHeight * charScale;
+        bubbleY = MathUtils.clamp(bubbleY, 0, screenHeight - bubbleHeight);
 
-        float camCenterX = camera.position.x;
-        float charX = camCenterX - (drawW / 2f);
+        answerAreaImage.setBounds(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
 
-        float bubbleX = charX - drawW * 0.9f;
-        float bubbleY = drawH - bubbleHeight * 0.9f;
+        float innerHeight = bubbleHeight - paddingY * 2f - tailHeight;
+        if (textHeight > innerHeight) textHeight = innerHeight;
 
-        answerAreaImage.setSize(bubbleWidth, bubbleHeight);
-        answerAreaImage.setPosition(bubbleX, bubbleY);
+        float textX = bubbleX + paddingX;
+        float textY = bubbleY + tailHeight + paddingY
+            + (innerHeight - textHeight) / 2f;
 
-        dialogueLabel.setSize(bubbleWidth - innerPaddingX * 2f, textHeight);
-
-        float tailOffset = bubbleHeight * 0.05f;
-
-        dialogueLabel.setPosition(
-            bubbleX + innerPaddingX,
-            bubbleY + (bubbleHeight - textHeight) / 2f + tailOffset
-        );
+        dialogueLabel.setBounds(textX, textY, innerWidth, textHeight);
     }
 }
