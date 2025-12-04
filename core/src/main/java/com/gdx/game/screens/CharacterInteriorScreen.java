@@ -17,7 +17,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -26,6 +25,7 @@ import com.gdx.game.DetectiveGame;
 import com.gdx.game.npc.NpcDialogueService;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FontScaler;
+import com.gdx.game.utils.ScreenUtilsHelper;
 import com.gdx.game.utils.TiledTextureHelper;
 
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
@@ -51,6 +51,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private final Texture questionAreaTexture;
     private final Image questionAreaImage;
+
+    private final Image sendButtonImage;
 
     private float questionAreaFixedHeight = -1f;
 
@@ -93,6 +95,19 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         answerAreaImage = new Image(answerAreaTexture);
         answerAreaImage.setVisible(false);
         dialogueStage.addActor(answerAreaImage);
+
+        sendButtonImage = game.getButtonFactory().createButton(Assets.SEND_BUTTON, 64, 64, this::send);
+        dialogueStage.addActor(sendButtonImage);
+    }
+
+    private void send() {
+        if (inputField == null) return;
+
+        String text = inputField.getText();
+        if (text == null || text.trim().isEmpty()) return;
+
+        handleQuestion(text.trim());
+        inputField.setText("");
     }
 
     @Override
@@ -115,8 +130,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         inputField.setTextFieldListener((textField, c) -> {
             if (c == '\n' || c == '\r') {
-                handleQuestion(inputField.getText());
-                inputField.setText("");
+              send();
             }
         });
 
@@ -172,12 +186,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float imageAspect = imageWidth / imageHeight;
         float screenAspect = (float) width / height;
 
-        if (questionAreaFixedHeight < 0f) {
-            float designHeight = questionAreaTexture.getHeight();
-            float uiScale = height / 1000f;
-            questionAreaFixedHeight = designHeight * uiScale;
-        }
-
         if (imageAspect < screenAspect) {
             float scale = (float) width / imageWidth;
             drawWidth = width;
@@ -186,6 +194,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             float scale = (float) height / imageHeight;
             drawHeight = height;
             drawWidth = imageWidth * scale;
+        }
+
+        if (questionAreaFixedHeight < 0f) {
+            float designHeight = questionAreaTexture.getHeight();
+            float uiScale = height / 1000f;
+            questionAreaFixedHeight = designHeight * uiScale;
         }
 
         float desiredWidth  = width * 0.85f;
@@ -208,6 +222,20 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         );
 
         inputField.setStyle(createTextFieldStyle());
+
+        float innerMarginX = desiredWidth * 0.04f;
+        float bubbleX      = questionAreaImage.getX();
+        float bubbleY      = questionAreaImage.getY();
+        float bubbleH      = questionAreaImage.getHeight();
+        float bubbleW      = questionAreaImage.getWidth();
+
+        float sendTargetH = bubbleH * 0.6f;
+        ScreenUtilsHelper.scaleButton(sendButtonImage, sendTargetH, dialogueStage);
+
+        float sendX = bubbleX + bubbleW - innerMarginX - sendButtonImage.getWidth();
+        float sendY = bubbleY + (bubbleH - sendButtonImage.getHeight()) / 2f;
+        sendButtonImage.setPosition(sendX, sendY);
+
 
         float texW = characterTexture.getWidth();
         float texH = characterTexture.getHeight();
