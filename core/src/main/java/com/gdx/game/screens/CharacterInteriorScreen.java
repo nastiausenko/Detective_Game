@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
@@ -17,6 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -33,7 +35,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private final Texture background;
     private float imageWidth, imageHeight;
-    private Image backButton;
     private final TiledTextureHelper tiledHelper;
 
     private final String characterId;
@@ -50,6 +51,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private final Texture questionAreaTexture;
     private final Image questionAreaImage;
+
+    private float questionAreaFixedHeight = -1f;
 
     private final Texture answerAreaTexture;
     private final Image answerAreaImage;
@@ -76,7 +79,14 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         dialogueStage.addActor(characterImage);
 
         questionAreaTexture = new Texture(Assets.QUESTION_AREA);
-        questionAreaImage = new Image(questionAreaTexture);
+
+        int left   = 60;
+        int right  = 60;
+        int top    = 16;
+        int bottom = 16;
+
+        NinePatch questionAreaPatch = new NinePatch(questionAreaTexture, left, right, top, bottom);
+        questionAreaImage = new Image(new NinePatchDrawable(questionAreaPatch));
         dialogueStage.addActor(questionAreaImage);
 
         answerAreaTexture = new Texture(Assets.ANSWER_AREA);
@@ -162,6 +172,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float imageAspect = imageWidth / imageHeight;
         float screenAspect = (float) width / height;
 
+        if (questionAreaFixedHeight < 0f) {
+            float designHeight = questionAreaTexture.getHeight();
+            float uiScale = height / 1000f;
+            questionAreaFixedHeight = designHeight * uiScale;
+        }
+
         if (imageAspect < screenAspect) {
             float scale = (float) width / imageWidth;
             drawWidth = width;
@@ -172,12 +188,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             drawWidth = imageWidth * scale;
         }
 
-        float baseWidth = questionAreaTexture.getWidth();
-        float baseHeight = questionAreaTexture.getHeight();
-        float aspect = baseWidth / baseHeight;
-
-        float desiredWidth = width * 0.8f;
-        float desiredHeight = desiredWidth / aspect * 0.5f;
+        float desiredWidth  = width * 0.85f;
+        float desiredHeight = questionAreaFixedHeight;
 
         questionAreaImage.setSize(desiredWidth, desiredHeight);
         questionAreaImage.setPosition(
@@ -250,10 +262,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     @Override
     public void hide() {
-        if (backButton != null) {
-            backButton.remove();
-            backButton = null;
-        }
         game.overlay.hideAllPopups();
         game.overlay.setInInterior(false);
     }
