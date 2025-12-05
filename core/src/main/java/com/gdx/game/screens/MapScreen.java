@@ -3,7 +3,6 @@ package com.gdx.game.screens;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -27,7 +26,7 @@ import java.util.Map;
 public class MapScreen implements Screen {
     private final DetectiveGame game;
     private final FadeTransition transition;
-    private TiledTextureHelper tiledHelper;
+    private final TiledTextureHelper tiledHelper;
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;

@@ -8,6 +8,7 @@ public class GameData {
         "notes_data",
         "game_data",
         "game_timer",
+        "ai_detective_history"
     };
 
     public static void clearAll() {

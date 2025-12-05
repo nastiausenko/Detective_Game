@@ -1,13 +1,10 @@
 package com.gdx.game.utils;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.data.DossierDatabase;
 import com.gdx.game.screens.MapScreen;
 import com.gdx.game.ui.popup.*;
 import com.gdx.game.ui.timer.GameTimer;
@@ -22,6 +19,7 @@ public class UIOverlayManager {
     private final Image settingsButton;
     private final Image accuseButton;
     private final Image homeButton;
+    private final Image chatButton;
 
     private final Texture arrowDownTexture;
     private final Texture arrowUpTexture;
@@ -33,6 +31,8 @@ public class UIOverlayManager {
     private DossierPopup dossierPopup;
     private AccusationPopup accusationPopup;
     private SettingsPopup settingsPopup;
+    private ChatHistoryPopup chatHistoryPopup;
+    private String currentNpcId;
 
     private boolean menuOpened = false;
     private boolean visible = true;
@@ -49,8 +49,9 @@ public class UIOverlayManager {
         notesButton = game.getButtonFactory().createButton(Assets.NOTE_ICON, 64, 64, this::showNotes);
         dossierButton = game.getButtonFactory().createButton(Assets.DOSSIER_BUTTON, 64, 64, this::showDossier);
         settingsButton = game.getButtonFactory().createButton(Assets.SETTINGS_BUTTON, 64, 64, this::showSettings);
-        accuseButton = game.getButtonFactory().createButton(Assets.ACCUSATION_BUTTON, 64, 64, this::showAccusation); // TODO ACCUSATION POPUP
+        accuseButton = game.getButtonFactory().createButton(Assets.ACCUSATION_BUTTON, 64, 64, this::showAccusation);
         homeButton = game.getButtonFactory().createButton(Assets.HOME_BUTTON, 64, 64, this::backToMap);
+        chatButton = game.getButtonFactory().createButton(Assets.CHAT_BUTTON, 64, 64, this::showChatHistory);
 
         notesButton.setVisible(false);
         dossierButton.setVisible(false);
@@ -101,6 +102,20 @@ public class UIOverlayManager {
         accusationPopup.show();
     }
 
+    public void setCurrentNpcId(String npcId) {
+        this.currentNpcId = npcId;
+
+        if (chatHistoryPopup != null) {
+            chatHistoryPopup.remove();
+            chatHistoryPopup = null;
+        }
+    }
+
+    private void showChatHistory() {
+        if (chatHistoryPopup == null) chatHistoryPopup = popupFactory.createChatHistoryPopup(currentNpcId);
+        chatHistoryPopup.show();
+    }
+
     private void showSettings() {
         if (settingsPopup == null) settingsPopup = popupFactory.createSettingsPopup();
         timer.saveTime();
@@ -129,6 +144,7 @@ public class UIOverlayManager {
         if (inInterior) {
             if (!uiStage.getActors().contains(homeButton, true)) {
                 uiStage.addActor(homeButton);
+                uiStage.addActor(chatButton);
             }
 
             float margin = 10f;
@@ -138,8 +154,12 @@ public class UIOverlayManager {
             homeButton.setSize(size, size);
             homeButton.setPosition(toggleButton.getX() - size - margin, y);
 
+            chatButton.setSize(size, size);
+            chatButton.setPosition(settingsButton.getX() - size - margin, settingsButton.getY() - margin);
+
         } else {
             homeButton.remove();
+            chatButton.remove();
         }
     }
 
@@ -169,10 +189,14 @@ public class UIOverlayManager {
 
         if (inInterior) {
             ScreenUtilsHelper.scaleButton(homeButton, targetHeight, uiStage);
+            ScreenUtilsHelper.scaleButton(chatButton, targetHeight, uiStage);
+
             homeButton.setPosition(
                 toggleButton.getX() + toggleButton.getWidth() + margin,
                 worldHeight - homeButton.getHeight() - margin
             );
+
+            chatButton.setPosition(settingsButton.getX() - chatButton.getWidth() - margin, settingsButton.getY());
         }
 
         timer.setPositions(targetHeight);
@@ -181,6 +205,7 @@ public class UIOverlayManager {
         if (dossierPopup != null) dossierPopup.resize(width, height);
         if (settingsPopup != null) settingsPopup.resize(width, height);
         if (accusationPopup != null) accusationPopup.resize(width, height);
+        if (chatHistoryPopup != null) chatHistoryPopup.resize(width, height);
     }
 
     public void setVisible(boolean visible) {
@@ -201,6 +226,7 @@ public class UIOverlayManager {
         if (dossierPopup != null) dossierPopup.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
         if (accusationPopup != null) accusationPopup.dispose();
+        if (chatHistoryPopup != null) chatHistoryPopup.dispose();
 
         timer.saveTime();
     }
@@ -210,6 +236,7 @@ public class UIOverlayManager {
         if (notePopup != null) notePopup.remove();
         if (dossierPopup != null) dossierPopup.remove();
         if (accusationPopup != null) accusationPopup.remove();
+        if (chatHistoryPopup != null) chatHistoryPopup.remove();
     }
 
     public void pauseTimer() {

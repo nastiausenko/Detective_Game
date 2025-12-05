@@ -41,4 +41,8 @@ public class PopupFactory {
     public AccusationPopup createAccusationPopup() {
         return new AccusationPopup(stage, game);
     }
+
+    public ChatHistoryPopup createChatHistoryPopup(String npcId) {
+        return new ChatHistoryPopup(stage, skin, game, npcId);
+    }
 }

@@ -49,7 +49,6 @@ public class CharacterIcon extends Image {
                             CharacterInteriorScreen interiorScreen = new CharacterInteriorScreen(
                                 game,
                                 linkedBuilding.interiorBackground,
-                                buildingId,
                                 id,
                                 fullBodyPath
                             );

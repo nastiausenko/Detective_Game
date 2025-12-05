@@ -1,9 +1,6 @@
 package com.gdx.game.screens;
 
-import com.badlogic.gdx.Application;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -22,6 +19,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.data.DialogueHistory;
 import com.gdx.game.npc.NpcDialogueService;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FontScaler;
@@ -114,6 +112,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     public void show() {
         game.overlay.setVisible(true);
         game.overlay.setInInterior(true);
+        game.overlay.setCurrentNpcId(characterId);
+
 
         imageWidth = background.getWidth();
         imageHeight = background.getHeight();
@@ -328,6 +328,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 dialogueLabel.setVisible(true);
                 answerAreaImage.setVisible(true);
                 updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+                DialogueHistory.append(characterId, q, finalAnswer);
             });
         }).start();
     }
