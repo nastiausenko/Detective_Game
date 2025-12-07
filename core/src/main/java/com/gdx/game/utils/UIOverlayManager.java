@@ -130,6 +130,8 @@ public class UIOverlayManager {
 
         if (settingsPopup != null && settingsPopup.isVisible()) {
             timer.pause();
+        } else {
+            timer.resume();
         }
 
         timer.update(delta);
