@@ -132,7 +132,7 @@ public class NpcDialogueService {
         state.questionsAsked += 1;
 
         String systemPrompt = buildSystemPrompt(npcId);
-        String answer = llmClient.ask(systemPrompt, question);
+        String answer = "Knew Walter conducted unofficial experiments on children.";
 
         // TODO: updateStateAfterExchange(state, question, answer);
 

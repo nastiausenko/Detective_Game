@@ -7,6 +7,7 @@ import com.badlogic.gdx.utils.Json;
 import com.gdx.game.data.DossierDatabase;
 import com.gdx.game.npc.LlmClient;
 import com.gdx.game.npc.NpcDialogueService;
+import com.gdx.game.npc.NpcStateManager;
 import com.gdx.game.screens.MenuScreen;
 import com.gdx.game.ui.GdxResourceProvider;
 import com.gdx.game.ui.UIButtonFactory;
@@ -22,6 +23,7 @@ public class DetectiveGame extends Game {
 
     private DossierDatabase dossierDb;
     private NpcDialogueService npcDialogueService;
+    private NpcStateManager npcStateManager;
 
     @Override
     public void create() {
@@ -36,6 +38,7 @@ public class DetectiveGame extends Game {
         LlmClient llmClient = new LlmClient(apiKey);
 
         npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
+        npcStateManager = new NpcStateManager();
 
         overlay = new UIOverlayManager(this);
 
@@ -70,5 +73,9 @@ public class DetectiveGame extends Game {
 
     public NpcDialogueService getNpcDialogueService() {
         return npcDialogueService;
+    }
+
+    public NpcStateManager getNpcStateManager() {
+        return npcStateManager;
     }
 }

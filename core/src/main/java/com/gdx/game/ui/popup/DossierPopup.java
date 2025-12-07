@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.Array;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.data.DossierData;
 import com.gdx.game.data.DossierDatabase;
+import com.gdx.game.npc.NpcState;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
@@ -29,6 +30,7 @@ public class DossierPopup extends AbstractPopup {
     private final Image btnPrev;
     private final Image closeBtn;
 
+    private final DetectiveGame game;
     private final Skin skin;
 
     private final Label nameLabel;
@@ -47,6 +49,7 @@ public class DossierPopup extends AbstractPopup {
 
     public DossierPopup(Stage stage, DetectiveGame game) {
         super(stage);
+        this.game = game;
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         BitmapFont leftFont = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
@@ -117,10 +120,12 @@ public class DossierPopup extends AbstractPopup {
     private void updateContent() {
         if (database == null || characterKeys == null || characterKeys.size == 0) return;
 
-        String key = characterKeys.get(currentPage);
-        DossierData data = database.characters.get(key);
+        String npcId = characterKeys.get(currentPage);
+        DossierData data = database.characters.get(npcId);
 
-        pageImage.setDrawable(new TextureRegionDrawable(new TextureRegion(pages[currentPage % pages.length])));
+        pageImage.setDrawable(new TextureRegionDrawable(
+            new TextureRegion(pages[currentPage % pages.length]))
+        );
 
         nameLabel.setText(data.name != null ? data.name : "");
         roleLabel.setText(data.role != null ? data.role : "");
@@ -132,14 +137,25 @@ public class DossierPopup extends AbstractPopup {
         sb.append("Lie risk: ").append(data.lieRisk).append("/5\n\n");
 
         sb.append("Facts:\n");
+
         if (data.publicFacts != null) {
             for (String f : data.publicFacts) {
-                sb.append(" • ").append(f).append("\n");
+                sb.append(" - ").append(f).append("\n");
             }
         }
+
+        int hiddenCount = (data.hiddenFacts != null) ? data.hiddenFacts.size() : 0;
+        NpcState state = game.getNpcStateManager().getOrCreate(npcId, hiddenCount);
+
         if (data.hiddenFacts != null) {
-            for (String f : data.hiddenFacts) {
-                sb.append(" - ").append(f).append("\n");
+            for (int i = 0; i < data.hiddenFacts.size(); i++) {
+                String fact = data.hiddenFacts.get(i);
+
+                if (i < state.hiddenRevealed.length && state.hiddenRevealed[i]) {
+                    sb.append(" - ").append(fact).append("\n");
+                } else {
+                    sb.append(" - ???").append("\n");
+                }
             }
         }
 

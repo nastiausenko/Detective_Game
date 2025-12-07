@@ -20,7 +20,9 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.data.DialogueHistory;
+import com.gdx.game.data.DossierData;
 import com.gdx.game.npc.NpcDialogueService;
+import com.gdx.game.npc.NpcState;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.ScreenUtilsHelper;
@@ -329,6 +331,22 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 answerAreaImage.setVisible(true);
                 updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
                 DialogueHistory.append(characterId, q, finalAnswer);
+
+                // TODO trigger to reveal facts
+                DossierData data = game.getDossierDb().characters.get(characterId);
+                if (data != null && data.hiddenFacts != null) {
+                    NpcState state = game.getNpcStateManager()
+                        .getOrCreate(characterId, data.hiddenFacts.size());
+
+                    for (int i = 0; i < data.hiddenFacts.size(); i++) {
+                        String hidden = data.hiddenFacts.get(i);
+                        if (!state.hiddenRevealed[i]
+                            && hidden != null
+                            && finalAnswer.contains(hidden)) {
+                            state.hiddenRevealed[i] = true;
+                        }
+                    }
+                }
             });
         }).start();
     }
