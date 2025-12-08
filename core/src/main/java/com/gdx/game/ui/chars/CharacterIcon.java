@@ -16,14 +16,14 @@ public class CharacterIcon extends Image {
     private final String id;
     private String buildingId;
     private BuildingData linkedBuilding;
-    private final float baseSize = 50;
+    private final float baseSize = 40;
 
     public CharacterIcon(DetectiveGame game, String id, String iconPath, String fullBodyPath, String buildingId) {
         super(new Texture(iconPath));
         this.id = id;
         this.buildingId = buildingId;
 
-        setSize(baseSize, baseSize * 1.4f);
+        setSize(baseSize, baseSize * 1.3f);
 
         getColor().a = 0.7f;
 
@@ -74,7 +74,7 @@ public class CharacterIcon extends Image {
     public void updatePositionFromBuilding(float mapWidth, float mapHeight, float scale) {
         if (linkedBuilding != null) {
             float iconWidth = baseSize * scale;
-            float iconHeight = iconWidth * 1.4f;
+            float iconHeight = iconWidth * 1.3f;
             setSize(iconWidth, iconHeight);
 
             float bx = linkedBuilding.x * mapWidth;
