@@ -1,10 +1,12 @@
 package com.gdx.game.npc;
 
+import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.gdx.game.data.DossierData;
 import com.gdx.game.data.DossierDatabase;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class NpcDialogueService {
 
@@ -111,12 +113,40 @@ public class NpcDialogueService {
         }
 
         if (dossier != null && dossier.hiddenFacts != null && !dossier.hiddenFacts.isEmpty()) {
-            sb.append("\nSecret facts that you know. ")
-                .append("You should NOT directly reveal them unless the detective clearly has strong evidence ")
-                .append("or you feel morally pushed to confess. You may hint, dodge or distort these facts, ")
-                .append("especially if your lie_risk is high or you are afraid:\n");
-            for (String f : dossier.hiddenFacts) {
-                sb.append("- ").append(f).append("\n");
+            if (state.hiddenRevealed == null || state.hiddenRevealed.length < dossier.hiddenFacts.size()) {
+                state.hiddenRevealed = new boolean[dossier.hiddenFacts.size()];
+            }
+
+            boolean hasRevealed = false;
+            for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
+                if (state.hiddenRevealed[i]) {
+                    hasRevealed = true;
+                    break;
+                }
+            }
+
+            if (hasRevealed) {
+                sb.append("\nFacts that you have ALREADY clearly admitted to the detective. ")
+                        .append("These are things the detective definitely knows, ")
+                        .append("so you MUST NOT claim that you \"don't know anything\" about them ")
+                        .append("or that they never happened. You may feel ashamed, avoid details ")
+                        .append("or try to minimise, but you cannot deny these facts:\n");
+
+                for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
+                    if (state.hiddenRevealed[i]) {
+                        sb.append("- ").append(dossier.hiddenFacts.get(i)).append("\n");
+                    }
+                }
+            }
+
+            sb.append("\nSecret facts that you know but have NOT confessed yet. ")
+                    .append("You should avoid stating them plainly, unless the detective asks about them ")
+                    .append("or you feel morally forced to confess:\n");
+
+            for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
+                if (!state.hiddenRevealed[i]) {
+                    sb.append("- ").append(dossier.hiddenFacts.get(i)).append("\n");
+                }
             }
         }
 
@@ -127,12 +157,50 @@ public class NpcDialogueService {
         return sb.toString();
     }
 
+    public boolean isQuestionLogicalForHiddenFact(String npcId,
+                                                  String question,
+                                                  String hiddenFact) throws IOException {
+
+        String system = "You are a simple classifier in a detective game.\n"
+                + "You are given a HIDDEN FACT and a detective's QUESTION.\n"
+                + "Your task is to say whether this question essentially relates to this fact.\n"
+                + "Answer STRICTLY with one word: YES or NO.\n"
+                + "\n"
+                + "Answer YES if the question:\n"
+                + "- directly asks about this fact, o\n"
+                + "- contains the same key concepts, or\n"
+                + "- logically hints at this fact (the detective has almost guessed it).\n"
+                + "In all other cases, answer NO.\n";
+
+        String user = "HIDDEN FACT: \"" + hiddenFact + "\"\n"
+                + "QUESTION: \"" + question + "\"\n"
+                + "Answer only YES or NO.";
+
+        String result = llmClient.ask(system, user);
+        if (result == null) return false;
+
+        result = result.trim().toUpperCase(Locale.ROOT);
+        return result.startsWith("YES");
+    }
+
+    public void markFactsRevealed(String npcId, IntArray factIndexes) {
+        if (factIndexes == null || factIndexes.size == 0) return;
+
+        NpcState state = getOrCreateState(npcId);
+        for (int i = 0; i < factIndexes.size; i++) {
+            int idx = factIndexes.get(i);
+            if (idx >= 0 && idx < state.hiddenRevealed.length) {
+                state.hiddenRevealed[idx] = true;
+            }
+        }
+    }
+
     public String askNpcSync(String npcId, String question) throws IOException {
         NpcState state = getOrCreateState(npcId);
         state.questionsAsked += 1;
 
         String systemPrompt = buildSystemPrompt(npcId);
-        String answer = "Knew Walter conducted unofficial experiments on children.";
+        String answer = llmClient.ask(systemPrompt, question);;
 
         // TODO: updateStateAfterExchange(state, question, answer);
 

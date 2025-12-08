@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
@@ -27,6 +28,9 @@ import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.ScreenUtilsHelper;
 import com.gdx.game.utils.TiledTextureHelper;
+
+import java.util.List;
+import java.util.Locale;
 
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
 
@@ -315,14 +319,61 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         new Thread(() -> {
             String answer;
+            IntArray factsToReveal = new IntArray();
+
             try {
+                DossierData data = game.getDossierDb().characters.get(characterId);
+                if (data != null && data.hiddenFacts != null && !data.hiddenFacts.isEmpty()) {
+
+                    String qLower = q.toLowerCase(Locale.ROOT);
+
+                    for (int i = 0; i < data.hiddenFacts.size(); i++) {
+                        String hidden = data.hiddenFacts.get(i);
+                        if (hidden == null || hidden.isEmpty()) continue;
+
+                        List<List<String>> allTriggers = data.hiddenFactTriggers;
+                        List<String> triggersForFact = null;
+                        if (allTriggers != null && i < allTriggers.size()) {
+                            triggersForFact = allTriggers.get(i);
+                        }
+
+                        if (triggersForFact == null || triggersForFact.isEmpty()) {
+                            continue;
+                        }
+
+                        if (!matchesAnyTrigger(triggersForFact, qLower)) {
+                            Gdx.app.log("FACT_DEBUG", "No trigger for fact #" + i);
+                            continue;
+                        }
+
+                        Gdx.app.log("FACT_DEBUG", "Trigger hit for fact #" + i + " : " + hidden);
+
+                        boolean logical = false;
+                        try {
+                            logical = npcService.isQuestionLogicalForHiddenFact(characterId, q, hidden);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+
+                        Gdx.app.log("FACT_DEBUG", "LLM logical? " + logical + " for fact #" + i);
+
+                        if (logical) {
+                            factsToReveal.add(i);
+                        }
+                    }
+
+                    npcService.markFactsRevealed(characterId, factsToReveal);
+                }
+
                 answer = npcService.askNpcSync(characterId, q);
+
             } catch (Exception e) {
                 e.printStackTrace();
                 answer = "Вибач, але я зараз не можу відповісти.";
             }
 
             final String finalAnswer = answer;
+            final IntArray revealedCopy = new IntArray(factsToReveal);
 
             Gdx.app.postRunnable(() -> {
                 currentResponse = finalAnswer;
@@ -332,23 +383,32 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
                 DialogueHistory.append(characterId, q, finalAnswer);
 
-                // TODO trigger to reveal facts
                 DossierData data = game.getDossierDb().characters.get(characterId);
                 if (data != null && data.hiddenFacts != null) {
                     NpcState state = game.getNpcStateManager()
                         .getOrCreate(characterId, data.hiddenFacts.size());
 
-                    for (int i = 0; i < data.hiddenFacts.size(); i++) {
-                        String hidden = data.hiddenFacts.get(i);
-                        if (!state.hiddenRevealed[i]
-                            && hidden != null
-                            && finalAnswer.contains(hidden)) {
-                            state.hiddenRevealed[i] = true;
+                    for (int i = 0; i < revealedCopy.size; i++) {
+                        int idx = revealedCopy.get(i);
+                        if (idx >= 0 && idx < state.hiddenRevealed.length) {
+                            state.hiddenRevealed[idx] = true;
                         }
                     }
                 }
             });
         }).start();
+    }
+
+    private boolean matchesAnyTrigger(List<String> triggers, String questionLower) {
+        if (triggers == null || triggers.isEmpty()) return false;
+
+        for (String t : triggers) {
+            if (t == null || t.isEmpty()) continue;
+            if (questionLower.contains(t.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void updateAnswerBubbleLayout(float screenWidth, float screenHeight) {
