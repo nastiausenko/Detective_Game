@@ -5,12 +5,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Json;
 import com.gdx.game.data.DossierDatabase;
+import com.gdx.game.data.InvestigationState;
 import com.gdx.game.npc.LlmClient;
 import com.gdx.game.npc.NpcDialogueService;
 import com.gdx.game.npc.NpcStateManager;
 import com.gdx.game.screens.MenuScreen;
 import com.gdx.game.ui.GdxResourceProvider;
 import com.gdx.game.ui.UIButtonFactory;
+import com.gdx.game.ui.timer.GameTimer;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.UIOverlayManager;
 
@@ -23,7 +25,7 @@ public class DetectiveGame extends Game {
 
     private DossierDatabase dossierDb;
     private NpcDialogueService npcDialogueService;
-    private NpcStateManager npcStateManager;
+    private InvestigationState investigationState;
 
     @Override
     public void create() {
@@ -32,13 +34,13 @@ public class DetectiveGame extends Game {
         buttonFactory = new UIButtonFactory(new GdxResourceProvider());
 
         Json json = new Json();
-        dossierDb = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier.json"));
+        dossierDb = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier_ukr.json"));
 
         String apiKey = "API_KEY";
         LlmClient llmClient = new LlmClient(apiKey);
 
         npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
-        npcStateManager = new NpcStateManager();
+        investigationState = new InvestigationState();
 
         overlay = new UIOverlayManager(this);
 
@@ -75,7 +77,7 @@ public class DetectiveGame extends Game {
         return npcDialogueService;
     }
 
-    public NpcStateManager getNpcStateManager() {
-        return npcStateManager;
+    public InvestigationState getInvestigationState() {
+        return investigationState;
     }
 }

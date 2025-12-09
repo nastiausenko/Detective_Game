@@ -64,7 +64,7 @@ public class UIOverlayManager {
         uiStage.addActor(settingsButton);
 
         popupFactory = new PopupFactory(uiStage, game, game.getTransition());
-        timer = new GameTimer(uiStage, 60 * 60f);
+        timer = new GameTimer(uiStage, 60 * 10f);
     }
 
     private void toggleMenu() {
@@ -251,5 +251,9 @@ public class UIOverlayManager {
 
     public void resetTimer() {
         timer.reset();
+    }
+
+    public GameTimer getTimer() {
+        return timer;
     }
 }

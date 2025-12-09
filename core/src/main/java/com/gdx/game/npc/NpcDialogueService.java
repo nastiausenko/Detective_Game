@@ -179,7 +179,7 @@ public class NpcDialogueService {
         return sb.toString();
     }
 
-    //TODO fix classifier to reveal facts
+    //TODO fix classifier to reveal npc facts and facts about doctor
     public boolean isQuestionLogicalForHiddenFact(String npcId,
                                                   String question,
                                                   String hiddenFact) throws IOException {
@@ -328,5 +328,17 @@ public class NpcDialogueService {
         sb.append("Current question: ").append(question);
 
         return sb.toString();
+    }
+
+    public int getTotalRevealedFacts() {
+        int total = 0;
+        for (ObjectMap.Entry<String, NpcState> e : npcStates) {
+            boolean[] arr = e.value.hiddenRevealed;
+            if (arr == null) continue;
+            for (boolean b : arr) {
+                if (b) total++;
+            }
+        }
+        return total;
     }
 }
