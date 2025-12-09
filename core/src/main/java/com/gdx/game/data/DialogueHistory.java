@@ -5,7 +5,7 @@ import com.badlogic.gdx.Preferences;
 
 public class DialogueHistory {
 
-    private static final String PREFS_NAME   = "ai_detective_history";
+    private static final String PREFS_NAME   = "dialogue_history";
     private static final String KEY_PREFIX   = "chat_history_";
     public  static final String SEP          = "|||";
 

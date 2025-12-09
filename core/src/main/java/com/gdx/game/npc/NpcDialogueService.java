@@ -1,7 +1,11 @@
 package com.gdx.game.npc;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.ObjectMap;
+import com.badlogic.gdx.utils.TimeUtils;
 import com.gdx.game.data.DialogueHistory;
 import com.gdx.game.data.DossierData;
 import com.gdx.game.data.DossierDatabase;
@@ -9,10 +13,12 @@ import com.gdx.game.data.DossierDatabase;
 import java.io.IOException;
 import java.util.Locale;
 
-//TODO reduce and optimize token sending
+//TODO add lore
 public class NpcDialogueService {
     private static final int MAX_HISTORY_PAIRS = 6;
     private static final int MAX_HISTORY_CHARS = 1200;
+    private static final float SESSION_BREAK_SECONDS = 180f;
+    private static final String NPC_PREFS_NAME = "npc_state";
 
     private final LlmClient llmClient;
     private final DossierDatabase dossierDb;
@@ -21,6 +27,52 @@ public class NpcDialogueService {
     public NpcDialogueService(LlmClient llmClient, DossierDatabase dossierDb) {
         this.llmClient = llmClient;
         this.dossierDb = dossierDb;
+    }
+
+    public NpcState getStateForUi(String npcId) {
+        return getOrCreateState(npcId);
+    }
+
+    private void loadStateFromPrefs(String npcId, NpcState state, int hiddenCount) {
+        Preferences prefs = Gdx.app.getPreferences(NPC_PREFS_NAME);
+
+        state.trust = prefs.getFloat(npcId + ".trust", 0.5f);
+        state.fear  = prefs.getFloat(npcId + ".fear", 0.2f);
+        state.questionsAsked = prefs.getInteger(npcId + ".questionsTotal", 0);
+
+        String hiddenStr = prefs.getString(npcId + ".hidden", "");
+
+        if (state.hiddenRevealed == null || state.hiddenRevealed.length != hiddenCount) {
+            state.hiddenRevealed = new boolean[hiddenCount];
+        }
+
+        if (!hiddenStr.isEmpty()) {
+            String[] parts = hiddenStr.split(",");
+            for (int i = 0; i < parts.length && i < state.hiddenRevealed.length; i++) {
+                state.hiddenRevealed[i] = parts[i].trim().equals("1");
+            }
+        }
+
+        state.lastQuestionTime = 0f;
+    }
+
+    private void saveStateToPrefs(String npcId, NpcState state) {
+        Preferences prefs = Gdx.app.getPreferences(NPC_PREFS_NAME);
+
+        prefs.putFloat(npcId + ".trust", state.trust);
+        prefs.putFloat(npcId + ".fear",  state.fear);
+        prefs.putInteger(npcId + ".questionsTotal", state.questionsAsked);
+
+        if (state.hiddenRevealed != null) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < state.hiddenRevealed.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(state.hiddenRevealed[i] ? "1" : "0");
+            }
+            prefs.putString(npcId + ".hidden", sb.toString());
+        }
+
+        prefs.flush();
     }
 
     private NpcState getOrCreateState(String npcId) {
@@ -32,6 +84,9 @@ public class NpcDialogueService {
                 : 0;
             state = new NpcState(hiddenCount);
             state.id = npcId;
+
+            loadStateFromPrefs(npcId, state, hiddenCount);
+
             npcStates.put(npcId, state);
         }
         return state;
@@ -124,6 +179,7 @@ public class NpcDialogueService {
         return sb.toString();
     }
 
+    //TODO fix classifier to reveal facts
     public boolean isQuestionLogicalForHiddenFact(String npcId,
                                                   String question,
                                                   String hiddenFact) throws IOException {
@@ -153,6 +209,8 @@ public class NpcDialogueService {
                 state.hiddenRevealed[idx] = true;
             }
         }
+
+        saveStateToPrefs(npcId, state);
     }
 
     public String askNpcSync(String npcId, String question) throws IOException {
@@ -164,10 +222,94 @@ public class NpcDialogueService {
 
         String answer = llmClient.ask(systemPrompt, userMessage);
 
-        // TODO: updateStateAfterExchange(state, question, answer);
+        updateStateAfterExchange(state, question);
+
+        saveStateToPrefs(npcId, state);
 
         return answer;
     }
+
+    private void updateStateAfterExchange(NpcState state,
+                                          String question) {
+        if (question == null) question = "";
+
+        String qLower = question.toLowerCase(Locale.ROOT);
+
+        float nowSec = TimeUtils.millis() / 1000f;
+        float dt = (state.lastQuestionTime > 0f)
+                ? (nowSec - state.lastQuestionTime)
+                : 9999f;
+        state.lastQuestionTime = nowSec;
+
+        if (dt > SESSION_BREAK_SECONDS) {
+            state.questionsAsked = 1;
+        }
+
+        if (dt < 5f) {
+            adjustTrustFear(state, -0.03f, 0.06f);
+        } else if (dt < 20f) {
+            adjustTrustFear(state, 0.0f, 0.0f);
+        } else if (dt > 60f) {
+            adjustTrustFear(state, 0.02f, -0.03f);
+        }
+
+        if (state.questionsAsked > 8 && state.questionsAsked <= 15) {
+            adjustTrustFear(state, -0.01f, 0.02f);
+        } else if (state.questionsAsked > 15) {
+            adjustTrustFear(state, -0.02f, 0.04f);
+        }
+
+        if (containsAny(qLower, RUDE_WORDS)) {
+            adjustTrustFear(state, -0.10f, 0.12f);
+        }
+
+        if (containsAny(qLower, POLITE_WORDS)) {
+            adjustTrustFear(state, 0.06f, -0.04f);
+        }
+
+        if (containsAny(qLower, ACCUSATION_WORDS)) {
+            adjustTrustFear(state, -0.04f, 0.08f);
+        }
+
+        float jitterTrust = MathUtils.random(-0.01f, 0.01f);
+        float jitterFear  = MathUtils.random(-0.01f, 0.01f);
+        adjustTrustFear(state, jitterTrust, jitterFear);
+
+         Gdx.app.log("NPC_STATE", " trust=" + state.trust + " fear=" + state.fear);
+    }
+
+    private void adjustTrustFear(NpcState state, float dTrust, float dFear) {
+        state.trust = clamp01(state.trust + dTrust);
+        state.fear  = clamp01(state.fear  + dFear);
+    }
+
+    private float clamp01(float v) {
+        if (v < 0f) return 0f;
+        return Math.min(v, 1f);
+    }
+
+    private boolean containsAny(String textLower, String[] patterns) {
+        if (textLower == null || textLower.isEmpty() || patterns == null) return false;
+        for (String p : patterns) {
+            if (p == null || p.isEmpty()) continue;
+            if (textLower.contains(p)) return true;
+        }
+        return false;
+    }
+
+    private static final String[] RUDE_WORDS = {
+            "дур", "тупа", "тупий", "брехун", "брешеш", "заткнись", "ненормальна"
+    };
+
+    private static final String[] POLITE_WORDS = {
+            "дякую", "спасибі", "будь ласка", "перепрошую", "вибач",
+            "дякую тобі", "дякую вам"
+    };
+
+    private static final String[] ACCUSATION_WORDS = {
+            "ти винна", "ти винен", "це ти зробила", "це ти зробив",
+            "ти вбила", "ти вбив", "ти щось приховуєш", "збрехала", "збрехав"
+    };
 
     private String buildUserMessageWithHistory(String npcId, String question) {
         String history = DialogueHistory.loadRecentForLlm(

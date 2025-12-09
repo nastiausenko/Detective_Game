@@ -8,7 +8,8 @@ public class GameData {
         "notes_data",
         "game_data",
         "game_timer",
-        "ai_detective_history"
+        "dialogue_history",
+        "npc_state"
     };
 
     public static void clearAll() {

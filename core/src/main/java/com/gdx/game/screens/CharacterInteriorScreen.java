@@ -221,18 +221,11 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private void updateNpcStateHud() {
         if (trustLabel == null || fearLabel == null || moodLabel == null) return;
 
-        DossierData dossier = game.getDossierDb().characters.get(characterId);
+        NpcState state = npcService.getStateForUi(characterId);
 
-        int hiddenCount = 0;
-        if (dossier != null && dossier.hiddenFacts != null) {
-            hiddenCount = dossier.hiddenFacts.size();
-        }
-
-        NpcState state = game.getNpcStateManager()
-            .getOrCreate(characterId, hiddenCount);
-
+        if (state == null) return;
         float trust = state.trust;
-        float fear = state.fear;
+        float fear  = state.fear;
 
         int trustPercent = Math.round(trust * 100f);
         int fearPercent = Math.round(fear  * 100f);
@@ -311,7 +304,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float sendX = bubbleX + bubbleW - innerMarginX - sendButtonImage.getWidth();
         float sendY = bubbleY + (bubbleH - sendButtonImage.getHeight()) / 2f;
         sendButtonImage.setPosition(sendX, sendY);
-
 
         float texW = characterTexture.getWidth();
         float texH = characterTexture.getHeight();
@@ -481,19 +473,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 answerAreaImage.setVisible(true);
                 updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
                 DialogueHistory.append(characterId, q, finalAnswer);
-
-                DossierData data = game.getDossierDb().characters.get(characterId);
-                if (data != null && data.hiddenFacts != null) {
-                    NpcState state = game.getNpcStateManager()
-                        .getOrCreate(characterId, data.hiddenFacts.size());
-
-                    for (int i = 0; i < revealedCopy.size; i++) {
-                        int idx = revealedCopy.get(i);
-                        if (idx >= 0 && idx < state.hiddenRevealed.length) {
-                            state.hiddenRevealed[idx] = true;
-                        }
-                    }
-                }
             });
         }).start();
     }

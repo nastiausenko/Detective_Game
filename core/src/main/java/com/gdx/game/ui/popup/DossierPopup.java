@@ -21,6 +21,8 @@ import com.gdx.game.npc.NpcState;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
+import java.util.Arrays;
+
 public class DossierPopup extends AbstractPopup {
 
     private final Texture[] pages;
@@ -132,11 +134,11 @@ public class DossierPopup extends AbstractPopup {
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append("Age: ").append(data.age).append("\n");
-        sb.append("Character: ").append(data.personality).append("\n");
-        sb.append("Lie risk: ").append(data.lieRisk).append("/5\n\n");
+        sb.append("Вік: ").append(data.age).append("\n");
+        sb.append("Характер: ").append(data.personality).append("\n");
+        sb.append("Брехливість: ").append(data.lieRisk).append("/5\n\n");
 
-        sb.append("Facts:\n");
+        sb.append("Факти:\n");
 
         if (data.publicFacts != null) {
             for (String f : data.publicFacts) {
@@ -144,14 +146,24 @@ public class DossierPopup extends AbstractPopup {
             }
         }
 
-        int hiddenCount = (data.hiddenFacts != null) ? data.hiddenFacts.size() : 0;
-        NpcState state = game.getNpcStateManager().getOrCreate(npcId, hiddenCount);
+        NpcState state = game.getNpcDialogueService().getStateForUi(npcId);
 
         if (data.hiddenFacts != null) {
+            boolean[] revealed = (state != null) ? state.hiddenRevealed : null;
+
+            if (revealed != null) {
+                Gdx.app.log("DOSSIER_DEBUG", npcId + " hidden=" + Arrays.toString(revealed));
+            }
+
             for (int i = 0; i < data.hiddenFacts.size(); i++) {
                 String fact = data.hiddenFacts.get(i);
 
-                if (i < state.hiddenRevealed.length && state.hiddenRevealed[i]) {
+                boolean isRevealed =
+                    revealed != null &&
+                        i < revealed.length &&
+                        revealed[i];
+
+                if (isRevealed) {
                     sb.append(" - ").append(fact).append("\n");
                 } else {
                     sb.append(" - ???").append("\n");
