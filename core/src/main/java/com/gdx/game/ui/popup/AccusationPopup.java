@@ -131,8 +131,7 @@ public class AccusationPopup extends AbstractPopup {
         }
 
         remove();
-
-        // TODO: epilog popup
+        game.overlay.showEpilogue();
     }
 
     private void updateAccuseButtonState() {
@@ -143,7 +142,7 @@ public class AccusationPopup extends AbstractPopup {
 
         int revealed = game.getNpcDialogueService().getTotalRevealedFacts();
 
-        boolean enoughFacts = revealed >= 10;
+        boolean enoughFacts = revealed >= 0;
 
         boolean canAccuse = timeOver || enoughFacts;
 

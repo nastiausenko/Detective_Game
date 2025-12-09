@@ -39,6 +39,7 @@ public class Assets {
     public static final String DOCTOR_PORTRAIT = "chars/portrait/img.png";
 
     public static final String PROLOGUE = "menu/story/prologue.png";
+    public static final String EPILOGUE = "menu/story/epilogue.png";
 
     public static final String HOME_BUTTON = "map/back.png";
     public static final String CHAT_BUTTON = "map/chat.png";

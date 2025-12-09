@@ -45,4 +45,8 @@ public class PopupFactory {
     public ChatHistoryPopup createChatHistoryPopup(String npcId) {
         return new ChatHistoryPopup(stage, skin, game, npcId);
     }
+
+    public EpiloguePopup createEpiloguePopup() {
+        return new EpiloguePopup(stage, game);
+    }
 }

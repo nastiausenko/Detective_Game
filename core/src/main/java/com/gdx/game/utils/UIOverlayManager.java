@@ -32,6 +32,7 @@ public class UIOverlayManager {
     private AccusationPopup accusationPopup;
     private SettingsPopup settingsPopup;
     private ChatHistoryPopup chatHistoryPopup;
+    private EpiloguePopup epiloguePopup;
     private String currentNpcId;
 
     private boolean menuOpened = false;
@@ -64,7 +65,7 @@ public class UIOverlayManager {
         uiStage.addActor(settingsButton);
 
         popupFactory = new PopupFactory(uiStage, game, game.getTransition());
-        timer = new GameTimer(uiStage, 60 * 10f);
+        timer = new GameTimer(uiStage, 60 * 3f);
     }
 
     private void toggleMenu() {
@@ -122,6 +123,10 @@ public class UIOverlayManager {
         settingsPopup.show();
     }
 
+    public void showEpilogue() {
+        if (epiloguePopup == null) epiloguePopup = popupFactory.createEpiloguePopup();
+        epiloguePopup.show();
+    }
     public void render(float delta) {
         if (!visible) return;
 
@@ -132,6 +137,10 @@ public class UIOverlayManager {
             timer.pause();
         } else {
             timer.resume();
+        }
+
+        if (epiloguePopup != null) {
+            epiloguePopup.update(delta);
         }
 
         timer.update(delta);
@@ -208,6 +217,7 @@ public class UIOverlayManager {
         if (settingsPopup != null) settingsPopup.resize(width, height);
         if (accusationPopup != null) accusationPopup.resize(width, height);
         if (chatHistoryPopup != null) chatHistoryPopup.resize(width, height);
+        if (epiloguePopup != null) epiloguePopup.resize(width, height);
     }
 
     public void setVisible(boolean visible) {
@@ -239,6 +249,7 @@ public class UIOverlayManager {
         if (dossierPopup != null) dossierPopup.remove();
         if (accusationPopup != null) accusationPopup.remove();
         if (chatHistoryPopup != null) chatHistoryPopup.remove();
+        if (epiloguePopup != null) epiloguePopup.remove();
     }
 
     public void pauseTimer() {
