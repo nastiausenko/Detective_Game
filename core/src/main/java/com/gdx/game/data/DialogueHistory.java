@@ -37,4 +37,40 @@ public class DialogueHistory {
         Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
         return prefs.getString(keyForNpc(npcId), "");
     }
+
+    public static String loadRecentForLlm(String npcId,
+                                          int maxPairs,
+                                          int maxChars) {
+
+        String raw = loadRaw(npcId);
+        if (raw == null || raw.isEmpty()) return "";
+
+        String[] lines = raw.split("\n");
+        if (lines.length == 0) return "";
+
+        int start = Math.max(0, lines.length - maxPairs);
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = start; i < lines.length; i++) {
+            String line = lines[i];
+            if (line == null || line.isEmpty()) continue;
+
+            String[] parts = line.split(SEP, 2);
+            String q = parts.length > 0 ? parts[0].trim() : "";
+            String a = parts.length > 1 ? parts[1].trim() : "";
+
+            if (!q.isEmpty()) {
+                sb.append("Детектив: ").append(q).append("\n");
+            }
+            if (!a.isEmpty()) {
+                sb.append("NPC: ").append(a).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        String result = sb.toString().trim();
+        if (result.length() <= maxChars) return result;
+
+        return result.substring(result.length() - maxChars);
+    }
 }

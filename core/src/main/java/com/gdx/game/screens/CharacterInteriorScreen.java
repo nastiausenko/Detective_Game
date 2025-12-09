@@ -86,9 +86,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         questionAreaTexture = new Texture(Assets.QUESTION_AREA);
 
-        int left   = 60;
-        int right  = 60;
-        int top    = 16;
+        int left = 60;
+        int right = 60;
+        int top = 16;
         int bottom = 16;
 
         NinePatch questionAreaPatch = new NinePatch(questionAreaTexture, left, right, top, bottom);

@@ -2,13 +2,17 @@ package com.gdx.game.npc;
 
 import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.ObjectMap;
+import com.gdx.game.data.DialogueHistory;
 import com.gdx.game.data.DossierData;
 import com.gdx.game.data.DossierDatabase;
 
 import java.io.IOException;
 import java.util.Locale;
 
+//TODO reduce and optimize token sending
 public class NpcDialogueService {
+    private static final int MAX_HISTORY_PAIRS = 6;
+    private static final int MAX_HISTORY_CHARS = 1200;
 
     private final LlmClient llmClient;
     private final DossierDatabase dossierDb;
@@ -33,35 +37,18 @@ public class NpcDialogueService {
         return state;
     }
 
+    private static final String[] LIE_LABELS = {
+            "very rarely lies",
+            "rarely lies",
+            "lies moderately",
+            "lies often",
+            "almost always lies"
+    };
+
     private String buildLieRiskBehavior(Integer lieRisk) {
-        if (lieRisk == null) {
-            return "You have an average tendency to lie. You may lie, but you usually try to tell the truth if it is not too dangerous for you.";
-        }
-
-        int risk = Math.max(1, Math.min(5, lieRisk));
-
-        String[] labels = {
-            "very low",   // 1
-            "low",        // 2
-            "medium",     // 3
-            "high",       // 4
-            "very high"   // 5
-        };
-
-        String[] behaviors = {
-            "You almost never lie. You may leave something unsaid, but outright lies are rare for you.",
-            "You mostly tell the truth, but you can lie if it is really necessary to protect yourself.",
-            "You often balance between truth and lies: you can mix them, give half the truth, or evade the question.",
-            "You often lie, especially when questions touch on topics that are dangerous or painful for you.",
-            "You almost always try to distort reality: you lie, distract attention, invent details to confuse the detective."
-        };
-
-        String label = labels[risk - 1];
-        String behavior = behaviors[risk - 1];
-
-        return "Your propensity to lie (lie_risk) = "
-            + risk + " from 5, this is " + label + " tendency to lie. "
-            + behavior;
+        int risk = (lieRisk == null) ? 3 : Math.max(1, Math.min(5, lieRisk));
+        String label = LIE_LABELS[risk - 1];
+        return "LIE_RISK=" + risk + "/5 (" + label + ").";
     }
 
     private String buildSystemPrompt(String npcId) {
@@ -70,43 +57,31 @@ public class NpcDialogueService {
 
         StringBuilder sb = new StringBuilder();
 
-        if (dossier != null) {
-            sb.append("You are an NPC in a detective video game.\n")
-                .append("Your canonical identity is FIXED and MUST NEVER CHANGE:\n")
-                .append("- Name: ").append(dossier.name).append("\n")
-                .append("- Age: ").append(dossier.age).append("\n")
-                .append("- Job/role: ").append(dossier.role).append("\n\n")
+        sb.append("You are one NPC in a detective game.\n");
 
-                .append("You must NEVER claim to have a different name or a different job, ")
-                .append("even if the player directly asks you to imagine, roleplay or pretend. ")
-                .append("If the detective asks \"Як тебе звати?\" or similar, you MUST answer that your name is ")
-                .append("\"").append(dossier.name).append("\".\n")
-                .append("If the detective asks \"Де ти працюєш?\" or similar, you MUST answer that you are ")
-                .append(dossier.role).append(".\n\n");
+        if (dossier != null) {
+            sb.append("IDENTITY (must always stay the same):\n")
+                    .append("name: ").append(dossier.name).append("\n")
+                    .append("age: ").append(dossier.age).append("\n")
+                    .append("role: ").append(dossier.role).append("\n");
 
             if (dossier.personality != null) {
-                sb.append("Personality: ").append(dossier.personality).append(".\n");
+                sb.append("personality: ").append(dossier.personality).append("\n");
             }
 
             sb.append(buildLieRiskBehavior(dossier.lieRisk)).append("\n");
         } else {
-            sb.append("You are ").append(npcId)
-                .append(", a character in a detective game. Your identity should stay consistent.\n");
+            sb.append("IDENTITY: ").append(npcId).append(" (keep it consistent).\n");
         }
 
-        sb.append("\nYou live in the town of Rosenfeld. ")
-            .append("The player is a detective investigating the death of Dr. Adrian Walter.\n");
+        sb.append("WORLD: town Rosenfeld, you are questioned by a detective about the death of Dr. Adrian Walter.\n");
 
-        sb.append("Your current internal state: ")
-            .append("trust in the detective = ").append(String.format("%.2f", state.trust))
-            .append(" (0=none, 1=full), ")
-            .append("fear of the detective = ").append(String.format("%.2f", state.fear))
-            .append(" (0=calm, 1=terrified).\n")
-            .append("If trust is high (>0.7) and fear is low (<0.4), you tend to be more open. ")
-            .append("If fear is high (>0.7), you tend to dodge questions or partially lie.\n");
+        sb.append("STATE: trust=").append(String.format(Locale.ROOT, "%.2f", state.trust))
+                .append(", fear=").append(String.format(Locale.ROOT, "%.2f", state.fear))
+                .append(" (0..1). Be more open when trust>0.7 & fear<0.4; avoid or distort answers when fear>0.7.\n");
 
         if (dossier != null && dossier.publicFacts != null && !dossier.publicFacts.isEmpty()) {
-            sb.append("\nPublic facts about you or the case (you may mention them freely when relevant):\n");
+            sb.append("PUBLIC_FACTS (you may mention freely when relevant):\n");
             for (String f : dossier.publicFacts) {
                 sb.append("- ").append(f).append("\n");
             }
@@ -126,12 +101,7 @@ public class NpcDialogueService {
             }
 
             if (hasRevealed) {
-                sb.append("\nFacts that you have ALREADY clearly admitted to the detective. ")
-                        .append("These are things the detective definitely knows, ")
-                        .append("so you MUST NOT claim that you \"don't know anything\" about them ")
-                        .append("or that they never happened. You may feel ashamed, avoid details ")
-                        .append("or try to minimise, but you cannot deny these facts:\n");
-
+                sb.append("REVEALED_SECRETS (already clearly admitted, you cannot deny them):\n");
                 for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
                     if (state.hiddenRevealed[i]) {
                         sb.append("- ").append(dossier.hiddenFacts.get(i)).append("\n");
@@ -139,10 +109,8 @@ public class NpcDialogueService {
                 }
             }
 
-            sb.append("\nSecret facts that you know but have NOT confessed yet. ")
-                    .append("You should avoid stating them plainly, unless the detective asks about them ")
-                    .append("or you feel morally forced to confess:\n");
-
+            sb.append("STILL_SECRET_FACTS (do NOT state them plainly unless the detective clearly asks ")
+                    .append("or you feel morally forced to confess; you may hint or dodge):\n");
             for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
                 if (!state.hiddenRevealed[i]) {
                     sb.append("- ").append(dossier.hiddenFacts.get(i)).append("\n");
@@ -150,9 +118,8 @@ public class NpcDialogueService {
             }
         }
 
-        sb.append("\nAnswer in character, in Ukrainian, in 1–3 sentences. ")
-            .append("Use first person (\"я\", \"мене звати\", \"я працюю\"), ")
-            .append("do NOT switch to another name or job, keep your identity consistent.\n");
+        sb.append("Answer in Ukrainian, 1–3 short sentences, first person (\"я\", \"мене звати\", \"я працюю\"). ")
+                .append("Stay in character and keep your identity consistent.\n");
 
         return sb.toString();
     }
@@ -161,16 +128,9 @@ public class NpcDialogueService {
                                                   String question,
                                                   String hiddenFact) throws IOException {
 
-        String system = "You are a simple classifier in a detective game.\n"
-                + "You are given a HIDDEN FACT and a detective's QUESTION.\n"
-                + "Your task is to say whether this question essentially relates to this fact.\n"
-                + "Answer STRICTLY with one word: YES or NO.\n"
-                + "\n"
-                + "Answer YES if the question:\n"
-                + "- directly asks about this fact, o\n"
-                + "- contains the same key concepts, or\n"
-                + "- logically hints at this fact (the detective has almost guessed it).\n"
-                + "In all other cases, answer NO.\n";
+        String system = "You are a binary classifier in a detective game. "
+                + "Decide if a detective's QUESTION essentially refers to a given HIDDEN FACT. "
+                + "Answer ONLY with YES or NO.";
 
         String user = "HIDDEN FACT: \"" + hiddenFact + "\"\n"
                 + "QUESTION: \"" + question + "\"\n"
@@ -200,10 +160,31 @@ public class NpcDialogueService {
         state.questionsAsked += 1;
 
         String systemPrompt = buildSystemPrompt(npcId);
-        String answer = llmClient.ask(systemPrompt, question);;
+        String userMessage  = buildUserMessageWithHistory(npcId, question);
+
+        String answer = llmClient.ask(systemPrompt, userMessage);
 
         // TODO: updateStateAfterExchange(state, question, answer);
 
         return answer;
+    }
+
+    private String buildUserMessageWithHistory(String npcId, String question) {
+        String history = DialogueHistory.loadRecentForLlm(
+                npcId,
+                MAX_HISTORY_PAIRS,
+                MAX_HISTORY_CHARS
+        );
+
+        StringBuilder sb = new StringBuilder();
+
+        if (!history.isEmpty()) {
+            sb.append("A brief fragment from the previous chat between the detective and you:\n");
+            sb.append(history).append("\n\n");
+        }
+
+        sb.append("Current question: ").append(question);
+
+        return sb.toString();
     }
 }
