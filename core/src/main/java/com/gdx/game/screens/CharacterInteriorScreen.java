@@ -63,6 +63,14 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final Texture answerAreaTexture;
     private final Image answerAreaImage;
 
+    private final Image fearImage;
+    private final Image trustImage;
+    private final Image moodImage;
+
+    private final Label fearLabel;
+    private final Label trustLabel;
+    private final Label moodLabel;
+
     private float drawWidth, drawHeight;
 
     private String currentResponse = "";
@@ -102,6 +110,30 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         sendButtonImage = game.getButtonFactory().createButton(Assets.SEND_BUTTON, 64, 64, this::send);
         dialogueStage.addActor(sendButtonImage);
+
+        fearImage = new Image(new Texture(Assets.FEAR_ICON));
+        trustImage = new Image(new Texture(Assets.TRUST_ICON));
+        moodImage = new Image(new Texture(Assets.MOOD_ICON));
+
+        fearLabel = new Label("", skin);
+        trustLabel = new Label("", skin);
+        moodLabel = new Label("", skin);
+
+        fearLabel.setColor(Color.WHITE);
+        trustLabel.setColor(Color.WHITE);
+        moodLabel.setColor(Color.WHITE);
+
+        fearLabel.setAlignment(Align.left);
+        trustLabel.setAlignment(Align.left);
+        moodLabel.setAlignment(Align.left);
+
+        dialogueStage.addActor(fearImage);
+        dialogueStage.addActor(trustImage);
+        dialogueStage.addActor(moodImage);
+
+        dialogueStage.addActor(fearLabel);
+        dialogueStage.addActor(trustLabel);
+        dialogueStage.addActor(moodLabel);
     }
 
     private void send() {
@@ -178,10 +210,48 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             game.batch.end();
         }
 
+        updateNpcStateHud();
+
         dialogueStage.act(delta);
         dialogueStage.draw();
 
         game.overlay.render(delta);
+    }
+
+    private void updateNpcStateHud() {
+        if (trustLabel == null || fearLabel == null || moodLabel == null) return;
+
+        DossierData dossier = game.getDossierDb().characters.get(characterId);
+
+        int hiddenCount = 0;
+        if (dossier != null && dossier.hiddenFacts != null) {
+            hiddenCount = dossier.hiddenFacts.size();
+        }
+
+        NpcState state = game.getNpcStateManager()
+            .getOrCreate(characterId, hiddenCount);
+
+        float trust = state.trust;
+        float fear = state.fear;
+
+        int trustPercent = Math.round(trust * 100f);
+        int fearPercent = Math.round(fear  * 100f);
+
+        trustLabel.setText("Довіра: " + trustPercent + "%");
+        fearLabel.setText("Страх: " + fearPercent + "%");
+
+        String mood;
+        if (fear > 0.75f) {
+            mood = "Наляканий";
+        } else if (trust > 0.75f && fear < 0.4f) {
+            mood = "Довірливий";
+        } else if (trust < 0.3f && fear < 0.4f) {
+            mood = "Закритий";
+        } else {
+            mood = "Напружений";
+        }
+        moodLabel.setText("Стан: " + mood);
+
     }
 
     // TODO fix bubble and input scaling
@@ -230,10 +300,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         inputField.setStyle(createTextFieldStyle());
 
         float innerMarginX = desiredWidth * 0.04f;
-        float bubbleX      = questionAreaImage.getX();
-        float bubbleY      = questionAreaImage.getY();
-        float bubbleH      = questionAreaImage.getHeight();
-        float bubbleW      = questionAreaImage.getWidth();
+        float bubbleX = questionAreaImage.getX();
+        float bubbleY = questionAreaImage.getY();
+        float bubbleH = questionAreaImage.getHeight();
+        float bubbleW = questionAreaImage.getWidth();
 
         float sendTargetH = bubbleH * 0.6f;
         ScreenUtilsHelper.scaleButton(sendButtonImage, sendTargetH, dialogueStage);
@@ -246,7 +316,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float texW = characterTexture.getWidth();
         float texH = characterTexture.getHeight();
 
-        float scaleByWidth  = (width  * 0.45f) / texW;
+        float scaleByWidth = (width  * 0.45f) / texW;
         float scaleByHeight = (height * 0.70f) / texH;
 
         float scale = Math.min(scaleByWidth, scaleByHeight);
@@ -254,8 +324,37 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float characterDrawW = texW * scale;
         float characterDrawH = texH * scale;
 
+        float iconSize = characterDrawH * 0.10f;
+        float lineGap = iconSize + 8f;
+
         float charY = height * 0.1f;
         float charX = width  * 0.5f - characterDrawW / 2f;
+
+        float panelX = charX + characterDrawW + 20f;
+        float panelY = charY + characterDrawH * 0.6f;
+
+        if (panelX + iconSize + 80f > width) {
+            panelX = charX - iconSize - 90f;
+        }
+
+        trustImage.setBounds(panelX, panelY + lineGap, iconSize, iconSize);
+        trustLabel.setPosition(
+            trustImage.getX() + iconSize + 6f,
+            trustImage.getY() + iconSize * 0.4f
+        );
+
+        fearImage.setBounds(panelX, panelY, iconSize, iconSize);
+        fearLabel.setPosition(
+            fearImage.getX() + iconSize + 6f,
+            fearImage.getY() + iconSize * 0.4f
+        );
+
+        moodImage.setBounds(panelX, panelY - lineGap, iconSize, iconSize);
+        moodLabel.setPosition(
+            moodImage.getX() + iconSize + 6f,
+            moodImage.getY() + iconSize * 0.4f
+        );
+
 
         characterImage.setBounds(charX, charY, characterDrawW, characterDrawH);
         updateAnswerBubbleLayout(width, height);
