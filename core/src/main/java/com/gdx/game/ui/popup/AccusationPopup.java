@@ -132,6 +132,15 @@ public class AccusationPopup extends AbstractPopup {
         game.overlay.showEpiloguePublic();
     }
 
+    private void updateCloseButtonState() {
+        boolean timeOver = false;
+        if (game.overlay.getTimer() != null) {
+            timeOver = game.overlay.getTimer().isTimeOver();
+        }
+
+        closeButton.setVisible(!timeOver);
+    }
+
     private void updateAccuseButtonState() {
         boolean timeOver = false;
         if (game.overlay.getTimer() != null) {
@@ -206,8 +215,6 @@ public class AccusationPopup extends AbstractPopup {
                     currentY - textHeight - LABEL_OFFSET
                 );
 
-
-
                 startX += rowWidths[i] + spacingX;
             }
 
@@ -250,6 +257,7 @@ public class AccusationPopup extends AbstractPopup {
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
 
         updateAccuseButtonState();
+        updateCloseButtonState();
     }
 
     @Override
