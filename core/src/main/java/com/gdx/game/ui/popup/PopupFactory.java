@@ -49,4 +49,8 @@ public class PopupFactory {
     public EpiloguePopup createEpiloguePopup() {
         return new EpiloguePopup(stage, game);
     }
+
+    public TimeOverPopup createTimeOverPopup() {
+        return new TimeOverPopup(stage, game);
+    }
 }

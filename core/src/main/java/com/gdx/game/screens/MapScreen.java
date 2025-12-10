@@ -37,8 +37,6 @@ public class MapScreen implements Screen {
 
     private final MapInputController inputController;
 
-    private final StoryPopup storyPopup;
-
     private final List<CharacterIcon> icons;
     private final List<BuildingData> buildings;
     private final Map<String, BuildingData> buildingMap;
@@ -57,9 +55,6 @@ public class MapScreen implements Screen {
         mapStage = new Stage(viewport, game.batch);
 
         inputController = new MapInputController(camera, viewport);
-
-        PopupFactory popupFactory = new PopupFactory(game.overlay.getStage(), game, transition);
-        storyPopup = popupFactory.createStoryPopup();
 
         icons = CharacterLoader.loadMarkers(game, "characters.json");
         buildings = BuildingLoader.loadBuildings("buildings.json");
@@ -82,13 +77,7 @@ public class MapScreen implements Screen {
             mapStage.addActor(icon);
         }
 
-        Preferences prefs = Gdx.app.getPreferences("game_data");
-        boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
-        if (isFirstRun) {
-            storyPopup.show();
-            prefs.putBoolean("isFirstRun", false);
-            prefs.flush();
-        }
+       game.overlay.showProloguePublic();
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
@@ -113,15 +102,8 @@ public class MapScreen implements Screen {
         mapStage.act(delta);
         mapStage.draw();
 
-        storyPopup.update(delta);
-
         game.overlay.render(delta);
 
-        if (!storyPopup.isVisible()) {
-            game.overlay.resumeTimer();
-        } else {
-            game.overlay.pauseTimer();
-        }
     }
 
     @Override
@@ -156,8 +138,6 @@ public class MapScreen implements Screen {
                 viewport.getWorldHeight() / mapTexture.getHeight()
             )));
         }
-
-        if (storyPopup != null) storyPopup.resize(width, height);
     }
 
     @Override

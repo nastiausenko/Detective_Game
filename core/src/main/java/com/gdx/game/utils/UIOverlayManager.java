@@ -1,6 +1,7 @@
 package com.gdx.game.utils;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -39,11 +40,14 @@ public class UIOverlayManager {
     private SettingsPopup settingsPopup;
     private ChatHistoryPopup chatHistoryPopup;
     private EpiloguePopup epiloguePopup;
+    private TimeOverPopup timeOverPopup;
+    private StoryPopup storyPopup;
     private String currentNpcId;
 
     private boolean menuOpened = false;
     private boolean visible = true;
     private boolean inInterior = false;
+    private boolean timeOverPopupShown = false;
 
     public UIOverlayManager(DetectiveGame game) {
         this.game = game;
@@ -79,7 +83,7 @@ public class UIOverlayManager {
         uiStage.addActor(toggleBadge);
 
         popupFactory = new PopupFactory(uiStage, game, game.getTransition());
-        timer = new GameTimer(uiStage, 60 * 3f);
+        timer = new GameTimer(uiStage, Assets.TOTAL_TIME);
     }
 
     private void toggleMenu() {
@@ -116,7 +120,7 @@ public class UIOverlayManager {
         onDossierOpened();
     }
 
-    private void showAccusation() {
+    public void showAccusation() {
         if (accusationPopup == null) accusationPopup = popupFactory.createAccusationPopup();
         accusationPopup.show();
     }
@@ -171,13 +175,30 @@ public class UIOverlayManager {
     public void showEpiloguePublic() {
         showEpilogue();
     }
+
+    private void showPrologue() {
+        Preferences prefs = Gdx.app.getPreferences("game_data");
+        boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
+        if (isFirstRun) {
+            storyPopup = popupFactory.createStoryPopup();
+            storyPopup.show();
+            prefs.putBoolean("isFirstRun", false);
+            timer.reset();
+            prefs.flush();
+        }
+    }
+
+    public void showProloguePublic() {
+        showPrologue();
+    }
+
     public void render(float delta) {
         if (!visible) return;
 
         uiStage.act(delta);
         uiStage.draw();
 
-        if (settingsPopup != null && settingsPopup.isVisible()) {
+        if (settingsPopup != null && settingsPopup.isVisible() || storyPopup.isVisible()) {
             timer.pause();
         } else {
             timer.resume();
@@ -187,7 +208,32 @@ public class UIOverlayManager {
             epiloguePopup.update(delta);
         }
 
+        if (storyPopup != null) {
+            storyPopup.update(delta);
+        }
+
         timer.update(delta);
+
+        checkTimeOverPopup();
+    }
+
+    private void checkTimeOverPopup() {
+        if (timeOverPopupShown) return;
+        if (!timer.isTimeOver()) return;
+
+        InvestigationState inv = game.getInvestigationState();
+        if (inv != null && inv.accusationDone) return;
+        if (epiloguePopup != null) return;
+
+        timeOverPopupShown = true;
+        timer.pause();
+
+        showTimeOver();
+    }
+
+    private void showTimeOver() {
+        timeOverPopup = popupFactory.createTimeOverPopup();
+        timeOverPopup.show();
     }
 
     public void setInInterior(boolean value) {
@@ -276,6 +322,8 @@ public class UIOverlayManager {
         if (accusationPopup != null) accusationPopup.resize(width, height);
         if (chatHistoryPopup != null) chatHistoryPopup.resize(width, height);
         if (epiloguePopup != null) epiloguePopup.resize(width, height);
+        if (timeOverPopup != null) timeOverPopup.resize(width, height);
+        if (storyPopup != null) storyPopup.resize(width, height);
 
         updateBadgeVisibility();
     }
@@ -299,6 +347,8 @@ public class UIOverlayManager {
         if (settingsPopup != null) settingsPopup.dispose();
         if (accusationPopup != null) accusationPopup.dispose();
         if (chatHistoryPopup != null) chatHistoryPopup.dispose();
+        if (timeOverPopup != null) timeOverPopup.dispose();
+        if (settingsPopup != null) settingsPopup.dispose();
 
         timer.saveTime();
     }
@@ -310,14 +360,8 @@ public class UIOverlayManager {
         if (accusationPopup != null) accusationPopup.remove();
         if (chatHistoryPopup != null) chatHistoryPopup.remove();
         if (epiloguePopup != null) epiloguePopup.remove();
-    }
-
-    public void pauseTimer() {
-        timer.pause();
-    }
-
-    public void resumeTimer() {
-        timer.resume();
+        if (timeOverPopup != null) timeOverPopup.remove();
+        if (storyPopup != null) storyPopup.remove();
     }
 
     public void resetTimer() {

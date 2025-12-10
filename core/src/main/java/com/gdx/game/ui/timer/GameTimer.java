@@ -51,10 +51,8 @@ public class GameTimer {
         stage.addActor(gameTimeLabel);
     }
 
-    // TODO fix game time
     public void update(float delta) {
         if (paused || timeOver) {
-            // TODO time over logic
             return;
         }
 
@@ -123,11 +121,17 @@ public class GameTimer {
 
     public void reset() {
         elapsedRealTime = 0f;
+        refreshLabel();
         timeOver = false;
         paused = false;
     }
 
     public boolean isTimeOver() {
         return timeOver;
+    }
+
+    private void refreshLabel() {
+        countdownLabel.setText("Time Left: 60:00");
+        gameTimeLabel.setText("Day 1 09:00");
     }
 }

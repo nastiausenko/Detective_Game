@@ -55,4 +55,10 @@ public class Assets {
     public static final String FEAR_ICON = "chars/fear.png";
     public static final String TRUST_ICON = "chars/trust.png";
     public static final String MOOD_ICON = "chars/mood.png";
+
+    public static final String TIME_OVER_POPUP = "menu/story/time_over.png";
+    public static final String YES_BUTTON = "menu/story/yes_btn.png";
+    public static final String NO_BUTTON = "menu/story/no_btn.png";
+
+    public static final float TOTAL_TIME = 3f;
 }
