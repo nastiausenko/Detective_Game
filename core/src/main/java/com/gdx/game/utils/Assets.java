@@ -51,6 +51,7 @@ public class Assets {
     public static final String SEND_BUTTON = "map/send.png";
     public static final String CHAT_HISTORY_POPUP = "map/chat/chat_history.png";
     public static final String ANSWER_AREA = "map/answer.png";
+    public static final String STATISTICS = "map/stats.9.png";
 
     public static final String FEAR_ICON = "chars/fear.png";
     public static final String TRUST_ICON = "chars/trust.png";

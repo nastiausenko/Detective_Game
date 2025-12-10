@@ -134,4 +134,8 @@ public class GameTimer {
         countdownLabel.setText("Time Left: 60:00");
         gameTimeLabel.setText("Day 1 09:00");
     }
+
+    public void showGameTimeLabel(boolean show) {
+        gameTimeLabel.setVisible(show);
+    }
 }

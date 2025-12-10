@@ -255,6 +255,7 @@ public class UIOverlayManager {
             if (!uiStage.getActors().contains(homeButton, true)) {
                 uiStage.addActor(homeButton);
                 uiStage.addActor(chatButton);
+                timer.showGameTimeLabel(false);
             }
 
             float margin = 10f;
@@ -268,6 +269,7 @@ public class UIOverlayManager {
             chatButton.setPosition(settingsButton.getX() - size - margin, settingsButton.getY() - margin);
 
         } else {
+            timer.showGameTimeLabel(true);
             homeButton.remove();
             chatButton.remove();
         }

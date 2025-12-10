@@ -25,7 +25,6 @@ import com.gdx.game.data.DossierData;
 import com.gdx.game.npc.NpcDialogueService;
 import com.gdx.game.npc.NpcState;
 import com.gdx.game.utils.Assets;
-import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.ScreenUtilsHelper;
 import com.gdx.game.utils.TiledTextureHelper;
 
@@ -63,6 +62,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final Texture answerAreaTexture;
     private final Image answerAreaImage;
 
+    private final Image statsPanelBackground;
     private final Image fearImage;
     private final Image trustImage;
     private final Image moodImage;
@@ -89,6 +89,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         tiledHelper = new TiledTextureHelper(background, 256);
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
         dialogueStage = new Stage(new ScreenViewport());
+
+        Texture statsTex = new Texture(Assets.STATISTICS);
+        NinePatch statsPatch = new NinePatch(statsTex, 32, 32, 32, 32);
+        statsPanelBackground = new Image(new NinePatchDrawable(statsPatch));
+        dialogueStage.addActor(statsPanelBackground);
+        statsPanelBackground.toBack();
 
         characterImage = new Image(characterTexture);
         dialogueStage.addActor(characterImage);
@@ -120,9 +126,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         trustLabel = new Label("", skin);
         moodLabel = new Label("", skin);
 
-        fearLabel.setColor(Color.WHITE);
-        trustLabel.setColor(Color.WHITE);
-        moodLabel.setColor(Color.WHITE);
+        fearLabel.setColor(Color.BLACK);
+        trustLabel.setColor(Color.BLACK);
+        moodLabel.setColor(Color.BLACK);
 
         fearLabel.setAlignment(Align.left);
         trustLabel.setAlignment(Align.left);
@@ -153,7 +159,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         game.overlay.setInInterior(true);
         game.overlay.setCurrentNpcId(characterId);
 
-
         imageWidth = background.getWidth();
         imageHeight = background.getHeight();
 
@@ -169,12 +174,14 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         inputField.setTextFieldListener((textField, c) -> {
             if (c == '\n' || c == '\r') {
-              send();
+                send();
             }
         });
 
         dialogueStage.addActor(dialogueLabel);
         dialogueStage.addActor(inputField);
+
+        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         Gdx.input.setInputProcessor(new InputMultiplexer(
             dialogueStage,
@@ -245,9 +252,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         }
         moodLabel.setText("Стан: " + mood);
 
+        layoutStatsPanel();
     }
 
-    // TODO fix bubble and input scaling
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height);
@@ -319,6 +326,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float iconSize = characterDrawH * 0.10f;
         float lineGap = iconSize + 8f;
 
+        updateStatsFontScale(iconSize);
+
         float charY = height * 0.1f;
         float charX = width  * 0.5f - characterDrawW / 2f;
 
@@ -347,9 +356,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             moodImage.getY() + iconSize * 0.4f
         );
 
-
         characterImage.setBounds(charX, charY, characterDrawW, characterDrawH);
         updateAnswerBubbleLayout(width, height);
+        layoutStatsPanel();
 
         dialogueStage.getViewport().update(width, height, true);
 
@@ -604,5 +613,49 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             + (innerHeightActual - textHeight) / 2f;
 
         dialogueLabel.setBounds(textX, textY, innerWidth, textHeight);
+    }
+
+    private void layoutStatsPanel() {
+        if (statsPanelBackground == null) return;
+
+        float padX = 25f;
+        float padY = 25f;
+
+        float minX = Math.min(trustImage.getX(),
+            Math.min(fearImage.getX(), moodImage.getX())) - padX;
+
+        float trustRight = trustLabel.getX() + trustLabel.getPrefWidth();
+        float fearRight  = fearLabel.getX()  + fearLabel.getPrefWidth();
+        float moodRight  = moodLabel.getX()  + moodLabel.getPrefWidth();
+
+        float maxRight = Math.max(trustRight, Math.max(fearRight, moodRight)) + padX;
+
+        float minY = moodImage.getY() - padY;
+
+        float maxTop = trustImage.getY() + trustImage.getHeight() + padY;
+
+        float panelW = maxRight - minX;
+        float panelH = maxTop - minY;
+
+        statsPanelBackground.setBounds(minX, minY, panelW, panelH);
+        statsPanelBackground.toBack();
+    }
+
+    private void updateStatsFontScale(float iconSize) {
+        // розмір, під який ти малювала шрифт «за замовчуванням»
+        float baseIconSize = 80f;       // можна підіграти експериментально
+        float scale = iconSize / baseIconSize;
+
+        // трохи обмежимо, щоб не став зовсім мікроскопічним/гігантським
+        scale = MathUtils.clamp(scale, 0.6f, 1.4f);
+
+        trustLabel.setFontScale(scale);
+        fearLabel.setFontScale(scale);
+        moodLabel.setFontScale(scale);
+
+        // щоб оновились prefWidth/prefHeight
+        trustLabel.invalidateHierarchy();
+        fearLabel.invalidateHierarchy();
+        moodLabel.invalidateHierarchy();
     }
 }
