@@ -6,13 +6,13 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Json;
 import com.gdx.game.data.DossierDatabase;
 import com.gdx.game.data.InvestigationState;
+import com.gdx.game.data.LoreDatabase;
 import com.gdx.game.npc.LlmClient;
 import com.gdx.game.npc.NpcDialogueService;
-import com.gdx.game.npc.NpcStateManager;
 import com.gdx.game.screens.MenuScreen;
 import com.gdx.game.ui.GdxResourceProvider;
 import com.gdx.game.ui.UIButtonFactory;
-import com.gdx.game.ui.timer.GameTimer;
+import com.gdx.game.utils.EpilogueService;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.UIOverlayManager;
 
@@ -24,8 +24,10 @@ public class DetectiveGame extends Game {
     private FadeTransition transition;
 
     private DossierDatabase dossierDb;
+    private LoreDatabase loreDb;
     private NpcDialogueService npcDialogueService;
     private InvestigationState investigationState;
+    private EpilogueService epilogueService;
 
     @Override
     public void create() {
@@ -35,12 +37,14 @@ public class DetectiveGame extends Game {
 
         Json json = new Json();
         dossierDb = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier_ukr.json"));
+        loreDb = json.fromJson(LoreDatabase.class, Gdx.files.internal("lore.json"));
 
         String apiKey = "API_KEY";
         LlmClient llmClient = new LlmClient(apiKey);
 
         npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
         investigationState = new InvestigationState();
+        epilogueService = new EpilogueService(llmClient, loreDb, dossierDb, npcDialogueService);
 
         overlay = new UIOverlayManager(this);
 
@@ -79,5 +83,9 @@ public class DetectiveGame extends Game {
 
     public InvestigationState getInvestigationState() {
         return investigationState;
+    }
+
+    public EpilogueService getEpilogueService() {
+        return epilogueService;
     }
 }

@@ -126,12 +126,10 @@ public class AccusationPopup extends AbstractPopup {
             InvestigationState inv = game.getInvestigationState();
             inv.accusedNpcId = accusedNpcId;
             inv.accusationDone = true;
-
-            // TODO: accusation
         }
 
         remove();
-        game.overlay.showEpilogue();
+        game.overlay.showEpiloguePublic();
     }
 
     private void updateAccuseButtonState() {

@@ -3,11 +3,14 @@ package com.gdx.game.ui.popup;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Array;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FontScaler;
@@ -18,19 +21,20 @@ public class EpiloguePopup extends AbstractPopup {
     private final Label epilogueLabel;
     private final Image continueButton;
 
-    // TODO: epilogue llm service
-    private final String fullText = "This is the prologue of the story. Your adventure begins now... " +
-        "This is the prologue of the story. Your adventure begins now..." +
-        "This is the prologue of the story. Your adventure begins now..." +
-        "This is the prologue of the story. Your adventure begins now...";
-    private final StringBuilder sb = new StringBuilder();
+    private final DetectiveGame game;
+    private final Skin skin;
+
+    private String fullText = "";
+
+    private final Array<String> pages = new Array<>();
+    private int currentPageIndex = 0;
+
+    private float visibleTextHeight = 0f;
+
     private float charTimer = 0f;
     private final float charDelay = 0.05f;
     private int charIndex = 0;
-    private boolean finished = false;
-
-    private final DetectiveGame game;
-    private final Skin skin;
+    private boolean pageFinished = false;
 
     public EpiloguePopup(Stage stage, DetectiveGame game) {
         super(stage);
@@ -51,27 +55,110 @@ public class EpiloguePopup extends AbstractPopup {
 
         continueButton = game.getButtonFactory().createButton(
             Assets.CONTINUE_BUTTON, 60, 60,
-            () -> {
-                if (finished) this.remove();
-                else finishText();
-            }
+            this::onContinueClicked
         );
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
-    public void update(float delta) {
-        if (finished) return;
+    public void setFullText(String text) {
+        this.fullText = (text != null ? text.trim() : "");
+        rebuildPages();
+        showPage(0);
+    }
 
-        charTimer += delta;
-        if (charTimer >= charDelay && charIndex < fullText.length()) {
-            sb.append(fullText.charAt(charIndex));
-            charIndex++;
-            epilogueLabel.setText(sb.toString());
-            charTimer = 0f;
+    private void onContinueClicked() {
+        if (!pageFinished && pages.size > 0) {
+            String pageText = pages.get(currentPageIndex);
+            epilogueLabel.setText(pageText);
+            charIndex = pageText.length();
+            pageFinished = true;
+            return;
         }
 
-        if (charIndex >= fullText.length()) finished = true;
+        if (currentPageIndex + 1 < pages.size) {
+            showPage(currentPageIndex + 1);
+        } else {
+            remove();
+        }
+    }
+
+    private void showPage(int index) {
+        if (index < 0 || index >= pages.size) return;
+        currentPageIndex = index;
+
+        charTimer = 0f;
+        charIndex = 0;
+        pageFinished = false;
+        epilogueLabel.setText("");
+    }
+
+    private void rebuildPages() {
+        pages.clear();
+
+        if (fullText == null || fullText.isEmpty()) {
+            pages.add("");
+            return;
+        }
+
+        BitmapFont font = epilogueLabel.getStyle().font;
+        GlyphLayout layout = new GlyphLayout();
+
+        float labelWidth = epilogueLabel.getWidth();
+        float maxHeight = visibleTextHeight > 0 ? visibleTextHeight : epilogueLabel.getHeight();
+
+        String[] words = fullText.split("\\s+");
+        StringBuilder pageBuilder = new StringBuilder();
+
+        for (String w : words) {
+            String candidate;
+            if (pageBuilder.length() == 0) {
+                candidate = w;
+            } else {
+                candidate = pageBuilder + " " + w;
+            }
+
+            layout.setText(font, candidate, epilogueLabel.getStyle().fontColor,
+                labelWidth, Align.left, true);
+
+            if (layout.height > maxHeight) {
+                pages.add(pageBuilder.toString().trim());
+                pageBuilder.setLength(0);
+                pageBuilder.append(w);
+            } else {
+                pageBuilder.setLength(0);
+                pageBuilder.append(candidate);
+            }
+        }
+
+        if (pageBuilder.length() > 0) {
+            pages.add(pageBuilder.toString().trim());
+        }
+
+        if (pages.size == 0) {
+            pages.add("");
+        }
+    }
+
+    public void update(float delta) {
+        if (pages.size == 0) return;
+
+        if (pageFinished) return;
+
+        String pageText = pages.get(currentPageIndex);
+        if (pageText == null) pageText = "";
+
+        charTimer += delta;
+
+        while (charTimer >= charDelay && charIndex < pageText.length()) {
+            charTimer -= charDelay;
+            charIndex++;
+            epilogueLabel.setText(pageText.substring(0, charIndex));
+        }
+
+        if (charIndex >= pageText.length()) {
+            pageFinished = true;
+        }
     }
 
     public void resize(float screenWidth, float screenHeight) {
@@ -79,27 +166,31 @@ public class EpiloguePopup extends AbstractPopup {
         background.setSize(screenWidth, screenHeight);
         resizeCentered(epilogueImage, epilogueTexture, screenWidth, screenHeight);
 
+        FontScaler.applyScale(skin.getFont("default-font"));
+
+        float textAreaWidth  = epilogueImage.getWidth() * 0.7f;
+        float textAreaX = epilogueImage.getX() + epilogueImage.getWidth() * 0.15f;
+        float textAreaY = epilogueImage.getY() + epilogueImage.getHeight() * 0.3f;
+        visibleTextHeight = epilogueImage.getHeight() * 0.35f;
+
+        epilogueLabel.setWidth(textAreaWidth);
+        epilogueLabel.setHeight(visibleTextHeight);
+        epilogueLabel.setPosition(textAreaX, textAreaY);
+
         float btnWidth = epilogueImage.getWidth() * 0.5f;
         float btnHeight = epilogueImage.getHeight() * 0.1f;
         float paddingBottom = epilogueImage.getHeight() * 0.1f;
 
-        epilogueLabel.setWidth(epilogueImage.getWidth() * 0.7f);
-        epilogueLabel.setPosition(
-            epilogueImage.getX() + epilogueImage.getWidth() * 0.15f,
-            epilogueImage.getY() + epilogueImage.getHeight() * 0.52f
+        continueButton.setSize(btnWidth, btnHeight);
+        continueButton.setPosition(
+            epilogueImage.getX() + (epilogueImage.getWidth() - btnWidth) / 2f,
+            epilogueImage.getY() + paddingBottom
         );
 
-        FontScaler.applyScale(skin.getFont("default-font"));
-
-        continueButton.setSize(btnWidth, btnHeight);
-        continueButton.setPosition(epilogueImage.getX() + (epilogueImage.getWidth() - btnWidth) / 2f, epilogueImage.getY() + paddingBottom);
-    }
-
-    private void finishText() {
-        sb.setLength(0);
-        sb.append(fullText);
-        epilogueLabel.setText(fullText);
-        finished = true;
+        if (fullText != null && !fullText.isEmpty()) {
+            rebuildPages();
+            showPage(Math.min(currentPageIndex, pages.size - 1));
+        }
     }
 
     @Override
@@ -108,7 +199,6 @@ public class EpiloguePopup extends AbstractPopup {
         stage.addActor(epilogueImage);
         stage.addActor(epilogueLabel);
         stage.addActor(continueButton);
-
     }
 
     @Override
