@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -23,6 +24,7 @@ public class EpiloguePopup extends AbstractPopup {
 
     private final DetectiveGame game;
     private final Skin skin;
+    private final GlyphLayout layout;
 
     private String fullText = "";
 
@@ -39,6 +41,7 @@ public class EpiloguePopup extends AbstractPopup {
     public EpiloguePopup(Stage stage, DetectiveGame game) {
         super(stage);
         this.game = game;
+        layout = new GlyphLayout();
 
         epilogueTexture = new Texture(Assets.EPILOGUE);
         epilogueImage = new Image(epilogueTexture);
@@ -103,7 +106,6 @@ public class EpiloguePopup extends AbstractPopup {
         }
 
         BitmapFont font = epilogueLabel.getStyle().font;
-        GlyphLayout layout = new GlyphLayout();
 
         float labelWidth = epilogueLabel.getWidth();
         float maxHeight = visibleTextHeight > 0 ? visibleTextHeight : epilogueLabel.getHeight();
@@ -167,8 +169,6 @@ public class EpiloguePopup extends AbstractPopup {
         background.setSize(screenWidth, screenHeight);
         resizeCentered(epilogueImage, epilogueTexture, screenWidth, screenHeight);
 
-        FontScaler.applyScale(skin.getFont("default-font"));
-
         float textAreaWidth  = epilogueImage.getWidth() * 0.7f;
         float textAreaX = epilogueImage.getX() + epilogueImage.getWidth() * 0.15f;
         float textAreaY = epilogueImage.getY() + epilogueImage.getHeight() * 0.3f;
@@ -189,6 +189,8 @@ public class EpiloguePopup extends AbstractPopup {
         );
 
         if (fullText != null && !fullText.isEmpty()) {
+            rescaleFontToFit();
+
             rebuildPages();
             showPage(Math.min(currentPageIndex, pages.size - 1));
         }
@@ -208,5 +210,31 @@ public class EpiloguePopup extends AbstractPopup {
         epilogueImage.remove();
         epilogueLabel.remove();
         continueButton.remove();
+    }
+
+    private void rescaleFontToFit() {
+        if (epilogueImage.getWidth() == 0 || epilogueImage.getHeight() == 0) return;
+
+        Label.LabelStyle style = epilogueLabel.getStyle();
+        BitmapFont font = style.font;
+
+        float labelWidth = epilogueLabel.getWidth();
+        float availableHeight = visibleTextHeight > 0 ? visibleTextHeight : epilogueLabel.getHeight();
+
+        String textToMeasure = (fullText != null && !fullText.isEmpty())
+            ? fullText
+            : "Т";
+
+        font.getData().setScale(1f);
+
+        layout.setText(font, textToMeasure, style.fontColor, labelWidth, Align.left, true);
+        float prefHeight = layout.height;
+        if (prefHeight <= 0f) prefHeight = font.getCapHeight();
+
+        float scale = availableHeight / prefHeight;
+        scale = MathUtils.clamp(scale, 0.6f, 1.4f);
+
+        font.getData().setScale(scale);
+        epilogueLabel.invalidateHierarchy();
     }
 }
