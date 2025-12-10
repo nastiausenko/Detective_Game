@@ -411,12 +411,15 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         new Thread(() -> {
             String answer;
             IntArray factsToReveal = new IntArray();
+            int newlyDiscovered = 0;
 
             try {
                 DossierData data = game.getDossierDb().characters.get(characterId);
                 if (data != null && data.hiddenFacts != null && !data.hiddenFacts.isEmpty()) {
 
                     String qLower = q.toLowerCase(Locale.ROOT);
+
+                    NpcState stateBefore = npcService.getStateForUi(characterId);
 
                     for (int i = 0; i < data.hiddenFacts.size(); i++) {
                         String hidden = data.hiddenFacts.get(i);
@@ -449,6 +452,14 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                         Gdx.app.log("FACT_DEBUG", "LLM logical? " + logical + " for fact #" + i);
 
                         if (logical) {
+                            boolean alreadyRevealed = stateBefore.hiddenRevealed != null
+                                && i < stateBefore.hiddenRevealed.length
+                                && stateBefore.hiddenRevealed[i];
+
+                            if (!alreadyRevealed) {
+                                newlyDiscovered++;
+                            }
+
                             factsToReveal.add(i);
                         }
                     }
@@ -464,7 +475,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             }
 
             final String finalAnswer = answer;
-            final IntArray revealedCopy = new IntArray(factsToReveal);
+            final int finalNewFacts = newlyDiscovered;
 
             Gdx.app.postRunnable(() -> {
                 currentResponse = finalAnswer;
@@ -473,6 +484,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 answerAreaImage.setVisible(true);
                 updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
                 DialogueHistory.append(characterId, q, finalAnswer);
+
+                if (finalNewFacts > 0) {
+                    game.overlay.onNewFactsDiscovered(finalNewFacts);
+                }
             });
         }).start();
     }

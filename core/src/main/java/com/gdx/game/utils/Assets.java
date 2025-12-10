@@ -14,6 +14,7 @@ public class Assets {
     public static final String SETTINGS_BUTTON = "menu/settings/settings_btn.png";
     public static final String ACCUSATION_BUTTON = "menu/accusation/accusation_btn.png";
     public static final String TIMER = "menu/timer.png";
+    public static final String BADGE = "menu/badge.png";
 
     public static final String NOTES = "menu/note/notes.png";
     public static final String ARROW_LEFT = "menu/note/arrow_left.png";

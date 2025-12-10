@@ -1,10 +1,12 @@
 package com.gdx.game.utils;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
+import com.gdx.game.data.InvestigationState;
 import com.gdx.game.screens.MapScreen;
 import com.gdx.game.ui.popup.*;
 import com.gdx.game.ui.timer.GameTimer;
@@ -20,6 +22,10 @@ public class UIOverlayManager {
     private final Image accuseButton;
     private final Image homeButton;
     private final Image chatButton;
+
+    private final Image dossierBadge;
+    private final Image toggleBadge;
+    private int newFactsCount = 0;
 
     private final Texture arrowDownTexture;
     private final Texture arrowUpTexture;
@@ -54,6 +60,11 @@ public class UIOverlayManager {
         homeButton = game.getButtonFactory().createButton(Assets.HOME_BUTTON, 64, 64, this::backToMap);
         chatButton = game.getButtonFactory().createButton(Assets.CHAT_BUTTON, 64, 64, this::showChatHistory);
 
+        dossierBadge = new Image(new Texture(Assets.BADGE));
+        toggleBadge  = new Image(new Texture(Assets.BADGE));
+        dossierBadge.setVisible(false);
+        toggleBadge.setVisible(false);
+
         notesButton.setVisible(false);
         dossierButton.setVisible(false);
         accuseButton.setVisible(false);
@@ -63,6 +74,9 @@ public class UIOverlayManager {
         uiStage.addActor(dossierButton);
         uiStage.addActor(accuseButton);
         uiStage.addActor(settingsButton);
+
+        uiStage.addActor(dossierBadge);
+        uiStage.addActor(toggleBadge);
 
         popupFactory = new PopupFactory(uiStage, game, game.getTransition());
         timer = new GameTimer(uiStage, 60 * 3f);
@@ -74,6 +88,8 @@ public class UIOverlayManager {
         dossierButton.setVisible(menuOpened);
         accuseButton.setVisible(menuOpened);
         toggleButton.setDrawable(new Image(menuOpened ? arrowUpTexture : arrowDownTexture).getDrawable());
+
+        updateBadgeVisibility();
     }
 
     private void backToMap() {
@@ -96,6 +112,8 @@ public class UIOverlayManager {
 
         dossierPopup.loadDatabase(game.getDossierDb());
         dossierPopup.show();
+
+        onDossierOpened();
     }
 
     private void showAccusation() {
@@ -123,9 +141,35 @@ public class UIOverlayManager {
         settingsPopup.show();
     }
 
-    public void showEpilogue() {
-        if (epiloguePopup == null) epiloguePopup = popupFactory.createEpiloguePopup();
+    private void showEpilogue() {
+        if (epiloguePopup == null) {
+            epiloguePopup = popupFactory.createEpiloguePopup();
+        }
+
+        epiloguePopup.setFullText("…");
         epiloguePopup.show();
+
+        final InvestigationState inv = game.getInvestigationState();
+
+        new Thread(() -> {
+            String text;
+            try {
+                text = game.getEpilogueService().generateEpilogue(inv);
+            } catch (Exception e) {
+                e.printStackTrace();
+                text = "Щось пішло не так з епілогом. "
+                    + "Але місто Розенфельд усе одно пам'ятатиме цю справу.";
+            }
+
+            final String finalText = text;
+            Gdx.app.postRunnable(() -> {
+                epiloguePopup.setFullText(finalText);
+            });
+        }).start();
+    }
+
+    public void showEpiloguePublic() {
+        showEpilogue();
     }
     public void render(float delta) {
         if (!visible) return;
@@ -210,6 +254,20 @@ public class UIOverlayManager {
             chatButton.setPosition(settingsButton.getX() - chatButton.getWidth() - margin, settingsButton.getY());
         }
 
+        float badgeSize = toggleButton.getWidth() * 0.2f;
+        dossierBadge.setSize(badgeSize, badgeSize);
+        toggleBadge.setSize(badgeSize, badgeSize);
+
+        dossierBadge.setPosition(
+            dossierButton.getX() + dossierButton.getWidth() - badgeSize * 1.5f,
+            dossierButton.getY() + dossierButton.getHeight() - badgeSize * 0.9f
+        );
+
+        toggleBadge.setPosition(
+            toggleButton.getX() + toggleButton.getWidth() - badgeSize * 1.5f,
+            toggleButton.getY() + toggleButton.getHeight() - badgeSize * 0.9f
+        );
+
         timer.setPositions(targetHeight);
 
         if (notePopup != null) notePopup.resize(width, height);
@@ -218,6 +276,8 @@ public class UIOverlayManager {
         if (accusationPopup != null) accusationPopup.resize(width, height);
         if (chatHistoryPopup != null) chatHistoryPopup.resize(width, height);
         if (epiloguePopup != null) epiloguePopup.resize(width, height);
+
+        updateBadgeVisibility();
     }
 
     public void setVisible(boolean visible) {
@@ -266,5 +326,24 @@ public class UIOverlayManager {
 
     public GameTimer getTimer() {
         return timer;
+    }
+
+    public void onNewFactsDiscovered(int count) {
+        if (count <= 0) return;
+        newFactsCount += count;
+        updateBadgeVisibility();
+    }
+
+    private void onDossierOpened() {
+        newFactsCount = 0;
+        updateBadgeVisibility();
+    }
+
+    private void updateBadgeVisibility() {
+        boolean hasNewFacts = newFactsCount > 0;
+
+        dossierBadge.setVisible(hasNewFacts && menuOpened);
+
+        toggleBadge.setVisible(hasNewFacts && !menuOpened);
     }
 }
