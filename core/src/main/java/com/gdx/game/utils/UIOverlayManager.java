@@ -204,7 +204,10 @@ public class UIOverlayManager {
         uiStage.act(delta);
         uiStage.draw();
 
-        if (settingsPopup != null && settingsPopup.isVisible() || storyPopup.isVisible()) {
+        boolean hasBlockingPopup = (settingsPopup != null && settingsPopup.isVisible()) ||
+                (storyPopup != null && storyPopup.isVisible());
+
+        if (hasBlockingPopup) {
             timer.pause();
         } else {
             timer.resume();

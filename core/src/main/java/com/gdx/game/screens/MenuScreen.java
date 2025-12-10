@@ -58,8 +58,12 @@ public class MenuScreen implements Screen {
             () -> {
                 if (!transition.isTransitioning()) {
                     transition.startFadeOut(0.7f, () -> {
-                        game.setScreen(new MapScreen(game, transition));
-                        transition.startFadeIn(0.7f);
+                        if (game.overlay.getTimer().isTimeOver()) {
+                          handleNewGame();
+                        } else {
+                            game.setScreen(new MapScreen(game, transition));
+                            transition.startFadeIn(0.7f);
+                        }
                     });
                 }
             }
@@ -71,22 +75,24 @@ public class MenuScreen implements Screen {
             Assets.NEW_GAME_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
             () -> {
                 if (!transition.isTransitioning()) {
-                    transition.startFadeOut(0.7f, () -> {
-                        GameData.clearAll();
-                        game.overlay.resetTimer();
-
-                        InvestigationState inv = game.getInvestigationState();
-                        if (inv != null) {
-                            inv.accusationDone = false;
-                            inv.accusedNpcId = null;
-                        }
-
-                        game.setScreen(new MapScreen(game, transition));
-                        transition.startFadeIn(0.7f);
-                    });
+                    transition.startFadeOut(0.7f, this::handleNewGame);
                 }
             }
         );
+    }
+
+    private void handleNewGame() {
+        GameData.clearAll();
+        game.overlay.resetTimer();
+
+        InvestigationState inv = game.getInvestigationState();
+        if (inv != null) {
+            inv.accusationDone = false;
+            inv.accusedNpcId = null;
+        }
+
+        game.setScreen(new MapScreen(game, transition));
+        transition.startFadeIn(0.7f);
     }
 
     private Image createExitButton() {
