@@ -53,4 +53,8 @@ public class PopupFactory {
     public TimeOverPopup createTimeOverPopup() {
         return new TimeOverPopup(stage, game);
     }
+
+    public TheEndPopup createTheEndPopup() {
+        return new TheEndPopup(stage, game);
+    }
 }

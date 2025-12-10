@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.data.GameData;
+import com.gdx.game.data.InvestigationState;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.ScreenUtilsHelper;
@@ -73,6 +74,12 @@ public class MenuScreen implements Screen {
                     transition.startFadeOut(0.7f, () -> {
                         GameData.clearAll();
                         game.overlay.resetTimer();
+
+                        InvestigationState inv = game.getInvestigationState();
+                        if (inv != null) {
+                            inv.accusationDone = false;
+                            inv.accusedNpcId = null;
+                        }
 
                         game.setScreen(new MapScreen(game, transition));
                         transition.startFadeIn(0.7f);

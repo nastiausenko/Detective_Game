@@ -80,6 +80,7 @@ public class EpiloguePopup extends AbstractPopup {
             showPage(currentPageIndex + 1);
         } else {
             remove();
+            game.overlay.showTheEndPublic();
         }
     }
 

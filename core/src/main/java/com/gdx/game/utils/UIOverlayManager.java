@@ -42,6 +42,7 @@ public class UIOverlayManager {
     private EpiloguePopup epiloguePopup;
     private TimeOverPopup timeOverPopup;
     private StoryPopup storyPopup;
+    private TheEndPopup theEndPopup;
     private String currentNpcId;
 
     private boolean menuOpened = false;
@@ -176,6 +177,11 @@ public class UIOverlayManager {
         showEpilogue();
     }
 
+    public void showTheEndPublic() {
+        if (theEndPopup == null) theEndPopup = popupFactory.createTheEndPopup();
+        theEndPopup.show();
+    }
+
     private void showPrologue() {
         Preferences prefs = Gdx.app.getPreferences("game_data");
         boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
@@ -223,7 +229,7 @@ public class UIOverlayManager {
 
         InvestigationState inv = game.getInvestigationState();
         if (inv != null && inv.accusationDone) return;
-        if (epiloguePopup != null) return;
+        if (epiloguePopup != null && epiloguePopup.isVisible()) return;
 
         timeOverPopupShown = true;
         timer.pause();
@@ -324,6 +330,7 @@ public class UIOverlayManager {
         if (epiloguePopup != null) epiloguePopup.resize(width, height);
         if (timeOverPopup != null) timeOverPopup.resize(width, height);
         if (storyPopup != null) storyPopup.resize(width, height);
+        if (theEndPopup != null) theEndPopup.resize(width, height);
 
         updateBadgeVisibility();
     }
@@ -349,6 +356,7 @@ public class UIOverlayManager {
         if (chatHistoryPopup != null) chatHistoryPopup.dispose();
         if (timeOverPopup != null) timeOverPopup.dispose();
         if (settingsPopup != null) settingsPopup.dispose();
+        if (theEndPopup != null) theEndPopup.dispose();
 
         timer.saveTime();
     }
@@ -362,10 +370,17 @@ public class UIOverlayManager {
         if (epiloguePopup != null) epiloguePopup.remove();
         if (timeOverPopup != null) timeOverPopup.remove();
         if (storyPopup != null) storyPopup.remove();
+        if (theEndPopup != null) theEndPopup.remove();
     }
 
     public void resetTimer() {
         timer.reset();
+        timeOverPopupShown = false;
+
+        if (timeOverPopup != null) {
+            timeOverPopup.remove();
+            timeOverPopup = null;
+        }
     }
 
     public GameTimer getTimer() {

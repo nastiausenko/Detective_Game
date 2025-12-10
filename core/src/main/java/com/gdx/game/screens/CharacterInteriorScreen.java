@@ -507,8 +507,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private void updateAnswerBubbleLayout(float screenWidth, float screenHeight) {
         if (!dialogueLabel.isVisible()) return;
 
-        float paddingX  = 22f;
-        float paddingY  = 16f;
+        float paddingX = 22f;
+        float paddingY = 16f;
         float tailHeight = 21f;
 
         boolean portrait = screenHeight > screenWidth;
