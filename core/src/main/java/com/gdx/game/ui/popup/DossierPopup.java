@@ -58,9 +58,12 @@ public class DossierPopup extends AbstractPopup {
         BitmapFont rightFont = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
 
         pages = new Texture[]{
-            new Texture(Assets.DOSSIER_1),
-            new Texture(Assets.DOSSIER_2),
-            new Texture(Assets.DOSSIER_3)
+            new Texture(Assets.DOSSIER_VICTIM),
+            new Texture(Assets.DOSSIER_CASHIER),
+            new Texture(Assets.DOSSIER_OFFICER),
+            new Texture(Assets.DOSSIER_SISTER),
+            new Texture(Assets.DOSSIER_STUDENT),
+            new Texture(Assets.DOSSIER_DOCTOR),
         };
 
         pageImage = new Image(pages[0]);
