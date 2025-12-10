@@ -75,6 +75,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private String currentResponse = "";
     private final GlyphLayout glyphLayout = new GlyphLayout();
+    private static final String DOCTOR_ID = "walter";
 
     public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String characterId, String fullBody) {
         this.game = game;
@@ -185,7 +186,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private TextField.TextFieldStyle createTextFieldStyle() {
         TextField.TextFieldStyle style = new TextField.TextFieldStyle();
         style.font = skin.getFont("default-font");
-        FontScaler.applyScale(style.font);
         style.fontColor = Color.BLACK;
         style.messageFontColor = Color.BLACK;
         style.cursor = skin.newDrawable("cursor", Color.BLACK);
@@ -407,67 +407,37 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         final String q = question.trim();
+        final String qLower = q.toLowerCase(Locale.ROOT);
 
         new Thread(() -> {
             String answer;
-            IntArray factsToReveal = new IntArray();
-            int newlyDiscovered = 0;
+
+            IntArray candidateFactsNpc    = new IntArray();
+            IntArray candidateFactsDoctor = new IntArray();
 
             try {
-                DossierData data = game.getDossierDb().characters.get(characterId);
-                if (data != null && data.hiddenFacts != null && !data.hiddenFacts.isEmpty()) {
+                DossierData npcData = game.getDossierDb().characters.get(characterId);
+                collectCandidateFacts(npcData, qLower, candidateFactsNpc, "npc=" + characterId);
 
-                    String qLower = q.toLowerCase(Locale.ROOT);
-
-                    NpcState stateBefore = npcService.getStateForUi(characterId);
-
-                    for (int i = 0; i < data.hiddenFacts.size(); i++) {
-                        String hidden = data.hiddenFacts.get(i);
-                        if (hidden == null || hidden.isEmpty()) continue;
-
-                        List<List<String>> allTriggers = data.hiddenFactTriggers;
-                        List<String> triggersForFact = null;
-                        if (allTriggers != null && i < allTriggers.size()) {
-                            triggersForFact = allTriggers.get(i);
-                        }
-
-                        if (triggersForFact == null || triggersForFact.isEmpty()) {
-                            continue;
-                        }
-
-                        if (!matchesAnyTrigger(triggersForFact, qLower)) {
-                            Gdx.app.log("FACT_DEBUG", "No trigger for fact #" + i);
-                            continue;
-                        }
-
-                        Gdx.app.log("FACT_DEBUG", "Trigger hit for fact #" + i + " : " + hidden);
-
-                        boolean logical = false;
-                        try {
-                            logical = npcService.isQuestionLogicalForHiddenFact(characterId, q, hidden);
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-
-                        Gdx.app.log("FACT_DEBUG", "LLM logical? " + logical + " for fact #" + i);
-
-                        if (logical) {
-                            boolean alreadyRevealed = stateBefore.hiddenRevealed != null
-                                && i < stateBefore.hiddenRevealed.length
-                                && stateBefore.hiddenRevealed[i];
-
-                            if (!alreadyRevealed) {
-                                newlyDiscovered++;
-                            }
-
-                            factsToReveal.add(i);
-                        }
-                    }
-
-                    npcService.markFactsRevealed(characterId, factsToReveal);
-                }
+                DossierData doctorData = game.getDossierDb().characters.get(DOCTOR_ID);
+                collectCandidateFacts(doctorData, qLower, candidateFactsDoctor, "DOCTOR");
 
                 answer = npcService.askNpcSync(characterId, q);
+
+                int newlyRevealedTotal = 0;
+
+                newlyRevealedTotal += revealFactsAfterExchange(characterId, npcData, q, answer,
+                    candidateFactsNpc, "npc=" + characterId
+                );
+
+                newlyRevealedTotal += revealFactsAfterExchange(DOCTOR_ID, doctorData, q, answer,
+                    candidateFactsDoctor, "DOCTOR");
+
+                if (newlyRevealedTotal > 0) {
+                    int finalNew = newlyRevealedTotal;
+                    Gdx.app.postRunnable(() ->
+                        game.overlay.onNewFactsDiscovered(finalNew));
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -475,7 +445,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             }
 
             final String finalAnswer = answer;
-            final int finalNewFacts = newlyDiscovered;
 
             Gdx.app.postRunnable(() -> {
                 currentResponse = finalAnswer;
@@ -484,12 +453,70 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 answerAreaImage.setVisible(true);
                 updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
                 DialogueHistory.append(characterId, q, finalAnswer);
-
-                if (finalNewFacts > 0) {
-                    game.overlay.onNewFactsDiscovered(finalNewFacts);
-                }
             });
         }).start();
+    }
+
+    private void collectCandidateFacts(DossierData data, String questionLower, IntArray outIndexes, String debugPrefix) {
+        if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) return;
+
+        List<List<String>> allTriggers = data.hiddenFactTriggers;
+
+        for (int i = 0; i < data.hiddenFacts.size(); i++) {
+            String hidden = data.hiddenFacts.get(i);
+            if (hidden == null || hidden.isEmpty()) continue;
+
+            List<String> triggersForFact = null;
+            if (allTriggers != null && i < allTriggers.size()) {
+                triggersForFact = allTriggers.get(i);
+            }
+
+            if (triggersForFact == null || triggersForFact.isEmpty()) continue;
+
+            if (!matchesAnyTrigger(triggersForFact, questionLower)) {
+                Gdx.app.log("FACT_DEBUG", "No trigger for fact #" + i + " (" + debugPrefix + ")");
+                continue;
+            }
+
+            Gdx.app.log("FACT_DEBUG", "Trigger hit for fact #" + i + " (" + debugPrefix + ")");
+            outIndexes.add(i);
+        }
+    }
+
+    private int revealFactsAfterExchange(String npcId, DossierData data, String question, String answer,
+                                         IntArray candidateIndexes, String debugPrefix) {
+        if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) return 0;
+        if (candidateIndexes == null || candidateIndexes.size == 0) return 0;
+
+        IntArray toReveal = new IntArray();
+
+        for (int i = 0; i < candidateIndexes.size; i++) {
+            int idx = candidateIndexes.get(i);
+            if (idx < 0 || idx >= data.hiddenFacts.size()) continue;
+
+            String hidden = data.hiddenFacts.get(idx);
+            if (hidden == null || hidden.isEmpty()) continue;
+
+            boolean logical = false;
+            try {
+                logical = npcService.shouldRevealFactFromExchange(question, answer, hidden);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            Gdx.app.log("FACT_DEBUG",
+                "REVEAL_CHECK (" + debugPrefix + ") fact #" + idx + " -> " + logical);
+
+            if (logical) {
+                toReveal.add(idx);
+            }
+        }
+
+        if (toReveal.size > 0) {
+            npcService.markFactsRevealed(npcId, toReveal);
+        }
+
+        return toReveal.size;
     }
 
     private boolean matchesAnyTrigger(List<String> triggers, String questionLower) {
@@ -507,7 +534,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private void updateAnswerBubbleLayout(float screenWidth, float screenHeight) {
         if (!dialogueLabel.isVisible()) return;
 
-        float paddingX = 22f;
+        float paddingX = 40f;
         float paddingY = 16f;
         float tailHeight = 21f;
 
@@ -520,12 +547,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         float anchorRight = charX + charW * 0.5f - paddingX;
 
-        float maxBubbleWidth = answerAreaTexture.getWidth()*0.4f;
-
+        float maxBubbleWidth = answerAreaTexture.getWidth() * 0.4f;
         float screenLimit = screenWidth * (portrait ? 0.85f : 0.8f);
         maxBubbleWidth = Math.min(maxBubbleWidth, screenLimit);
-
-        maxBubbleWidth = Math.min(maxBubbleWidth, anchorRight-paddingX);
+        maxBubbleWidth = Math.min(maxBubbleWidth, anchorRight - paddingX);
 
         Label.LabelStyle style = dialogueLabel.getStyle();
         String text = currentResponse != null ? currentResponse : "";
@@ -534,38 +559,49 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float singleLineWidth = glyphLayout.width;
 
         float maxInnerWidth = maxBubbleWidth - paddingX * 2f;
-        if (maxInnerWidth < 0) maxInnerWidth = 0;
+        if (maxInnerWidth < 0f) maxInnerWidth = 0f;
 
         float innerWidth = Math.min(singleLineWidth, maxInnerWidth);
 
+        float maxBubbleHeight = screenHeight * 0.45f;
+        float maxInnerHeight  = maxBubbleHeight - paddingY * 2f - tailHeight;
+
         dialogueLabel.setWrap(true);
         dialogueLabel.setAlignment(Align.center);
+        dialogueLabel.setFontScale(0.7f);
         dialogueLabel.setWidth(innerWidth);
         dialogueLabel.setText(text);
         dialogueLabel.layout();
-        float textHeight = dialogueLabel.getPrefHeight();
+        float baseTextHeight = dialogueLabel.getPrefHeight();
+
+        float scale;
+        float textHeight = baseTextHeight;
+
+        if (baseTextHeight > maxInnerHeight && baseTextHeight > 0f) {
+            scale = maxInnerHeight / baseTextHeight;
+            scale = MathUtils.clamp(scale, 0.5f, 1f);
+
+            dialogueLabel.setFontScale(scale);
+            dialogueLabel.invalidateHierarchy();
+            dialogueLabel.layout();
+            textHeight = dialogueLabel.getPrefHeight();
+        }
 
         float bubbleWidth  = innerWidth + paddingX * 2f;
         float bubbleHeight = textHeight + paddingY * 2f + tailHeight;
 
-        float maxBubbleHeight = screenHeight * 0.45f;
-        if (bubbleHeight > maxBubbleHeight) {
-            bubbleHeight = maxBubbleHeight;
-        }
-
         float bubbleX = anchorRight - bubbleWidth;
-        float bubbleY = charY + charH * 0.7f;
+        float bubbleY = charY + charH * 0.6f;
 
         bubbleY = MathUtils.clamp(bubbleY, 0, screenHeight - bubbleHeight);
 
         answerAreaImage.setBounds(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
 
-        float innerHeight = bubbleHeight - paddingY * 2f - tailHeight;
-        if (textHeight > innerHeight) textHeight = innerHeight;
+        float innerHeightActual = bubbleHeight - paddingY * 2f - tailHeight;
 
         float textX = bubbleX + paddingX;
         float textY = bubbleY + tailHeight + paddingY
-            + (innerHeight - textHeight) / 2f;
+            + (innerHeightActual - textHeight) / 2f;
 
         dialogueLabel.setBounds(textX, textY, innerWidth, textHeight);
     }

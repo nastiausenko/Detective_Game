@@ -149,7 +149,7 @@ public class AccusationPopup extends AbstractPopup {
 
         int revealed = game.getNpcDialogueService().getTotalRevealedFacts();
 
-        boolean enoughFacts = revealed >= 0;
+        boolean enoughFacts = revealed >= Assets.FACTS_TO_REVEAL;
 
         boolean canAccuse = timeOver || enoughFacts;
 

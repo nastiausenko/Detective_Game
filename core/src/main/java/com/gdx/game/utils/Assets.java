@@ -60,5 +60,6 @@ public class Assets {
     public static final String YES_BUTTON = "menu/story/yes_btn.png";
     public static final String NO_BUTTON = "menu/story/no_btn.png";
 
-    public static final float TOTAL_TIME = 10f;
+    public static final float TOTAL_TIME = 60 * 60f;
+    public static final int FACTS_TO_REVEAL = 10;
 }

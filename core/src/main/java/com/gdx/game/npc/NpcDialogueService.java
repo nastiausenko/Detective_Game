@@ -13,7 +13,6 @@ import com.gdx.game.data.DossierDatabase;
 import java.io.IOException;
 import java.util.Locale;
 
-//TODO add lore
 public class NpcDialogueService {
     private static final int MAX_HISTORY_PAIRS = 6;
     private static final int MAX_HISTORY_CHARS = 1200;
@@ -179,18 +178,16 @@ public class NpcDialogueService {
         return sb.toString();
     }
 
-    //TODO fix classifier to reveal npc facts and facts about doctor
-    public boolean isQuestionLogicalForHiddenFact(String npcId,
-                                                  String question,
-                                                  String hiddenFact) throws IOException {
+    public boolean shouldRevealFactFromExchange(String question, String answer, String hiddenFact) throws IOException {
+        String system = "Binary classifier for a detective game. "
+                + "Decide if NPC's ANSWER clearly confirms that the FACT is true. "
+                + "Reply ONLY YES or NO. YES only if answer directly or clearly implies the fact; "
+                + "if answer denies, avoids or is unclear, reply NO.";
 
-        String system = "You are a binary classifier in a detective game. "
-                + "Decide if a detective's QUESTION essentially refers to a given HIDDEN FACT. "
-                + "Answer ONLY with YES or NO.";
-
-        String user = "HIDDEN FACT: \"" + hiddenFact + "\"\n"
-                + "QUESTION: \"" + question + "\"\n"
-                + "Answer only YES or NO.";
+        String user = "FACT: \"" + hiddenFact + "\"\n"
+                + "Q: \"" + question + "\"\n"
+                + "A: \"" + answer + "\"\n"
+                + "Output YES or NO.";
 
         String result = llmClient.ask(system, user);
         if (result == null) return false;
