@@ -1,14 +1,13 @@
 package com.gdx.game.ui.popup;
 
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.utils.Assets;
-import com.gdx.game.utils.FontScaler;
 import com.gdx.game.utils.NotePages;
 import com.gdx.game.utils.ScreenUtilsHelper;
 

@@ -1,6 +1,9 @@
 package com.gdx.game.screens;
 
-import com.badlogic.gdx.*;
+import com.badlogic.gdx.Application;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -13,8 +16,6 @@ import com.gdx.game.data.BuildingData;
 import com.gdx.game.ui.chars.BuildingLoader;
 import com.gdx.game.ui.chars.CharacterIcon;
 import com.gdx.game.ui.chars.CharacterLoader;
-import com.gdx.game.ui.popup.PopupFactory;
-import com.gdx.game.ui.popup.StoryPopup;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 import com.gdx.game.utils.MapInputController;

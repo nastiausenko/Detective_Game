@@ -215,7 +215,7 @@ public class DossierPopup extends AbstractPopup {
         );
         textTable.top().left();
 
-        float leftColW  = contentW * 0.51f;
+        float leftColW  = contentW * 0.45f;
         float rightColW = contentW * 0.45f;
 
         Table leftCol = new Table();

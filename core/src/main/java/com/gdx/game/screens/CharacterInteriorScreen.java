@@ -1,6 +1,9 @@
 package com.gdx.game.screens;
 
-import com.badlogic.gdx.*;
+import com.badlogic.gdx.Application;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -409,7 +412,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private void handleQuestion(String question) {
         if (question == null || question.trim().isEmpty()) return;
 
-        currentResponse = "…";
+        currentResponse = "...";
         dialogueLabel.setText(currentResponse);
         dialogueLabel.setVisible(true);
         answerAreaImage.setVisible(true);
@@ -421,7 +424,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         new Thread(() -> {
             String answer;
 
-            IntArray candidateFactsNpc    = new IntArray();
+            IntArray candidateFactsNpc = new IntArray();
             IntArray candidateFactsDoctor = new IntArray();
 
             try {
@@ -642,18 +645,15 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     }
 
     private void updateStatsFontScale(float iconSize) {
-        // розмір, під який ти малювала шрифт «за замовчуванням»
-        float baseIconSize = 80f;       // можна підіграти експериментально
+        float baseIconSize = 80f;
         float scale = iconSize / baseIconSize;
 
-        // трохи обмежимо, щоб не став зовсім мікроскопічним/гігантським
         scale = MathUtils.clamp(scale, 0.6f, 1.4f);
 
         trustLabel.setFontScale(scale);
         fearLabel.setFontScale(scale);
         moodLabel.setFontScale(scale);
 
-        // щоб оновились prefWidth/prefHeight
         trustLabel.invalidateHierarchy();
         fearLabel.invalidateHierarchy();
         moodLabel.invalidateHierarchy();

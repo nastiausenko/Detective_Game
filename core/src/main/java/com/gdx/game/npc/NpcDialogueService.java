@@ -18,6 +18,20 @@ public class NpcDialogueService {
     private static final int MAX_HISTORY_CHARS = 1200;
     private static final float SESSION_BREAK_SECONDS = 180f;
     private static final String NPC_PREFS_NAME = "npc_state";
+    private static final String GLOBAL_RULES =
+            "You are an NPC in a detective game.\n" +
+                    "Setting: town Rosenfeld, quiet European town, moral thriller tone.\n" +
+                    "Canon murder (do NOT contradict):\n" +
+                    "- Victim: Dr. Adrian Walter, found dead at night in his office in the old wing of the hospital.\n" +
+                    "- Official story: accident or burnout, town avoids idea of murder.\n" +
+                    "- Real killer in this canonical story: Liam Becker (Walter's student). " +
+                    "NPCs may suspect others or be wrong, but must NOT claim with certainty that someone else is the true killer " +
+                    "or that Walter is alive.\n" +
+                    "You may improvise feelings, wording and small memories, but keep these canon facts consistent. " +
+                    "Do not invent time travel, other murders or resurrections.\n" +
+                    "Always answer in Ukrainian, 1–3 short sentences, in first person (\"я\", \"мені\", \"мене\"). " +
+                    "Do NOT introduce yourself by name or job unless the detective directly asks. " +
+                    "Start your answer right away.\n";
 
     private final LlmClient llmClient;
     private final DossierDatabase dossierDb;
@@ -111,31 +125,30 @@ public class NpcDialogueService {
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append("You are one NPC in a detective game.\n");
+        sb.append(GLOBAL_RULES).append("\n");
 
         if (dossier != null) {
-            sb.append("IDENTITY (must always stay the same):\n")
+            sb.append("NPC_IDENTITY:\n")
                     .append("name: ").append(dossier.name).append("\n")
                     .append("age: ").append(dossier.age).append("\n")
                     .append("role: ").append(dossier.role).append("\n");
 
-            if (dossier.personality != null) {
+            if (dossier.personality != null && !dossier.personality.isEmpty()) {
                 sb.append("personality: ").append(dossier.personality).append("\n");
             }
 
             sb.append(buildLieRiskBehavior(dossier.lieRisk)).append("\n");
         } else {
-            sb.append("IDENTITY: ").append(npcId).append(" (keep it consistent).\n");
+            sb.append("NPC_IDENTITY:\n- name: ").append(npcId).append(" (keep consistent).\n");
         }
 
-        sb.append("WORLD: town Rosenfeld, you are questioned by a detective about the death of Dr. Adrian Walter.\n");
-
-        sb.append("STATE: trust=").append(String.format(Locale.ROOT, "%.2f", state.trust))
+        sb.append("NPC_STATE: trust=").append(String.format(Locale.ROOT, "%.2f", state.trust))
                 .append(", fear=").append(String.format(Locale.ROOT, "%.2f", state.fear))
-                .append(" (0..1). Be more open when trust>0.7 & fear<0.4; avoid or distort answers when fear>0.7.\n");
+                .append(" (0..1). If trust>0.7 and fear<0.4, be more open and honest. ")
+                .append("If fear>0.7, avoid direct answers or distort truth, especially about dangerous topics.\n");
 
         if (dossier != null && dossier.publicFacts != null && !dossier.publicFacts.isEmpty()) {
-            sb.append("PUBLIC_FACTS (you may mention freely when relevant):\n");
+            sb.append("FACTS_PUBLIC (you may mention freely when relevant):\n");
             for (String f : dossier.publicFacts) {
                 sb.append("- ").append(f).append("\n");
             }
@@ -155,7 +168,7 @@ public class NpcDialogueService {
             }
 
             if (hasRevealed) {
-                sb.append("REVEALED_SECRETS (already clearly admitted, you cannot deny them):\n");
+                sb.append("FACTS_REVEALED (already clearly admitted, you cannot deny them):\n");
                 for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
                     if (state.hiddenRevealed[i]) {
                         sb.append("- ").append(dossier.hiddenFacts.get(i)).append("\n");
@@ -163,8 +176,8 @@ public class NpcDialogueService {
                 }
             }
 
-            sb.append("STILL_SECRET_FACTS (do NOT state them plainly unless the detective clearly asks ")
-                    .append("or you feel morally forced to confess; you may hint or dodge):\n");
+            sb.append("FACTS_SECRET (do NOT state plainly unless the detective clearly presses you ")
+                    .append("or you feel morally forced to confess; you may hint, dodge or partially admit):\n");
             for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
                 if (!state.hiddenRevealed[i]) {
                     sb.append("- ").append(dossier.hiddenFacts.get(i)).append("\n");
@@ -172,17 +185,19 @@ public class NpcDialogueService {
             }
         }
 
-        sb.append("Answer in Ukrainian, 1–3 short sentences, first person (\"я\", \"мене звати\", \"я працюю\"). ")
-                .append("Stay in character and keep your identity consistent.\n");
+        sb.append("Style: keep answers grounded in these facts, avoid long monologues, no meta-talk about being an AI.\n");
 
         return sb.toString();
     }
 
     public boolean shouldRevealFactFromExchange(String question, String answer, String hiddenFact) throws IOException {
-        String system = "Binary classifier for a detective game. "
-                + "Decide if NPC's ANSWER clearly confirms that the FACT is true. "
-                + "Reply ONLY YES or NO. YES only if answer directly or clearly implies the fact; "
-                + "if answer denies, avoids or is unclear, reply NO.";
+        String system = "You are a STRICT binary classifier for a detective game. " +
+                        "You receive a FACT, a detective QUESTION and an NPC ANSWER. " +
+                        "Answer YES only if the ANSWER explicitly mentions or clearly paraphrases " +
+                        "the KEY IDEA of the FACT.\n" +
+                        "- If the answer talks only about time, place, mood or generic things, answer NO.\n" +
+                        "- If you are NOT SURE, answer NO.\n" +
+                        "Reply with a single word: YES or NO.";
 
         String user = "FACT: \"" + hiddenFact + "\"\n"
                 + "Q: \"" + question + "\"\n"

@@ -15,10 +15,7 @@ public class EpilogueService {
     private final DossierDatabase dossierDb;
     private final NpcDialogueService npcService;
 
-    public EpilogueService(LlmClient llmClient,
-                           LoreDatabase loreDb,
-                           DossierDatabase dossierDb,
-                           NpcDialogueService npcService) {
+    public EpilogueService(LlmClient llmClient, LoreDatabase loreDb, DossierDatabase dossierDb, NpcDialogueService npcService) {
         this.llmClient = llmClient;
         this.loreDb = loreDb;
         this.dossierDb = dossierDb;
@@ -96,7 +93,7 @@ public class EpilogueService {
 
         sb.append("TASK:\n");
         sb.append("Using ONLY the information in CITY, PUBLIC FACTS, DISCOVERED SECRETS and KEY DIALOGUES, ")
-            .append("write the epilogue of Rosenfeld's story.\n")
+            .append("write the epilogue of Rosenfeld story.\n")
             .append("Show how the town changes, what happens to the accused, ")
             .append("and what trace Walter and his death leave behind.\n")
             .append("If the accusation is YES (correct) — this is a story about the price of truth and ")

@@ -7,7 +7,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.screens.MenuScreen;
-import com.gdx.game.ui.timer.GameTimer;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FadeTransition;
 

@@ -12,7 +12,6 @@ import com.gdx.game.DetectiveGame;
 import com.gdx.game.data.InvestigationState;
 import com.gdx.game.utils.Assets;
 import com.gdx.game.utils.FontScaler;
-import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class TimeOverPopup extends AbstractPopup {
 
