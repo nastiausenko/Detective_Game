@@ -1,0 +1,112 @@
+{
+  "characters": {
+    "walter": {
+      "name": "Dr. Adrian Walter",
+      "age": 46,
+      "role": "Victim",
+      "personality": "Intelligent, respected, but morally conflicted",
+      "publicFacts": [
+        "Chief doctor of Rosenfeld.",
+        "Taught at the medical school and was beloved by students.",
+        "Had a perfect reputation: charity work, helped orphans.",
+        "Found dead in his office in the hospital.",
+        "Official early version: suicide, but inconsistencies exist."
+      ],
+      "hiddenFacts": [
+        "Conducted secret psychological experiments on children.",
+        "Liam was one of his experimental subjects.",
+        "Planned to confess that he 'went too far' days before death."
+      ]
+    },
+
+    "elena": {
+      "name": "Elena Varga",
+      "age": 36,
+      "role": "Owner of café 'Blume'",
+      "personality": "Friendly, warm, emotionally unstable",
+      "lieRisk": 2,
+      "publicFacts": [
+        "Walter visited her café almost daily.",
+        "Knew Walter since their student years.",
+        "Saw him unusually depressed the day before his death."
+      ],
+      "hiddenFacts": [
+        "Knew Walter secretly met children at the hospital at night.",
+        "Had a brief romantic relationship with Walter years ago.",
+        "Has a note from Walter implying he 'did something irreversible'."
+      ]
+    },
+
+    "ernst": {
+      "name": "Ernst Bauer",
+      "age": 53,
+      "role": "Hospital security guard",
+      "personality": "Rough, silent, direct; hides guilt",
+      "lieRisk": 2,
+      "publicFacts": [
+        "Worked as a hospital guard for over 20 years.",
+        "Thought Walter was 'the only good man here'.",
+        "Avoids questions about the 'old wing'."
+      ],
+      "hiddenFacts": [
+        "Guarded a closed lab where Walter worked.",
+        "Heard children’s cries at night but trusted Walter’s excuses.",
+        "Knows Liam had night access to the hospital and hides it."
+      ]
+    },
+
+    "clara": {
+      "name": "Clara Weiss",
+      "age": 29,
+      "role": "Town Hall employee, Walter’s sister",
+      "personality": "Reserved, rational, suspiciously cold",
+      "lieRisk": 4,
+      "publicFacts": [
+        "Took over all documents after Walter’s death.",
+        "Some residents claim she lived elsewhere for a while.",
+        "Supported her brother but avoids details about their relationship."
+      ],
+      "hiddenFacts": [
+        "Knew Walter conducted unofficial experiments on children.",
+        "Hid part of Walter’s archives before the detective arrived.",
+        "Was near the hospital on the night of the murder for unknown reasons."
+      ]
+    },
+
+    "liam": {
+      "name": "Liam Becker",
+      "age": 17,
+      "role": "Medical school student, Walter’s protégé",
+      "personality": "Quiet, polite, emotionally detached; logical",
+      "lieRisk": 3,
+      "publicFacts": [
+        "Helps around the medical school with cleaning and paperwork.",
+        "Has no friends among peers, but adults respect him.",
+        "Seems calm, but looks deeply shaken by Walter’s death."
+      ],
+      "hiddenFacts": [
+        "Was a child patient at a private clinic funded by Walter.",
+        "Has an abnormally low pain reaction due to experiments.",
+        "Was at the hospital late on the night of the murder, but hides it."
+      ]
+    },
+
+    "mara": {
+      "name": "Mara Kovács",
+      "age": 41,
+      "role": "Medical school lecturer",
+      "personality": "Cold, strict, logical; controls emotions well",
+      "lieRisk": 3,
+      "publicFacts": [
+        "Worked with Walter for over 10 years.",
+        "Regularly tested students for psychological stability.",
+        "Was closing the school on the evening of the murder."
+      ],
+      "hiddenFacts": [
+        "Witnessed Walter’s early experiments but didn’t stop him.",
+        "Possesses copies of Liam’s psychological test results.",
+        "Knew Walter wanted to shut down the project and feared the truth."
+      ]
+    }
+  }
+}

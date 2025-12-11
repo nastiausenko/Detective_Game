@@ -37,6 +37,13 @@ public class Lwjgl3Launcher {
         int windowHeight = Math.min(683, screenHeight);
 
         configuration.setWindowedMode(windowWidth, windowHeight);
+
+        int minWidth  = 800;
+        int minHeight = 600;
+        int maxWidth  = screenWidth;   // або 1280, якщо хочеш фіксовану межу
+        int maxHeight = screenHeight;  // або 720  і т.д.
+
+        configuration.setWindowSizeLimits(minWidth, minHeight, maxWidth, maxHeight);
         //// You can change these files; they are in lwjgl3/src/main/resources/ .
         //// They can also be loaded from the root of assets/ .
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");

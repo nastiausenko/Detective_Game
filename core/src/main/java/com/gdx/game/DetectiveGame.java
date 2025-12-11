@@ -1,25 +1,117 @@
 package com.gdx.game;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.gdx.game.screens.MapScreen;
+import com.badlogic.gdx.utils.Json;
+import com.gdx.game.domain.character.DossierDatabase;
+import com.gdx.game.domain.investigation.InvestigationState;
+import com.gdx.game.domain.world.LoreDatabase;
+import com.gdx.game.ai.LlmClient;
+import com.gdx.game.ai.NpcDialogueService;
+import com.gdx.game.ui.overlay.FadeTransition;
+import com.gdx.game.ui.screens.MenuScreen;
+import com.gdx.game.infra.resources.GdxResourceProvider;
+import com.gdx.game.infra.assets.UIButtonFactory;
+import com.gdx.game.ai.EpilogueService;
+import com.gdx.game.ui.overlay.UIOverlayManager;
+import io.github.cdimascio.dotenv.Dotenv;
 
 public class DetectiveGame extends Game {
     public SpriteBatch batch;
+    public UIOverlayManager overlay;
+
+    private UIButtonFactory buttonFactory;
+    private FadeTransition transition;
+
+    private DossierDatabase dossierDb;
+    private LoreDatabase loreDb;
+    private NpcDialogueService npcDialogueService;
+    private InvestigationState investigationState;
+    private EpilogueService epilogueService;
 
     @Override
     public void create() {
         batch = new SpriteBatch();
-        this.setScreen(new MapScreen(this));
+        transition = new FadeTransition();
+        buttonFactory = new UIButtonFactory(new GdxResourceProvider());
+
+        Json json = new Json();
+        dossierDb = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier_ukr.json"));
+        loreDb = json.fromJson(LoreDatabase.class, Gdx.files.internal("lore.json"));
+
+        Dotenv dotenv = Dotenv.configure()
+            .ignoreIfMalformed()
+            .ignoreIfMissing()
+            .load();
+
+        String apiKey = dotenv.get("OPENAI_API_KEY");
+        String groqKey = dotenv.get("GROQ_API_KEY");
+
+        if (apiKey == null || apiKey.isEmpty()) {
+            apiKey = System.getenv("OPENAI_API_KEY");
+        }
+
+        if (groqKey == null || groqKey.isEmpty()) {
+            groqKey = System.getenv("GROQ_API_KEY");
+        }
+
+        if (apiKey == null || apiKey.isEmpty()) {
+            Gdx.app.error("LlmClient", "OPENAI_API_KEY is missing");
+        }
+
+        if (groqKey == null || groqKey.isEmpty()) {
+            Gdx.app.error("LlmClient", "GROQ_API_KEY is missing");
+        }
+
+        LlmClient llmClient = new LlmClient(
+            apiKey,
+            groqKey
+        );
+
+        npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
+        investigationState = new InvestigationState();
+        epilogueService = new EpilogueService(llmClient, loreDb, dossierDb, npcDialogueService);
+
+        overlay = new UIOverlayManager(this);
+
+        setScreen(new MenuScreen(this, transition));
     }
 
     @Override
     public void render() {
         super.render();
+        transition.update(Gdx.graphics.getDeltaTime());
+        transition.render();
     }
 
     @Override
     public void dispose() {
-        batch.dispose();
+        if (overlay != null) overlay.dispose();
+        if (batch != null) batch.dispose();
+    }
+
+    public UIButtonFactory getButtonFactory() {
+        return buttonFactory;
+    }
+
+    public FadeTransition getTransition() {
+        return transition;
+    }
+
+    public DossierDatabase getDossierDb() {
+        return dossierDb;
+    }
+
+    public NpcDialogueService getNpcDialogueService() {
+        return npcDialogueService;
+    }
+
+    public InvestigationState getInvestigationState() {
+        return investigationState;
+    }
+
+    public EpilogueService getEpilogueService() {
+        return epilogueService;
     }
 }
