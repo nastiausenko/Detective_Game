@@ -5,6 +5,7 @@ public class Assets {
     public static final String START_BUTTON = "menu/home/start_btn.png";
     public static final String EXIT_MENU_BUTTON = "menu/home/exit_btn.png";
     public static final String NEW_GAME_BUTTON = "menu/home/new_btn.png";
+    public static final String GAME_TITLE = "map/title.png";
 
     public static final String MAP_BACKGROUND = "map.png";
     public static final String TOGGLE_BUTTON_DOWN = "menu/arrow_down.png";

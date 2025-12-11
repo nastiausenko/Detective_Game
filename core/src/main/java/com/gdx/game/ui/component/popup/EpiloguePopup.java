@@ -33,7 +33,7 @@ public class EpiloguePopup extends AbstractPopup {
     private float visibleTextHeight = 0f;
 
     private float charTimer = 0f;
-    private final float charDelay = 0.03f;
+    private final float charDelay = 0.04f;
     private int charIndex = 0;
     private boolean pageFinished = false;
 

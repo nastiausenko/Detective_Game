@@ -27,6 +27,8 @@ public class MenuScreen implements Screen {
     private final Image startBtn;
     private final Image exitBtn;
     private final Image newGameBtn;
+    private final Image gameTitleImage;
+    private final Texture gameTitleTexture;
     private float drawWidth, drawHeight;
 
     public MenuScreen(DetectiveGame game, FadeTransition transition) {
@@ -42,6 +44,10 @@ public class MenuScreen implements Screen {
         backgroundTexture = new Texture(Assets.MENU_BACKGROUND);
 
         startTexture = new Texture(Assets.START_BUTTON);
+        gameTitleTexture = new Texture(Assets.GAME_TITLE);
+
+        gameTitleImage = new Image(gameTitleTexture);
+        stage.addActor(gameTitleImage);
 
         startBtn = createStartButton();
         exitBtn = createExitButton();
@@ -150,11 +156,32 @@ public class MenuScreen implements Screen {
         ScreenUtilsHelper.scaleButton(newGameBtn, targetHeight, stage);
         ScreenUtilsHelper.scaleButton(exitBtn, targetHeight, stage);
 
-        startBtn.setPosition(ScreenUtilsHelper.centerX(startBtn, stage.getViewport()), startY);
-        newGameBtn.setPosition( ScreenUtilsHelper.centerX(newGameBtn, stage.getViewport()),
-            startBtn.getY() - newGameBtn.getHeight() - spacing);
-        exitBtn.setPosition(ScreenUtilsHelper.centerX(exitBtn, stage.getViewport()),
-            newGameBtn.getY() - exitBtn.getHeight() - spacing);
+        startBtn.setPosition(
+                ScreenUtilsHelper.centerX(startBtn, stage.getViewport()),
+                startY
+        );
+        newGameBtn.setPosition(
+                ScreenUtilsHelper.centerX(newGameBtn, stage.getViewport()),
+                startBtn.getY() - newGameBtn.getHeight() - spacing
+        );
+        exitBtn.setPosition(
+                ScreenUtilsHelper.centerX(exitBtn, stage.getViewport()),
+                newGameBtn.getY() - exitBtn.getHeight() - spacing
+        );
+
+        float maxTitleWidth = viewport.getWorldHeight() * 0.6f;
+
+        float texW = gameTitleTexture.getWidth();
+        float texH = gameTitleTexture.getHeight();
+        float aspect = texH / texW;
+
+        float titleHeight = maxTitleWidth * aspect;
+
+        gameTitleImage.setSize(maxTitleWidth, titleHeight);
+
+        float titleY = viewport.getWorldHeight() - viewport.getWorldHeight()* 0.4f;
+
+        gameTitleImage.setPosition(ScreenUtilsHelper.centerX(gameTitleImage, viewport), titleY);
     }
 
     @Override public void pause() {}
@@ -166,6 +193,7 @@ public class MenuScreen implements Screen {
         stage.dispose();
         startTexture.dispose();
         backgroundTexture.dispose();
+        gameTitleTexture.dispose();
         transition.dispose();
     }
 }
