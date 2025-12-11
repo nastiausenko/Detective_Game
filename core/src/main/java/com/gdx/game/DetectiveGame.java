@@ -4,17 +4,17 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Json;
-import com.gdx.game.data.DossierDatabase;
-import com.gdx.game.data.InvestigationState;
-import com.gdx.game.data.LoreDatabase;
-import com.gdx.game.npc.LlmClient;
-import com.gdx.game.npc.NpcDialogueService;
-import com.gdx.game.screens.MenuScreen;
-import com.gdx.game.ui.GdxResourceProvider;
-import com.gdx.game.ui.UIButtonFactory;
-import com.gdx.game.utils.EpilogueService;
-import com.gdx.game.utils.FadeTransition;
-import com.gdx.game.utils.UIOverlayManager;
+import com.gdx.game.domain.character.DossierDatabase;
+import com.gdx.game.domain.investigation.InvestigationState;
+import com.gdx.game.domain.world.LoreDatabase;
+import com.gdx.game.ai.LlmClient;
+import com.gdx.game.ai.NpcDialogueService;
+import com.gdx.game.ui.overlay.FadeTransition;
+import com.gdx.game.ui.screens.MenuScreen;
+import com.gdx.game.infra.resources.GdxResourceProvider;
+import com.gdx.game.infra.assets.UIButtonFactory;
+import com.gdx.game.ai.EpilogueService;
+import com.gdx.game.ui.overlay.UIOverlayManager;
 import io.github.cdimascio.dotenv.Dotenv;
 
 public class DetectiveGame extends Game {
