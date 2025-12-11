@@ -46,16 +46,28 @@ public class DetectiveGame extends Game {
             .load();
 
         String apiKey = dotenv.get("OPENAI_API_KEY");
+        String groqKey = dotenv.get("GROQ_API_KEY");
+
         if (apiKey == null || apiKey.isEmpty()) {
             apiKey = System.getenv("OPENAI_API_KEY");
         }
 
-        if (apiKey == null || apiKey.isEmpty()) {
-            Gdx.app.error("LlmClient", "OPENAI_API_KEY не знайдено ні в .env, ні в системних змінних");
-            throw new IllegalStateException("OPENAI_API_KEY is missing");
+        if (groqKey == null || groqKey.isEmpty()) {
+            groqKey = System.getenv("GROQ_API_KEY");
         }
 
-        LlmClient llmClient = new LlmClient(apiKey);
+        if (apiKey == null || apiKey.isEmpty()) {
+            Gdx.app.error("LlmClient", "OPENAI_API_KEY is missing");
+        }
+
+        if (groqKey == null || groqKey.isEmpty()) {
+            Gdx.app.error("LlmClient", "GROQ_API_KEY is missing");
+        }
+
+        LlmClient llmClient = new LlmClient(
+            apiKey,
+            groqKey
+        );
 
         npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
         investigationState = new InvestigationState();
