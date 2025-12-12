@@ -10,7 +10,4 @@ dependencies {
   if(enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
   }
-
-  // https://mvnrepository.com/artifact/io.github.cdimascio/java-dotenv
-  implementation 'io.github.cdimascio:java-dotenv:5.2.2'
 }

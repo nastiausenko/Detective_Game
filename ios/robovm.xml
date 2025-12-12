@@ -32,6 +32,11 @@
     <pattern>org.apache.harmony.security.provider.cert.DRLCertFactory</pattern>
     <pattern>org.apache.harmony.security.provider.crypto.CryptoProvider</pattern>
     <pattern>com.badlogic.gdx.controllers.IosControllerManager</pattern>
+      <pattern>com.gdx.game.domain.world.LoreDatabase</pattern>
+      <pattern>com.gdx.game.domain.world.LoreDatabase$Setting</pattern>
+      <pattern>com.gdx.game.domain.world.LoreDatabase$Murder</pattern>
+      <pattern>com.gdx.game.domain.world.LoreDatabase$KillerView</pattern>
+      <pattern>com.gdx.game.domain.world.LoreDatabase$Relationship</pattern>
   </forceLinkClasses>
   <libs>
       <lib>z</lib>

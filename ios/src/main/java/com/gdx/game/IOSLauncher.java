@@ -9,8 +9,11 @@ import org.robovm.apple.uikit.UIApplication;
 public class IOSLauncher extends IOSApplication.Delegate {
     @Override
     protected IOSApplication createApplication() {
+        String apiKey  = System.getenv("OPENAI_API_KEY");
+        String groqKey = System.getenv("GROQ_API_KEY");
+
         IOSApplicationConfiguration configuration = new IOSApplicationConfiguration();
-        return new IOSApplication(new DetectiveGame(), configuration);
+        return new IOSApplication(new DetectiveGame(apiKey, groqKey), configuration);
     }
 
     public static void main(String[] argv) {

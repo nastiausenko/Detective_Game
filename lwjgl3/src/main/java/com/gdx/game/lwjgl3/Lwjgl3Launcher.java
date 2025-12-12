@@ -3,6 +3,7 @@ package com.gdx.game.lwjgl3;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.gdx.game.DetectiveGame;
+import io.github.cdimascio.dotenv.Dotenv;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {
@@ -11,8 +12,30 @@ public class Lwjgl3Launcher {
         createApplication();
     }
 
-    private static Lwjgl3Application createApplication() {
-        return new Lwjgl3Application(new DetectiveGame(), getDefaultConfiguration());
+    private static void createApplication() {
+        String openAiKey = null;
+        String groqKey = null;
+
+        try {
+            Dotenv dotenv = Dotenv.configure()
+                .ignoreIfMalformed()
+                .ignoreIfMissing()
+                .load();
+
+            openAiKey = dotenv.get("OPENAI_API_KEY");
+            groqKey = dotenv.get("GROQ_API_KEY");
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+
+        if (openAiKey == null || openAiKey.isEmpty()) {
+            openAiKey = System.getenv("OPENAI_API_KEY");
+        }
+        if (groqKey == null || groqKey.isEmpty()) {
+            groqKey = System.getenv("GROQ_API_KEY");
+        }
+
+        new Lwjgl3Application(new DetectiveGame(openAiKey, groqKey), getDefaultConfiguration());
     }
 
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {

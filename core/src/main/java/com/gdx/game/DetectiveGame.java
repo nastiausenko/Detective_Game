@@ -15,7 +15,6 @@ import com.gdx.game.infra.resources.GdxResourceProvider;
 import com.gdx.game.infra.assets.UIButtonFactory;
 import com.gdx.game.ai.EpilogueService;
 import com.gdx.game.ui.overlay.UIOverlayManager;
-import io.github.cdimascio.dotenv.Dotenv;
 
 public class DetectiveGame extends Game {
     public SpriteBatch batch;
@@ -30,6 +29,14 @@ public class DetectiveGame extends Game {
     private InvestigationState investigationState;
     private EpilogueService epilogueService;
 
+    private final String openAiKey;
+    private final String groqKey;
+
+    public DetectiveGame(String openAiKey, String groqKey) {
+        this.openAiKey = openAiKey;
+        this.groqKey = groqKey;
+    }
+
     @Override
     public void create() {
         batch = new SpriteBatch();
@@ -40,23 +47,7 @@ public class DetectiveGame extends Game {
         dossierDb = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier_ukr.json"));
         loreDb = json.fromJson(LoreDatabase.class, Gdx.files.internal("lore.json"));
 
-        Dotenv dotenv = Dotenv.configure()
-            .ignoreIfMalformed()
-            .ignoreIfMissing()
-            .load();
-
-        String apiKey = dotenv.get("OPENAI_API_KEY");
-        String groqKey = dotenv.get("GROQ_API_KEY");
-
-        if (apiKey == null || apiKey.isEmpty()) {
-            apiKey = System.getenv("OPENAI_API_KEY");
-        }
-
-        if (groqKey == null || groqKey.isEmpty()) {
-            groqKey = System.getenv("GROQ_API_KEY");
-        }
-
-        if (apiKey == null || apiKey.isEmpty()) {
+        if (openAiKey == null || openAiKey.isEmpty()) {
             Gdx.app.error("LlmClient", "OPENAI_API_KEY is missing");
         }
 
@@ -64,10 +55,7 @@ public class DetectiveGame extends Game {
             Gdx.app.error("LlmClient", "GROQ_API_KEY is missing");
         }
 
-        LlmClient llmClient = new LlmClient(
-            apiKey,
-            groqKey
-        );
+        LlmClient llmClient = new LlmClient(openAiKey, groqKey);
 
         npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
         investigationState = new InvestigationState();
