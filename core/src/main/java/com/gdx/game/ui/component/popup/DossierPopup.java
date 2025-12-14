@@ -139,7 +139,11 @@ public class DossierPopup extends AbstractPopup {
 
         sb.append("Вік: ").append(data.age).append("\n");
         sb.append("Характер: ").append(data.personality).append("\n");
-        sb.append("Брехливість: ").append(data.lieRisk).append("/5\n\n");
+        if (data.lieRisk != null) {
+            sb.append("Брехливість: ").append(data.lieRisk).append("/5\n\n");
+        } else {
+            sb.append("\n");
+        }
 
         sb.append("Факти:\n");
 
