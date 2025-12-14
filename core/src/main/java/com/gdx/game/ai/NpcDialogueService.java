@@ -242,8 +242,7 @@ public class NpcDialogueService {
         return answer;
     }
 
-    private void updateStateAfterExchange(NpcState state,
-                                          String question) {
+    private void updateStateAfterExchange(NpcState state, String question) {
         if (question == null) question = "";
 
         String qLower = question.toLowerCase(Locale.ROOT);
@@ -353,5 +352,9 @@ public class NpcDialogueService {
             }
         }
         return total;
+    }
+
+    public void resetAllNpcState() {
+        npcStates.clear();
     }
 }

@@ -14,8 +14,8 @@ public class LlmClient {
     private static final String OPENAI_URL = "https://api.openai.com/v1/chat/completions";
     private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-    private static final String OPENAI_MODEL = "gpt-5-mini";      // основна
-    private static final String GROQ_MODEL = "openai/gpt-oss-120b";    // фолбек
+    private static final String OPENAI_MODEL = "gpt-5-mini";
+    private static final String GROQ_MODEL = "openai/gpt-oss-120b";
 
     private final String openAiKey;
     private final String groqKey;
