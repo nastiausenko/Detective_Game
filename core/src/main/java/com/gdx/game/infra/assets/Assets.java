@@ -64,4 +64,6 @@ public class Assets {
 
     public static final float TOTAL_TIME = 60 * 60f;
     public static final int FACTS_TO_REVEAL = 10;
+
+    public static final int MAX_CHARS_INPUT = 200;
 }

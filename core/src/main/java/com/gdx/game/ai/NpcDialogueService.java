@@ -242,117 +242,117 @@ public class NpcDialogueService {
         return answer;
     }
 
-    private void updateStateAfterExchange(NpcState state, String question) {
-        if (question == null) question = "";
+         private void updateStateAfterExchange(NpcState state, String question) {
+            if (question == null) question = "";
 
-        String qLower = question.toLowerCase(Locale.ROOT);
+            String qLower = question.toLowerCase(Locale.ROOT);
 
-        float nowSec = TimeUtils.millis() / 1000f;
-        float dt = (state.lastQuestionTime > 0f)
+            float nowSec = TimeUtils.millis() / 1000f;
+            float dt = (state.lastQuestionTime > 0f)
                 ? (nowSec - state.lastQuestionTime)
                 : 9999f;
-        state.lastQuestionTime = nowSec;
+            state.lastQuestionTime = nowSec;
 
-        if (dt > SESSION_BREAK_SECONDS) {
-            state.questionsAsked = 1;
+            if (dt > SESSION_BREAK_SECONDS) {
+                state.questionsAsked = 1;
+            }
+
+            if (dt < 5f) {
+                adjustTrustFear(state, -0.03f, 0.06f);
+            } else if (dt < 20f) {
+                adjustTrustFear(state, 0.0f, 0.0f);
+            } else if (dt > 60f) {
+                adjustTrustFear(state, 0.02f, -0.03f);
+            }
+
+            if (state.questionsAsked > 8 && state.questionsAsked <= 15) {
+                adjustTrustFear(state, -0.01f, 0.02f);
+            } else if (state.questionsAsked > 15) {
+                adjustTrustFear(state, -0.02f, 0.04f);
+            }
+
+            if (containsAny(qLower, RUDE_WORDS)) {
+                adjustTrustFear(state, -0.10f, 0.12f);
+            }
+
+            if (containsAny(qLower, POLITE_WORDS)) {
+                adjustTrustFear(state, 0.06f, -0.04f);
+            }
+
+            if (containsAny(qLower, ACCUSATION_WORDS)) {
+                adjustTrustFear(state, -0.04f, 0.08f);
+            }
+
+            float jitterTrust = MathUtils.random(-0.01f, 0.01f);
+            float jitterFear  = MathUtils.random(-0.01f, 0.01f);
+            adjustTrustFear(state, jitterTrust, jitterFear);
+
+            Gdx.app.log("NPC_STATE", " trust=" + state.trust + " fear=" + state.fear);
         }
 
-        if (dt < 5f) {
-            adjustTrustFear(state, -0.03f, 0.06f);
-        } else if (dt < 20f) {
-            adjustTrustFear(state, 0.0f, 0.0f);
-        } else if (dt > 60f) {
-            adjustTrustFear(state, 0.02f, -0.03f);
+        private void adjustTrustFear(NpcState state, float dTrust, float dFear) {
+            state.trust = clamp01(state.trust + dTrust);
+            state.fear  = clamp01(state.fear  + dFear);
         }
 
-        if (state.questionsAsked > 8 && state.questionsAsked <= 15) {
-            adjustTrustFear(state, -0.01f, 0.02f);
-        } else if (state.questionsAsked > 15) {
-            adjustTrustFear(state, -0.02f, 0.04f);
+        private float clamp01(float v) {
+            if (v < 0f) return 0f;
+            return Math.min(v, 1f);
         }
 
-        if (containsAny(qLower, RUDE_WORDS)) {
-            adjustTrustFear(state, -0.10f, 0.12f);
+        private boolean containsAny(String textLower, String[] patterns) {
+            if (textLower == null || textLower.isEmpty() || patterns == null) return false;
+            for (String p : patterns) {
+                if (p == null || p.isEmpty()) continue;
+                if (textLower.contains(p)) return true;
+            }
+            return false;
         }
 
-        if (containsAny(qLower, POLITE_WORDS)) {
-            adjustTrustFear(state, 0.06f, -0.04f);
-        }
-
-        if (containsAny(qLower, ACCUSATION_WORDS)) {
-            adjustTrustFear(state, -0.04f, 0.08f);
-        }
-
-        float jitterTrust = MathUtils.random(-0.01f, 0.01f);
-        float jitterFear  = MathUtils.random(-0.01f, 0.01f);
-        adjustTrustFear(state, jitterTrust, jitterFear);
-
-         Gdx.app.log("NPC_STATE", " trust=" + state.trust + " fear=" + state.fear);
-    }
-
-    private void adjustTrustFear(NpcState state, float dTrust, float dFear) {
-        state.trust = clamp01(state.trust + dTrust);
-        state.fear  = clamp01(state.fear  + dFear);
-    }
-
-    private float clamp01(float v) {
-        if (v < 0f) return 0f;
-        return Math.min(v, 1f);
-    }
-
-    private boolean containsAny(String textLower, String[] patterns) {
-        if (textLower == null || textLower.isEmpty() || patterns == null) return false;
-        for (String p : patterns) {
-            if (p == null || p.isEmpty()) continue;
-            if (textLower.contains(p)) return true;
-        }
-        return false;
-    }
-
-    private static final String[] RUDE_WORDS = {
+        private static final String[] RUDE_WORDS = {
             "дур", "тупа", "тупий", "брехун", "брешеш", "заткнись", "ненормальна"
-    };
+        };
 
-    private static final String[] POLITE_WORDS = {
+        private static final String[] POLITE_WORDS = {
             "дякую", "спасибі", "будь ласка", "перепрошую", "вибач",
             "дякую тобі", "дякую вам"
-    };
+        };
 
-    private static final String[] ACCUSATION_WORDS = {
+        private static final String[] ACCUSATION_WORDS = {
             "ти винна", "ти винен", "це ти зробила", "це ти зробив",
             "ти вбила", "ти вбив", "ти щось приховуєш", "збрехала", "збрехав"
-    };
+        };
 
-    private String buildUserMessageWithHistory(String npcId, String question) {
-        String history = DialogueHistory.loadRecentForLlm(
+        private String buildUserMessageWithHistory(String npcId, String question) {
+            String history = DialogueHistory.loadRecentForLlm(
                 npcId,
                 MAX_HISTORY_PAIRS,
                 MAX_HISTORY_CHARS
-        );
+            );
 
-        StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
 
-        if (!history.isEmpty()) {
-            sb.append("A brief fragment from the previous chat between the detective and you:\n");
-            sb.append(history).append("\n\n");
-        }
-
-        sb.append("Current question: ").append(question);
-
-        return sb.toString();
-    }
-
-    public int getTotalRevealedFacts() {
-        int total = 0;
-        for (ObjectMap.Entry<String, NpcState> e : npcStates) {
-            boolean[] arr = e.value.hiddenRevealed;
-            if (arr == null) continue;
-            for (boolean b : arr) {
-                if (b) total++;
+            if (!history.isEmpty()) {
+                sb.append("A brief fragment from the previous chat between the detective and you:\n");
+                sb.append(history).append("\n\n");
             }
+
+            sb.append("Current question: ").append(question);
+
+            return sb.toString();
         }
-        return total;
-    }
+
+        public int getTotalRevealedFacts() {
+            int total = 0;
+            for (ObjectMap.Entry<String, NpcState> e : npcStates) {
+                boolean[] arr = e.value.hiddenRevealed;
+                if (arr == null) continue;
+                for (boolean b : arr) {
+                    if (b) total++;
+                }
+            }
+            return total;
+        }
 
     public void resetAllNpcState() {
         npcStates.clear();

@@ -156,6 +156,13 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         inputField.setText("");
     }
 
+    private void updateInputField() {
+        inputField.setTextFieldFilter((textField, c) -> {
+            if (c == '\n' || c == '\r') return true;
+            return inputField.getText().length() < Assets.MAX_CHARS_INPUT;
+        });
+    }
+
     @Override
     public void show() {
         game.overlay.setVisible(true);
@@ -178,7 +185,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         inputField.setTextFieldListener((textField, c) -> {
             if (c == '\n' || c == '\r') {
                 send();
+                return;
             }
+            updateInputField();
         });
 
         dialogueStage.addActor(dialogueLabel);
