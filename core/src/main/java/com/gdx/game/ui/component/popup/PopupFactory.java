@@ -21,7 +21,7 @@ public class PopupFactory {
     }
 
     public NotePopup createNotePopup() {
-        return new NotePopup(stage, skin, game);
+        return new NotePopup(stage, game);
     }
 
     public SettingsPopup createSettingsPopup() {
@@ -41,7 +41,7 @@ public class PopupFactory {
     }
 
     public ChatHistoryPopup createChatHistoryPopup(String npcId) {
-        return new ChatHistoryPopup(stage, skin, game, npcId);
+        return new ChatHistoryPopup(stage, game, npcId);
     }
 
     public EpiloguePopup createEpiloguePopup() {

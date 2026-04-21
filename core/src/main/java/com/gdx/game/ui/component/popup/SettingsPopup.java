@@ -8,7 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.ui.screens.MenuScreen;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.Assets;
 
 public class SettingsPopup extends AbstractPopup {
     private final Texture settTexture;

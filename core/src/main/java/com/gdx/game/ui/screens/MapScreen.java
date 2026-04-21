@@ -16,7 +16,7 @@ import com.gdx.game.domain.world.BuildingData;
 import com.gdx.game.ui.component.chars.BuildingLoader;
 import com.gdx.game.ui.component.chars.CharacterIcon;
 import com.gdx.game.ui.component.chars.CharacterLoader;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.utils.MapInputController;
 import com.gdx.game.utils.TiledTextureHelper;

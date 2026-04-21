@@ -9,10 +9,9 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.Assets;
 
 public class StoryPopup extends AbstractPopup {
     private final Image storyImage;
@@ -46,7 +45,6 @@ public class StoryPopup extends AbstractPopup {
     private boolean finishedPage = false;
 
     private final DetectiveGame game;
-    private final Skin skin;
     private final GlyphLayout layout;
 
     public StoryPopup(Stage stage, DetectiveGame game) {
@@ -56,8 +54,6 @@ public class StoryPopup extends AbstractPopup {
 
         storyTexture = new Texture(Assets.PROLOGUE);
         storyImage = new Image(storyTexture);
-
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         Label.LabelStyle labelStyle = new Label.LabelStyle();
         labelStyle.font = skin.getFont("default-font");

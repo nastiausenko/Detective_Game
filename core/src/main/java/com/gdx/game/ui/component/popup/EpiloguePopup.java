@@ -9,11 +9,10 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.Assets;
 
 public class EpiloguePopup extends AbstractPopup {
     private final Image epilogueImage;
@@ -22,7 +21,6 @@ public class EpiloguePopup extends AbstractPopup {
     private final Image continueButton;
 
     private final DetectiveGame game;
-    private final Skin skin;
     private final GlyphLayout layout;
 
     private String fullText = "";
@@ -44,8 +42,6 @@ public class EpiloguePopup extends AbstractPopup {
 
         epilogueTexture = new Texture(Assets.EPILOGUE);
         epilogueImage = new Image(epilogueTexture);
-
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         Label.LabelStyle labelStyle = new Label.LabelStyle();
         labelStyle.font = skin.getFont("default-font");

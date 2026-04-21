@@ -9,7 +9,6 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
@@ -18,7 +17,7 @@ import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.character.DossierData;
 import com.gdx.game.domain.character.DossierDatabase;
 import com.gdx.game.domain.character.NpcState;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 import java.util.Arrays;
@@ -33,7 +32,6 @@ public class DossierPopup extends AbstractPopup {
     private final Image closeBtn;
 
     private final DetectiveGame game;
-    private final Skin skin;
 
     private final Label nameLabel;
     private final Label roleLabel;
@@ -52,7 +50,6 @@ public class DossierPopup extends AbstractPopup {
     public DossierPopup(Stage stage, DetectiveGame game) {
         super(stage);
         this.game = game;
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         BitmapFont leftFont = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
         BitmapFont rightFont = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));

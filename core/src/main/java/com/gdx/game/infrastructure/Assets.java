@@ -1,4 +1,4 @@
-package com.gdx.game.infra.assets;
+package com.gdx.game.infrastructure;
 
 public class Assets {
     public static final String MENU_BACKGROUND = "background.png";

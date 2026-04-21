@@ -11,8 +11,7 @@ import com.gdx.game.ai.LlmClient;
 import com.gdx.game.ai.NpcDialogueService;
 import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.ui.screens.MenuScreen;
-import com.gdx.game.infra.resources.GdxResourceProvider;
-import com.gdx.game.infra.assets.UIButtonFactory;
+import com.gdx.game.infrastructure.UIButtonFactory;
 import com.gdx.game.ai.EpilogueService;
 import com.gdx.game.ui.overlay.UIOverlayManager;
 
@@ -41,7 +40,7 @@ public class DetectiveGame extends Game {
     public void create() {
         batch = new SpriteBatch();
         transition = new FadeTransition();
-        buttonFactory = new UIButtonFactory(new GdxResourceProvider());
+        buttonFactory = new UIButtonFactory();
 
         Json json = new Json();
         dossierDb = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier_ukr.json"));

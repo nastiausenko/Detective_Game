@@ -6,12 +6,11 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.investigation.InvestigationState;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.infra.assets.FontScaler;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.FontScaler;
 
 public class TimeOverPopup extends AbstractPopup {
 
@@ -22,15 +21,11 @@ public class TimeOverPopup extends AbstractPopup {
     private final Image yesButton;
     private final Image noButton;
 
-    private final Skin skin;
-
     public TimeOverPopup(Stage stage, DetectiveGame game) {
         super(stage);
 
         backgroundTexture = new Texture(Assets.TIME_OVER_POPUP);
         backgroundImage = new Image(backgroundTexture);
-
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         Label.LabelStyle style = new Label.LabelStyle();
         style.font = skin.getFont("default-font");

@@ -4,26 +4,23 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.infra.assets.NotePages;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.NotePages;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class NotePopup extends AbstractPopup {
     private final Texture noteTexture;
     private final Image noteImage;
-    private final Skin skin;
     private final NotePages pages;
 
     private final Image btnNext;
     private final Image btnPrev;
     private final Image closeBtn;
 
-    public NotePopup(Stage stage, Skin skin, DetectiveGame game) {
+    public NotePopup(Stage stage, DetectiveGame game) {
         super(stage);
-        this.skin = skin;
         this.pages = new NotePages(stage, skin);
 
         noteTexture = new Texture(Assets.NOTES);

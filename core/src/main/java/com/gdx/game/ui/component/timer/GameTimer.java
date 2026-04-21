@@ -9,8 +9,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.infra.assets.FontScaler;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.FontScaler;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class GameTimer {

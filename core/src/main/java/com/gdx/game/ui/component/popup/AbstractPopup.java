@@ -1,16 +1,21 @@
 package com.gdx.game.ui.component.popup;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.gdx.game.infra.assets.BackgroundFactory;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.gdx.game.infrastructure.BackgroundFactory;
 
 public abstract class AbstractPopup {
     protected final Stage stage;
     protected final Image background;
+    protected final Skin skin;
 
     protected AbstractPopup(Stage stage) {
         this.stage = stage;
+        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
+
         this.background = BackgroundFactory.createDimBackground(
             stage.getViewport().getWorldWidth(),
             stage.getViewport().getWorldHeight(),

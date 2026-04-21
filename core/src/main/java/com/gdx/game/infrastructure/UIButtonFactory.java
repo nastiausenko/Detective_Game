@@ -1,22 +1,16 @@
-package com.gdx.game.infra.assets;
+package com.gdx.game.infrastructure;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Cursor;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.gdx.game.infra.resources.ResourceProvider;
 
 public class UIButtonFactory {
-    private final ResourceProvider resourceProvider;
-
-    public UIButtonFactory(ResourceProvider resourceProvider) {
-        this.resourceProvider = resourceProvider;
-    }
-
     public Image createButton(String path, float width, float height, Runnable onClick) {
-        Image button = new Image(resourceProvider.getTexture(path));
+        Image button = new Image(new Texture(Gdx.files.internal(path)));
         button.setSize(width, height);
         button.addListener(new ClickListener() {
             @Override

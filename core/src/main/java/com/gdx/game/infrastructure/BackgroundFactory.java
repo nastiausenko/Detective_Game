@@ -1,4 +1,4 @@
-package com.gdx.game.infra.assets;
+package com.gdx.game.infrastructure;
 
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;

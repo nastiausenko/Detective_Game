@@ -1,4 +1,4 @@
-package com.gdx.game.infra.assets;
+package com.gdx.game.infrastructure;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;

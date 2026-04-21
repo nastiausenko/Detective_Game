@@ -27,7 +27,7 @@ import com.gdx.game.domain.investigation.DialogueHistory;
 import com.gdx.game.domain.character.DossierData;
 import com.gdx.game.ai.NpcDialogueService;
 import com.gdx.game.domain.character.NpcState;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.utils.ScreenUtilsHelper;
 import com.gdx.game.utils.TiledTextureHelper;
 

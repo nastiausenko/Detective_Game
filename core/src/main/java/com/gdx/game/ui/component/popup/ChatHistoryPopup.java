@@ -15,8 +15,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.investigation.DialogueHistory;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.infra.assets.FontScaler;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.FontScaler;
 import com.gdx.game.utils.NoMinNinePatchDrawable;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
@@ -42,7 +42,7 @@ public class ChatHistoryPopup extends AbstractPopup {
 
     private float maxBubbleWidth;
 
-    protected ChatHistoryPopup(Stage stage, Skin skin, DetectiveGame game, String npcId) {
+    protected ChatHistoryPopup(Stage stage, DetectiveGame game, String npcId) {
         super(stage);
         this.npcId = npcId;
 

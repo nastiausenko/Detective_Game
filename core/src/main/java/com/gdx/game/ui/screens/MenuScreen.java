@@ -11,7 +11,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.GameData;
 import com.gdx.game.domain.investigation.InvestigationState;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.utils.ScreenUtilsHelper;
 

@@ -12,14 +12,13 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.investigation.InvestigationState;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.infra.assets.FontScaler;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.FontScaler;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class AccusationPopup extends AbstractPopup {
@@ -29,7 +28,6 @@ public class AccusationPopup extends AbstractPopup {
     private final Image closeButton;
 
     private final DetectiveGame game;
-    private final Skin skin;
 
     private final Image[] portraits;
     private final Label[] names;
@@ -59,7 +57,6 @@ public class AccusationPopup extends AbstractPopup {
 
         accusationTexture = new Texture(Assets.ACCUSATION_POPUP);
         accusationBackground = new Image(accusationTexture);
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         accuseButton = game.getButtonFactory().createButton(Assets.ACCUSE, 60, 60, this::accuse);
         closeButton = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);

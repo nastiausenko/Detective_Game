@@ -11,7 +11,7 @@ import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.ui.component.popup.*;
 import com.gdx.game.ui.screens.MapScreen;
 import com.gdx.game.ui.component.timer.GameTimer;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class UIOverlayManager {
