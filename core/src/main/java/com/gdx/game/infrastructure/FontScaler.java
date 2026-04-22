@@ -1,6 +1,5 @@
 package com.gdx.game.infrastructure;
 
-import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.math.MathUtils;
@@ -13,8 +12,8 @@ public class FontScaler {
     public static float computeGlobalScale() {
         float worldWidth = Gdx.graphics.getWidth();
         float worldHeight = Gdx.graphics.getHeight();
-        boolean isMobile = Gdx.app.getType() == Application.ApplicationType.iOS
-            || Gdx.app.getType() == Application.ApplicationType.Android;
+        UiLayoutProfile profile = UiLayout.current(worldWidth, worldHeight);
+        boolean isMobile = profile.isTouchDevice();
 
         float targetScale;
 
@@ -32,6 +31,8 @@ public class FontScaler {
                 targetScale = worldHeight / 800f;
             }
         }
+
+        targetScale *= profile.getFontScaleMultiplier();
 
         smoothScale = MathUtils.lerp(smoothScale, targetScale, 0.1f);
 

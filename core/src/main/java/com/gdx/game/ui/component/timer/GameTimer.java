@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.infrastructure.FontScaler;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class GameTimer {
@@ -81,28 +82,28 @@ public class GameTimer {
         gameTimeLabel.setText(String.format("Day %d %02d:%02d", day, hour, minute));
     }
 
-    public void setPositions(float targetHeight) {
+    public void setPositions(float targetHeight, UiLayoutProfile profile) {
         float worldWidth = stage.getViewport().getWorldWidth();
         float worldHeight = stage.getViewport().getWorldHeight();
+        float topPadding = profile.scale(10f);
+        float sidePadding = profile.scale(20f);
 
         FontScaler.applyScale(skin.getFont("default-font"));
         ScreenUtilsHelper.scaleButton(timerBackground, targetHeight, stage);
-        timerBackground.setPosition(worldWidth / 2f, worldHeight / 2f);
 
         timerBackground.setPosition(
                 (worldWidth - timerBackground.getWidth()) / 2f,
-                worldHeight - timerBackground.getHeight() - 10
+                worldHeight - timerBackground.getHeight() - topPadding
         );
 
         countdownLabel.setSize(timerBackground.getWidth(), timerBackground.getHeight());
         countdownLabel.setPosition(timerBackground.getX(), timerBackground.getY());
         countdownLabel.setAlignment(Align.center);
 
-        float padding = 20f;
         gameTimeLabel.pack();
         gameTimeLabel.setPosition(
-                worldWidth - gameTimeLabel.getWidth() - padding,
-                padding
+                worldWidth - gameTimeLabel.getWidth() - sidePadding,
+                sidePadding
         );
     }
 

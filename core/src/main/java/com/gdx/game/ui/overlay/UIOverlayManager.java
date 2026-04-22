@@ -12,6 +12,8 @@ import com.gdx.game.ui.component.popup.*;
 import com.gdx.game.ui.screens.MapScreen;
 import com.gdx.game.ui.component.timer.GameTimer;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.UiLayout;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class UIOverlayManager {
@@ -259,16 +261,11 @@ public class UIOverlayManager {
                 uiStage.addActor(chatButton);
                 timer.showGameTimeLabel(false);
             }
-
-            float margin = 10f;
-            float size = toggleButton.getWidth();
-            float y = toggleButton.getY();
-
-            homeButton.setSize(size, size);
-            homeButton.setPosition(toggleButton.getX() - size - margin, y);
-
-            chatButton.setSize(size, size);
-            chatButton.setPosition(settingsButton.getX() - size - margin, settingsButton.getY() - margin);
+            layoutInteriorButtons(
+                UiLayout.current(),
+                uiStage.getViewport().getWorldWidth(),
+                uiStage.getViewport().getWorldHeight()
+            );
 
         } else {
             timer.showGameTimeLabel(true);
@@ -280,10 +277,11 @@ public class UIOverlayManager {
     public void resize(int width, int height) {
         uiStage.getViewport().update(width, height, true);
 
-        float margin = 10f;
         float worldWidth = uiStage.getViewport().getWorldWidth();
         float worldHeight = uiStage.getViewport().getWorldHeight();
-        float targetHeight = height * 0.12f;
+        UiLayoutProfile profile = UiLayout.current(worldWidth, worldHeight);
+        float margin = profile.scale(10f);
+        float targetHeight = height * profile.getOverlayButtonHeightRatio();
 
         ScreenUtilsHelper.scaleButton(toggleButton, targetHeight, uiStage);
         ScreenUtilsHelper.scaleButton(notesButton, targetHeight, uiStage);
@@ -302,18 +300,10 @@ public class UIOverlayManager {
         );
 
         if (inInterior) {
-            ScreenUtilsHelper.scaleButton(homeButton, targetHeight, uiStage);
-            ScreenUtilsHelper.scaleButton(chatButton, targetHeight, uiStage);
-
-            homeButton.setPosition(
-                toggleButton.getX() + toggleButton.getWidth() + margin,
-                worldHeight - homeButton.getHeight() - margin
-            );
-
-            chatButton.setPosition(settingsButton.getX() - chatButton.getWidth() - margin, settingsButton.getY());
+            layoutInteriorButtons(profile, worldWidth, worldHeight);
         }
 
-        float badgeSize = toggleButton.getWidth() * 0.2f;
+        float badgeSize = toggleButton.getWidth() * profile.getBadgeSizeRatio();
         dossierBadge.setSize(badgeSize, badgeSize);
         toggleBadge.setSize(badgeSize, badgeSize);
 
@@ -327,7 +317,7 @@ public class UIOverlayManager {
             toggleButton.getY() + toggleButton.getHeight() - badgeSize * 0.9f
         );
 
-        timer.setPositions(targetHeight);
+        timer.setPositions(targetHeight, profile);
 
         if (notePopup != null) notePopup.resize(width, height);
         if (dossierPopup != null) dossierPopup.resize(width, height);
@@ -340,6 +330,24 @@ public class UIOverlayManager {
         if (theEndPopup != null) theEndPopup.resize(width, height);
 
         updateBadgeVisibility();
+    }
+
+    private void layoutInteriorButtons(UiLayoutProfile profile, float worldWidth, float worldHeight) {
+        float margin = profile.scale(10f);
+        float targetHeight = worldHeight * profile.getOverlayButtonHeightRatio();
+
+        ScreenUtilsHelper.scaleButton(homeButton, targetHeight, uiStage);
+        ScreenUtilsHelper.scaleButton(chatButton, targetHeight, uiStage);
+
+        homeButton.setPosition(
+            toggleButton.getX() + toggleButton.getWidth() + margin,
+            worldHeight - homeButton.getHeight() - margin
+        );
+
+        chatButton.setPosition(
+            worldWidth - settingsButton.getWidth() - chatButton.getWidth() - margin * 2f,
+            settingsButton.getY()
+        );
     }
 
     public void setVisible(boolean visible) {

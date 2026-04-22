@@ -6,6 +6,8 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.gdx.game.infrastructure.BackgroundFactory;
+import com.gdx.game.infrastructure.UiLayout;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 
 public abstract class AbstractPopup {
     protected final Stage stage;
@@ -24,10 +26,11 @@ public abstract class AbstractPopup {
     }
 
     protected void resizeCentered(Image image, Texture texture, float screenWidth, float screenHeight) {
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
         background.setSize(screenWidth, screenHeight);
 
-        float maxWidth = screenWidth * 0.9f;
-        float maxHeight = screenHeight * 0.9f;
+        float maxWidth = screenWidth * profile.getPopupMaxWidthRatio();
+        float maxHeight = screenHeight * profile.getPopupMaxHeightRatio();
         float aspect = texture.getWidth() / (float) texture.getHeight();
 
         float width = texture.getWidth();

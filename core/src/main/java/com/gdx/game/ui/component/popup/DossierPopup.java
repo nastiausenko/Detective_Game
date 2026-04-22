@@ -18,6 +18,8 @@ import com.gdx.game.domain.character.DossierData;
 import com.gdx.game.domain.character.DossierDatabase;
 import com.gdx.game.domain.character.NpcState;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.UiLayout;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 import java.util.Arrays;
@@ -192,6 +194,7 @@ public class DossierPopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
         resizeCentered(pageImage, pages[0], screenWidth, screenHeight);
 
         float w = pageImage.getWidth();
@@ -251,11 +254,12 @@ public class DossierPopup extends AbstractPopup {
             .fillY();
         textTable.row();
 
-        float btnSize = screenHeight * 0.12f;
+        float targetHeight = screenHeight * profile.getPopupButtonHeightRatio();
+        float margin = profile.scale(10f);
 
-        ScreenUtilsHelper.scaleButton(btnPrev, btnSize, stage);
-        ScreenUtilsHelper.scaleButton(btnNext, btnSize, stage);
-        ScreenUtilsHelper.scaleButton(closeBtn, btnSize, stage);
+        ScreenUtilsHelper.scaleButton(btnPrev, targetHeight, stage);
+        ScreenUtilsHelper.scaleButton(btnNext, targetHeight, stage);
+        ScreenUtilsHelper.scaleButton(closeBtn, targetHeight, stage);
 
         btnPrev.setPosition(
             pageImage.getX() - btnPrev.getWidth() * 0.4f,
@@ -265,7 +269,7 @@ public class DossierPopup extends AbstractPopup {
             pageImage.getX() + w - btnNext.getWidth() * 0.6f,
             pageImage.getY() + h / 2f - btnNext.getHeight() / 2f
         );
-        closeBtn.setPosition(10, screenHeight - closeBtn.getHeight() - 10);
+        closeBtn.setPosition(margin, screenHeight - closeBtn.getHeight() - margin);
     }
 
     @Override

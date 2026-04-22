@@ -17,6 +17,8 @@ import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.investigation.DialogueHistory;
 import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.infrastructure.FontScaler;
+import com.gdx.game.infrastructure.UiLayout;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.NoMinNinePatchDrawable;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
@@ -109,6 +111,7 @@ public class ChatHistoryPopup extends AbstractPopup {
     }
 
     public void resize(int width, int height) {
+        UiLayoutProfile profile = UiLayout.current(width, height);
         resizeCentered(chatHistoryImage, chatHistoryTexture, width, height);
 
         float popupX = chatHistoryImage.getX();
@@ -116,9 +119,12 @@ public class ChatHistoryPopup extends AbstractPopup {
         float popupWidth = chatHistoryImage.getWidth();
         float popupHeight = chatHistoryImage.getHeight();
 
-        float btnSize = height * 0.12f;
-        ScreenUtilsHelper.scaleButton(closeBtn, btnSize, stage);
-        closeBtn.setPosition(10, height - closeBtn.getHeight() - 10);
+        float targetHeight = height * profile.getPopupButtonHeightRatio();
+        float margin = profile.scale(10f);
+
+        ScreenUtilsHelper.scaleButton(closeBtn, targetHeight, stage);
+
+        closeBtn.setPosition(margin, height - closeBtn.getHeight() - margin);
 
         FontScaler.applyScale(bubbleLabelStyle.font);
 

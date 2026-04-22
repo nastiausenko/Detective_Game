@@ -9,6 +9,8 @@ import com.gdx.game.DetectiveGame;
 import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.ui.screens.MenuScreen;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.UiLayout;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 
 public class SettingsPopup extends AbstractPopup {
     private final Texture settTexture;
@@ -50,11 +52,13 @@ public class SettingsPopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
         resizeCentered(settImage, settTexture, screenWidth, screenHeight);
 
         float btnWidth = settImage.getWidth() * 0.75f;
         float btnHeight = settImage.getHeight() * 0.15f;
         float paddingBottom = settImage.getHeight() * 0.43f;
+        float buttonGap = Math.max(settImage.getHeight() / 45f, profile.scale(8f));
 
         exitBtn.setSize(btnWidth, btnHeight);
         exitBtn.setPosition(settImage.getX() + (settImage.getWidth() - btnWidth) / 2f, settImage.getY() + paddingBottom);
@@ -62,7 +66,7 @@ public class SettingsPopup extends AbstractPopup {
         continueBtn.setSize(btnWidth, btnHeight);
         continueBtn.setPosition(
             settImage.getX() + (settImage.getWidth() - btnWidth) / 2f,
-            exitBtn.getY() + btnHeight + settImage.getHeight() / 45f
+            exitBtn.getY() + btnHeight + buttonGap
         );
     }
 

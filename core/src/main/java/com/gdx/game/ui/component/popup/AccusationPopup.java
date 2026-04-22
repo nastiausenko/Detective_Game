@@ -19,6 +19,8 @@ import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.infrastructure.FontScaler;
+import com.gdx.game.infrastructure.UiLayout;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class AccusationPopup extends AbstractPopup {
@@ -75,6 +77,7 @@ public class AccusationPopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
         resizeCentered(accusationBackground, accusationTexture, screenWidth, screenHeight);
 
         FontScaler.applyScale(skin.getFont("default-font"));
@@ -139,8 +142,12 @@ public class AccusationPopup extends AbstractPopup {
 
         ScreenUtilsHelper.scaleNavButton(accuseButton, accusationBackground);
 
-        ScreenUtilsHelper.scaleButton(closeButton, screenHeight * 0.12f, stage);
-        closeButton.setPosition(10, screenHeight - closeButton.getHeight() - 10);
+
+        float targetHeight = screenHeight * profile.getPopupButtonHeightRatio();
+        float margin = profile.scale(10f);
+
+        ScreenUtilsHelper.scaleButton(closeButton, targetHeight, stage);
+        closeButton.setPosition(margin, screenHeight - closeButton.getHeight() - margin);
     }
 
     @Override

@@ -12,6 +12,8 @@ import com.gdx.game.DetectiveGame;
 import com.gdx.game.GameData;
 import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.UiLayout;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
@@ -133,6 +135,8 @@ public class MenuScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
+        UiLayoutProfile profile = UiLayout.current(width, height);
+
         viewport.update(width, height, true);
         stage.getViewport().update(width, height, true);
 
@@ -149,9 +153,9 @@ public class MenuScreen implements Screen {
         camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
         camera.update();
 
-        float targetHeight = height * 0.1f;
-        float spacing = height * 0.03f;
-        float startY = stage.getViewport().getWorldHeight() * 0.3f + targetHeight;
+        float targetHeight = height * profile.getMenuButtonHeightRatio();
+        float spacing = height * profile.getMenuSpacingRatio();
+        float startY = stage.getViewport().getWorldHeight() * profile.getMenuStartYRatio() + targetHeight;
 
         ScreenUtilsHelper.scaleButton(startBtn, targetHeight, stage);
         ScreenUtilsHelper.scaleButton(newGameBtn, targetHeight, stage);
@@ -170,7 +174,10 @@ public class MenuScreen implements Screen {
                 newGameBtn.getY() - exitBtn.getHeight() - spacing
         );
 
-        float maxTitleWidth = viewport.getWorldHeight() * 0.6f;
+        float maxTitleWidth = Math.min(
+            viewport.getWorldWidth() * profile.getTitleWidthRatio(),
+            viewport.getWorldHeight() * 0.75f
+        );
 
         float texW = gameTitleTexture.getWidth();
         float texH = gameTitleTexture.getHeight();
@@ -180,7 +187,7 @@ public class MenuScreen implements Screen {
 
         gameTitleImage.setSize(maxTitleWidth, titleHeight);
 
-        float titleY = viewport.getWorldHeight() - viewport.getWorldHeight()* 0.4f;
+        float titleY = viewport.getWorldHeight() - viewport.getWorldHeight() * profile.getTitleTopInsetRatio();
 
         gameTitleImage.setPosition(ScreenUtilsHelper.centerX(gameTitleImage, viewport), titleY);
     }
