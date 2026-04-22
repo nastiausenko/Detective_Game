@@ -23,6 +23,18 @@ public class ScreenUtilsHelper {
         button.setSize(adjustedHeight * aspect, adjustedHeight);
     }
 
+    public static void scaleNavButton(Image button, Image targetBackground) {
+        float btnWidth = targetBackground.getWidth() * 0.5f;
+        float btnHeight = targetBackground.getHeight() * 0.1f;
+        float paddingBottom = targetBackground.getHeight() * 0.1f;
+
+        button.setSize(btnWidth, btnHeight);
+        button.setPosition(
+            targetBackground.getX() + (targetBackground.getWidth() - btnWidth) / 2f,
+            targetBackground.getY() + paddingBottom
+        );
+    }
+
     public static float centerX(Image button, Viewport viewport) {
         return (viewport.getWorldWidth() - button.getWidth()) / 2f;
     }

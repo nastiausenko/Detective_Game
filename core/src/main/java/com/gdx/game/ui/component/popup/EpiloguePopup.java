@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class EpiloguePopup extends AbstractPopup {
     private final Image epilogueImage;
@@ -161,7 +162,6 @@ public class EpiloguePopup extends AbstractPopup {
 
     public void resize(float screenWidth, float screenHeight) {
         epilogueImage.setWidth(screenWidth);
-        background.setSize(screenWidth, screenHeight);
         resizeCentered(epilogueImage, epilogueTexture, screenWidth, screenHeight);
 
         float textAreaWidth  = epilogueImage.getWidth() * 0.7f;
@@ -173,15 +173,7 @@ public class EpiloguePopup extends AbstractPopup {
         epilogueLabel.setHeight(visibleTextHeight);
         epilogueLabel.setPosition(textAreaX, textAreaY);
 
-        float btnWidth = epilogueImage.getWidth() * 0.5f;
-        float btnHeight = epilogueImage.getHeight() * 0.1f;
-        float paddingBottom = epilogueImage.getHeight() * 0.1f;
-
-        continueButton.setSize(btnWidth, btnHeight);
-        continueButton.setPosition(
-            epilogueImage.getX() + (epilogueImage.getWidth() - btnWidth) / 2f,
-            epilogueImage.getY() + paddingBottom
-        );
+        ScreenUtilsHelper.scaleNavButton(continueButton, epilogueImage);
 
         if (fullText != null && !fullText.isEmpty()) {
             rescaleFontToFit();

@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class StoryPopup extends AbstractPopup {
     private final Image storyImage;
@@ -149,12 +150,9 @@ public class StoryPopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
         resizeCentered(storyImage, storyTexture, screenWidth, screenHeight);
 
-        float btnWidth = storyImage.getWidth() * 0.5f;
-        float btnHeight = storyImage.getHeight() * 0.1f;
-        float paddingBottom = storyImage.getHeight() * 0.1f;
+        ScreenUtilsHelper.scaleNavButton(continueButton, storyImage);
 
         float labelWidth = storyImage.getWidth() * 0.7f;
         storyLabel.setWidth(labelWidth);
@@ -164,12 +162,6 @@ public class StoryPopup extends AbstractPopup {
         );
 
         rescaleFontToFit();
-
-        continueButton.setSize(btnWidth, btnHeight);
-        continueButton.setPosition(
-            storyImage.getX() + (storyImage.getWidth() - btnWidth) / 2f,
-            storyImage.getY() + paddingBottom
-        );
     }
 
     @Override
