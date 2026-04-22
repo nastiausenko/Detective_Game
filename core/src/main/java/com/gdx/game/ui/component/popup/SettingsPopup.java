@@ -50,7 +50,6 @@ public class SettingsPopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
         resizeCentered(settImage, settTexture, screenWidth, screenHeight);
 
         float btnWidth = settImage.getWidth() * 0.75f;

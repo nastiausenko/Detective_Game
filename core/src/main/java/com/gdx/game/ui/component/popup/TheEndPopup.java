@@ -79,7 +79,6 @@ public class TheEndPopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
         resizeCentered(backgroundImage, backgroundTexture, screenWidth, screenHeight);
 
         float height = backgroundImage.getHeight();

@@ -24,6 +24,8 @@ public abstract class AbstractPopup {
     }
 
     protected void resizeCentered(Image image, Texture texture, float screenWidth, float screenHeight) {
+        background.setSize(screenWidth, screenHeight);
+
         float maxWidth = screenWidth * 0.9f;
         float maxHeight = screenHeight * 0.9f;
         float aspect = texture.getWidth() / (float) texture.getHeight();

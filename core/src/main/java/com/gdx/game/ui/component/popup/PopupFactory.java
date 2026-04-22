@@ -10,14 +10,13 @@ public class PopupFactory {
     private final Stage stage;
     private final DetectiveGame game;
     private final FadeTransition transition;
-    private final Skin skin;
 
 
     public PopupFactory(Stage stage, DetectiveGame game, FadeTransition transition) {
         this.stage = stage;
         this.game = game;
         this.transition = transition;
-        this.skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
+        new Skin(Gdx.files.internal("ui/uiskin.json"));
     }
 
     public NotePopup createNotePopup() {

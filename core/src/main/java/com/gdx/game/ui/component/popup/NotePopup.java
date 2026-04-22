@@ -44,7 +44,6 @@ public class NotePopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
         resizeCentered(noteImage, noteTexture, screenWidth, screenHeight);
 
         float width = noteImage.getWidth();

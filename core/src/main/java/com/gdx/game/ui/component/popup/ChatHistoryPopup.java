@@ -109,7 +109,6 @@ public class ChatHistoryPopup extends AbstractPopup {
     }
 
     public void resize(int width, int height) {
-        background.setSize(width, height);
         resizeCentered(chatHistoryImage, chatHistoryTexture, width, height);
 
         float popupX = chatHistoryImage.getX();

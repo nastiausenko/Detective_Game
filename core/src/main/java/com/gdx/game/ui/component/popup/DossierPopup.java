@@ -192,7 +192,6 @@ public class DossierPopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
         resizeCentered(pageImage, pages[0], screenWidth, screenHeight);
 
         float w = pageImage.getWidth();
