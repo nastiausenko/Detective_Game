@@ -12,6 +12,9 @@ import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -28,6 +31,8 @@ import com.gdx.game.domain.character.DossierData;
 import com.gdx.game.ai.NpcDialogueService;
 import com.gdx.game.domain.character.NpcState;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.UiLayout;
+import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.ScreenUtilsHelper;
 import com.gdx.game.utils.TiledTextureHelper;
 
@@ -60,8 +65,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private final Image sendButtonImage;
 
-    private float questionAreaFixedHeight = -1f;
-
     private final Texture answerAreaTexture;
     private final Image answerAreaImage;
 
@@ -92,6 +95,15 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         tiledHelper = new TiledTextureHelper(background, 256);
         skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
         dialogueStage = new Stage(new ScreenViewport());
+        dialogueStage.getRoot().addCaptureListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                if (!isInputFieldTarget(event.getTarget())) {
+                    clearInputFocus();
+                }
+                return false;
+            }
+        });
 
         Texture statsTex = new Texture(Assets.STATISTICS);
         NinePatch statsPatch = new NinePatch(statsTex, 32, 32, 32, 32);
@@ -147,13 +159,29 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     }
 
     private void send() {
-        if (inputField == null) return;
+        if (inputField == null) {
+            return;
+        }
 
         String text = inputField.getText();
-        if (text == null || text.trim().isEmpty()) return;
+
+        if (text == null || text.trim().isEmpty()) {
+            inputField.setText("Введіть питання");
+            return;
+        }
 
         handleQuestion(text.trim());
-        inputField.setText("");
+    }
+
+    private boolean isInputFieldTarget(Actor target) {
+        return inputField != null
+            && target != null
+            && (target == inputField || target.isDescendantOf(inputField));
+    }
+
+    private void clearInputFocus() {
+        dialogueStage.setKeyboardFocus(null);
+        Gdx.input.setOnscreenKeyboardVisible(false);
     }
 
     private void updateInputField() {
@@ -196,8 +224,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         Gdx.input.setInputProcessor(new InputMultiplexer(
-            dialogueStage,
             game.overlay.getStage(),
+            dialogueStage,
             new GestureDetector(this)
         ));
     }
@@ -269,6 +297,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     @Override
     public void resize(int width, int height) {
+        UiLayoutProfile profile = UiLayout.current(width, height);
         viewport.update(width, height);
 
         float imageAspect = imageWidth / imageHeight;
@@ -284,24 +313,20 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             drawWidth = imageWidth * scale;
         }
 
-        if (questionAreaFixedHeight < 0f) {
-            float designHeight = questionAreaTexture.getHeight();
-            float uiScale = height / 1000f;
-            questionAreaFixedHeight = designHeight * uiScale;
-        }
-
-        float desiredWidth  = width * 0.85f;
-        float desiredHeight = questionAreaFixedHeight;
+        float desiredWidth = width * profile.getQuestionAreaWidthRatio();
+        float designHeight = questionAreaTexture.getHeight() * (height / 1000f);
+        float desiredHeight = Math.max(height * profile.getQuestionAreaHeightRatio(), designHeight);
+        float questionBottom = height * profile.getQuestionAreaBottomMarginRatio();
 
         questionAreaImage.setSize(desiredWidth, desiredHeight);
         questionAreaImage.setPosition(
             (width - desiredWidth) / 2f,
-            20f
+            questionBottom
         );
 
-        float inputPadding = 50f * screenAspect;
+        float inputPadding = Math.max(profile.scale(18f), desiredWidth * 0.05f);
         float inputWidth = desiredWidth - inputPadding * 2f;
-        float inputHeight = desiredHeight * 0.4f;
+        float inputHeight = desiredHeight * profile.getInputHeightRatio();
 
         inputField.setSize(inputWidth, inputHeight);
         inputField.setPosition(
@@ -327,8 +352,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float texW = characterTexture.getWidth();
         float texH = characterTexture.getHeight();
 
-        float scaleByWidth = (width  * 0.45f) / texW;
-        float scaleByHeight = (height * 0.70f) / texH;
+        float scaleByWidth = (width * profile.getCharacterWidthRatio()) / texW;
+        float scaleByHeight = (height * profile.getCharacterHeightRatio()) / texH;
 
         float scale = Math.min(scaleByWidth, scaleByHeight);
 
@@ -336,35 +361,35 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float characterDrawH = texH * scale;
 
         float iconSize = characterDrawH * 0.10f;
-        float lineGap = iconSize + 8f;
+        float lineGap = iconSize + profile.scale(8f);
 
         updateStatsFontScale(iconSize);
 
-        float charY = height * 0.1f;
+        float charY = height * profile.getCharacterBottomRatio();
         float charX = width  * 0.5f - characterDrawW / 2f;
 
-        float panelX = charX + characterDrawW + 20f;
+        float panelX = charX + characterDrawW + profile.scale(20f);
         float panelY = charY + characterDrawH * 0.6f;
 
-        if (panelX + iconSize + 80f > width) {
-            panelX = charX - iconSize - 90f;
+        if (panelX + iconSize + profile.scale(80f) > width) {
+            panelX = charX - iconSize - profile.scale(90f);
         }
 
         trustImage.setBounds(panelX, panelY + lineGap, iconSize, iconSize);
         trustLabel.setPosition(
-            trustImage.getX() + iconSize + 6f,
+            trustImage.getX() + iconSize + profile.scale(6f),
             trustImage.getY() + iconSize * 0.4f
         );
 
         fearImage.setBounds(panelX, panelY, iconSize, iconSize);
         fearLabel.setPosition(
-            fearImage.getX() + iconSize + 6f,
+            fearImage.getX() + iconSize + profile.scale(6f),
             fearImage.getY() + iconSize * 0.4f
         );
 
         moodImage.setBounds(panelX, panelY - lineGap, iconSize, iconSize);
         moodLabel.setPosition(
-            moodImage.getX() + iconSize + 6f,
+            moodImage.getX() + iconSize + profile.scale(6f),
             moodImage.getY() + iconSize * 0.4f
         );
 
@@ -555,9 +580,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private void updateAnswerBubbleLayout(float screenWidth, float screenHeight) {
         if (!dialogueLabel.isVisible()) return;
 
-        float paddingX = 40f;
-        float paddingY = 16f;
-        float tailHeight = 21f;
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
+        float paddingX = profile.scale(40f);
+        float paddingY = profile.scale(16f);
+        float tailHeight = profile.scale(21f);
 
         boolean portrait = screenHeight > screenWidth;
 
@@ -569,7 +595,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float anchorRight = charX + charW * 0.5f - paddingX;
 
         float maxBubbleWidth = answerAreaTexture.getWidth() * 0.4f;
-        float screenLimit = screenWidth * (portrait ? 0.85f : 0.8f);
+        float screenLimit = screenWidth * (portrait
+            ? profile.getBubbleWidthPortraitRatio()
+            : profile.getBubbleWidthLandscapeRatio());
         maxBubbleWidth = Math.min(maxBubbleWidth, screenLimit);
         maxBubbleWidth = Math.min(maxBubbleWidth, anchorRight - paddingX);
 
@@ -589,7 +617,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         dialogueLabel.setWrap(true);
         dialogueLabel.setAlignment(Align.center);
-        dialogueLabel.setFontScale(0.7f);
+        dialogueLabel.setFontScale(profile.getBubbleFontScale());
         dialogueLabel.setWidth(innerWidth);
         dialogueLabel.setText(text);
         dialogueLabel.layout();
@@ -654,10 +682,11 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     }
 
     private void updateStatsFontScale(float iconSize) {
+        UiLayoutProfile profile = UiLayout.current();
         float baseIconSize = 80f;
-        float scale = iconSize / baseIconSize;
+        float scale = (iconSize / baseIconSize) * profile.getFontScaleMultiplier();
 
-        scale = MathUtils.clamp(scale, 0.6f, 1.4f);
+        scale = MathUtils.clamp(scale, 0.6f, 1.8f);
 
         trustLabel.setFontScale(scale);
         fearLabel.setFontScale(scale);
