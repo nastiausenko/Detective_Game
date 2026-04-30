@@ -92,6 +92,7 @@ public class MenuScreen implements Screen {
     private void handleNewGame() {
         GameData.clearAll();
         game.getNpcDialogueService().resetAllNpcState();
+        game.getNpcLocationService().reset();
         game.overlay.resetTimer();
 
         InvestigationState inv = game.getInvestigationState();

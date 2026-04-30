@@ -14,13 +14,16 @@ import com.gdx.game.ui.screens.CharacterInteriorScreen;
 
 public class CharacterIcon extends Image {
     private final String id;
+    private final String fullBodyPath;
     private String buildingId;
     private BuildingData linkedBuilding;
+    private String fallbackInteriorBackground;
     private final float baseSize = 40;
 
     public CharacterIcon(DetectiveGame game, String id, String iconPath, String fullBodyPath, String buildingId) {
         super(new Texture(iconPath));
         this.id = id;
+        this.fullBodyPath = fullBodyPath;
         this.buildingId = buildingId;
 
         setSize(baseSize, baseSize * 1.3f);
@@ -43,14 +46,20 @@ public class CharacterIcon extends Image {
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 if (linkedBuilding != null) {
+                    String backgroundPath = resolveInteriorBackground();
+                    if (backgroundPath == null) {
+                        Gdx.app.error("CharacterIcon", "Missing interior background for npc=" + id + ", building=" + buildingId);
+                        return true;
+                    }
+
                     FadeTransition transition = game.getTransition();
                     if (!transition.isTransitioning()) {
                         transition.startFadeOut(0.7f, () -> {
                             CharacterInteriorScreen interiorScreen = new CharacterInteriorScreen(
                                 game,
-                                linkedBuilding.interiorBackground,
+                                backgroundPath,
                                 id,
-                                fullBodyPath
+                                CharacterIcon.this.fullBodyPath
                             );
                             game.setScreen(interiorScreen);
                             transition.startFadeIn(0.7f);
@@ -69,6 +78,9 @@ public class CharacterIcon extends Image {
     public void setBuilding(BuildingData building) {
         this.linkedBuilding = building;
         this.buildingId = (building != null) ? building.id : null;
+        if (building != null && hasInteriorBackground(building.interiorBackground)) {
+            fallbackInteriorBackground = building.interiorBackground;
+        }
     }
 
     public void updatePositionFromBuilding(float mapWidth, float mapHeight, float scale) {
@@ -92,4 +104,16 @@ public class CharacterIcon extends Image {
     public String getId() {
         return id;
     }
+
+    private String resolveInteriorBackground() {
+        if (linkedBuilding != null && hasInteriorBackground(linkedBuilding.interiorBackground)) {
+            return linkedBuilding.interiorBackground;
+        }
+        return fallbackInteriorBackground;
+    }
+
+    private boolean hasInteriorBackground(String backgroundPath) {
+        return backgroundPath != null && !backgroundPath.isEmpty();
+    }
+
 }

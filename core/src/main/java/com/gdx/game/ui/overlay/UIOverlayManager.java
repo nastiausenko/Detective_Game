@@ -226,6 +226,7 @@ public class UIOverlayManager {
         }
 
         timer.update(delta);
+        game.getNpcLocationService().updateForGameMinutes(timer.getElapsedGameMinutes());
 
         checkTimeOverPopup();
     }

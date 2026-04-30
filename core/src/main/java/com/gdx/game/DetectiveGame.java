@@ -13,6 +13,7 @@ import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.ui.screens.MenuScreen;
 import com.gdx.game.infrastructure.UIButtonFactory;
 import com.gdx.game.ai.EpilogueService;
+import com.gdx.game.ui.component.chars.NpcLocationService;
 import com.gdx.game.ui.overlay.UIOverlayManager;
 
 public class DetectiveGame extends Game {
@@ -27,6 +28,7 @@ public class DetectiveGame extends Game {
     private NpcDialogueService npcDialogueService;
     private InvestigationState investigationState;
     private EpilogueService epilogueService;
+    private NpcLocationService npcLocationService;
 
     private final String openAiKey;
     private final String groqKey;
@@ -59,6 +61,7 @@ public class DetectiveGame extends Game {
         npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
         investigationState = new InvestigationState();
         epilogueService = new EpilogueService(llmClient, loreDb, dossierDb, npcDialogueService);
+        npcLocationService = new NpcLocationService();
 
         overlay = new UIOverlayManager(this);
 
@@ -100,5 +103,9 @@ public class DetectiveGame extends Game {
 
     public EpilogueService getEpilogueService() {
         return epilogueService;
+    }
+
+    public NpcLocationService getNpcLocationService() {
+        return npcLocationService;
     }
 }

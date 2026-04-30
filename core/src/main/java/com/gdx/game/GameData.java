@@ -9,7 +9,8 @@ public class GameData {
         "game_data",
         "game_timer",
         "dialogue_history",
-        "npc_state"
+        "npc_state",
+        "npc_locations"
     };
 
     public static void clearAll() {

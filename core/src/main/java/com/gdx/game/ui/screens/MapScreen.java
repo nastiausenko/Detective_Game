@@ -23,6 +23,7 @@ import com.gdx.game.utils.TiledTextureHelper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class MapScreen implements Screen {
     private final DetectiveGame game;
@@ -73,8 +74,7 @@ public class MapScreen implements Screen {
         Gdx.input.setInputProcessor(new InputMultiplexer(game.overlay.getStage(), mapStage, gestureDetector, inputController));
 
         for (CharacterIcon icon : icons) {
-            BuildingData b = buildingMap.get(icon.getBuildingId());
-            icon.setBuilding(b);
+            applyNpcLocation(icon);
             mapStage.addActor(icon);
         }
 
@@ -89,6 +89,7 @@ public class MapScreen implements Screen {
         ScreenUtils.clear(0, 0, 0, 1);
 
         inputController.handleKeyboard(delta);
+        syncIconsWithNpcLocations();
         camera.update();
 
         game.batch.setProjectionMatrix(camera.combined);
@@ -134,10 +135,7 @@ public class MapScreen implements Screen {
         inputController.setMapSize(drawWidth, drawHeight);
 
         for (CharacterIcon marker : icons) {
-            marker.updatePositionFromBuilding(drawWidth, drawHeight, Math.max(1f, Math.max(
-                viewport.getWorldWidth() / mapTexture.getWidth(),
-                viewport.getWorldHeight() / mapTexture.getHeight()
-            )));
+            marker.updatePositionFromBuilding(drawWidth, drawHeight, getMapScale());
         }
     }
 
@@ -152,6 +150,32 @@ public class MapScreen implements Screen {
     @Override public void resume() {}
     @Override public void hide() {
         game.overlay.hideAllPopups();
+    }
+
+    private void syncIconsWithNpcLocations() {
+        for (CharacterIcon icon : icons) {
+            String targetBuildingId = game.getNpcLocationService().getCurrentBuildingId(icon.getId());
+            if (Objects.equals(icon.getBuildingId(), targetBuildingId)) {
+                continue;
+            }
+            applyNpcLocation(icon);
+            if (drawWidth > 0 && drawHeight > 0) {
+                icon.updatePositionFromBuilding(drawWidth, drawHeight, getMapScale());
+            }
+        }
+    }
+
+    private void applyNpcLocation(CharacterIcon icon) {
+        String buildingId = game.getNpcLocationService().getCurrentBuildingId(icon.getId());
+        BuildingData building = buildingMap.get(buildingId);
+        icon.setBuilding(building);
+    }
+
+    private float getMapScale() {
+        return Math.max(1f, Math.max(
+            viewport.getWorldWidth() / mapTexture.getWidth(),
+            viewport.getWorldHeight() / mapTexture.getHeight()
+        ));
     }
 
     //TODO temporary method for visualizing building coords

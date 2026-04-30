@@ -19,7 +19,6 @@ public class NotePages {
 
     private float columnWidth;
     private float columnHeight;
-    private float baseFontScale = 1.0f;
 
     private final List<TextArea[]> pages = new ArrayList<>();
     private int currentPageIndex = 0;
@@ -270,6 +269,7 @@ public class NotePages {
         stage.addActor(page[1]);
 
         stage.setKeyboardFocus(page[0]);
+        page[0].setCursorPosition(page[0].getText().length());
         currentPageIndex = index;
     }
 

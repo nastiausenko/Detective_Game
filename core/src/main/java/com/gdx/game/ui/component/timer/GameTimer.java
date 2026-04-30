@@ -15,6 +15,9 @@ import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class GameTimer {
+    private static final float REAL_TO_GAME_MINUTES = 1.2f;
+    private static final int START_HOUR = 9;
+
     private final Stage stage;
 
     private final Image timerBackground;
@@ -24,7 +27,7 @@ public class GameTimer {
     private final Preferences prefs;
     private final Skin skin;
 
-    private float elapsedRealTime = 0f;
+    private float elapsedRealTime;
     private final float totalRealSeconds;
     private boolean timeOver = false;
     private boolean paused = false;
@@ -68,11 +71,7 @@ public class GameTimer {
         int seconds = (int) (remaining % 60);
         countdownLabel.setText(String.format("Time Left: %02d:%02d", minutes, seconds));
 
-        float realToGameMinutes = 1.2f;
-        int elapsedGameMinutes = (int) (elapsedRealTime * realToGameMinutes);
-
-        int startHour = 9;
-        int minutesInDay = elapsedGameMinutes + startHour * 60;
+        int minutesInDay = getElapsedGameMinutes() + START_HOUR * 60;
 
         int day = (minutesInDay / (24 * 60)) + 1;
         int minutesOfCurrentDay = minutesInDay % (24 * 60);
@@ -138,5 +137,9 @@ public class GameTimer {
 
     public void showGameTimeLabel(boolean show) {
         gameTimeLabel.setVisible(show);
+    }
+
+    public int getElapsedGameMinutes() {
+        return (int) (elapsedRealTime * REAL_TO_GAME_MINUTES);
     }
 }
