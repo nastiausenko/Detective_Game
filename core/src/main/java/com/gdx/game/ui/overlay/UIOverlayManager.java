@@ -399,6 +399,34 @@ public class UIOverlayManager {
         }
     }
 
+    public void resetForNewGame() {
+        resetTimer();
+
+        currentNpcId = null;
+        newFactsCount = 0;
+        menuOpened = false;
+        inInterior = false;
+
+        notesButton.setVisible(false);
+        dossierButton.setVisible(false);
+        accuseButton.setVisible(false);
+        toggleButton.setDrawable(new Image(arrowDownTexture).getDrawable());
+
+        if (notePopup != null) {
+            notePopup.remove();
+            notePopup.dispose();
+            notePopup = null;
+        }
+
+        if (chatHistoryPopup != null) {
+            chatHistoryPopup.remove();
+            chatHistoryPopup = null;
+        }
+
+        updateUIVisibility();
+        updateBadgeVisibility();
+    }
+
     public GameTimer getTimer() {
         return timer;
     }
