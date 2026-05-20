@@ -29,6 +29,17 @@ public class NotePages {
     private boolean programmaticChange = false;
     private boolean isVisible = false;
 
+    private static class NoteTextArea extends TextArea {
+        NoteTextArea(String text, TextField.TextFieldStyle style) {
+            super(text, style);
+        }
+
+        void refreshTextMetrics() {
+            sizeChanged();
+            invalidate();
+        }
+    }
+
     public NotePages(Stage stage, Skin skin) {
         this.stage = stage;
         this.skin = skin;
@@ -58,7 +69,7 @@ public class NotePages {
             page[0].setText(prefs.getString("page" + i + "_left", ""));
             page[1].setText(prefs.getString("page" + i + "_right", ""));
         }
-        showPage(0);
+        currentPageIndex = 0;
     }
 
     public void onExit() {
@@ -78,20 +89,14 @@ public class NotePages {
     private void createNewPage() {
         TextField.TextFieldStyle style = createTextStyle();
 
-        TextArea left = new TextArea("", style);
-        TextArea right = new TextArea("", style);
+        TextArea left = new NoteTextArea("", style);
+        TextArea right = new NoteTextArea("", style);
         left.setFocusTraversal(false);
         right.setFocusTraversal(false);
 
         TextArea[] page = new TextArea[]{left, right};
         int pageIndex = pages.size();
         pages.add(page);
-
-        if (pages.size() == 1) {
-            stage.addActor(left);
-            stage.addActor(right);
-            stage.setKeyboardFocus(left);
-        }
 
         left.setTextFieldListener((tf, c) -> {
             if (!programmaticChange) rebalanceFromPage(pageIndex);
@@ -111,42 +116,52 @@ public class NotePages {
 
     public void setPosition(float x, float y, float height, float innerPadding) {
         this.columnHeight = height;
+        setFontScale();
+
         for (TextArea[] page : pages) {
             page[0].setSize(columnWidth, height);
             page[0].setPosition(x, y);
+            refreshTextMetrics(page[0]);
 
             float rightX = x + columnWidth + innerPadding * 2;
             page[1].setSize(columnWidth, height);
             page[1].setPosition(rightX, y);
+            refreshTextMetrics(page[1]);
         }
-        setFontScale();
     }
 
     private void setFontScale() {
-        String[][] texts = new String[pages.size()][2];
-        int[][] cursorPositions = new int[pages.size()][2];
+        boolean wasProgrammaticChange = programmaticChange;
+        programmaticChange = true;
 
-        for (int i = 0; i < pages.size(); i++) {
-            TextArea[] page = pages.get(i);
-            texts[i][0] = page[0].getText();
-            texts[i][1] = page[1].getText();
-            cursorPositions[i][0] = page[0].getCursorPosition();
-            cursorPositions[i][1] = page[1].getCursorPosition();
-        }
+        try {
+            String[][] texts = new String[pages.size()][2];
+            int[][] cursorPositions = new int[pages.size()][2];
 
-        for (int i = 0; i < pages.size(); i++) {
-            TextArea[] page = pages.get(i);
-            TextField.TextFieldStyle style = createTextStyle();
+            for (int i = 0; i < pages.size(); i++) {
+                TextArea[] page = pages.get(i);
+                texts[i][0] = page[0].getText();
+                texts[i][1] = page[1].getText();
+                cursorPositions[i][0] = page[0].getCursorPosition();
+                cursorPositions[i][1] = page[1].getCursorPosition();
+            }
 
-            FontScaler.applyScale(style.font);
+            FontScaler.applyScale(skin.getFont("default-font"));
 
-            page[0].setStyle(style);
-            page[1].setStyle(style);
+            for (int i = 0; i < pages.size(); i++) {
+                TextArea[] page = pages.get(i);
+                TextField.TextFieldStyle style = createTextStyle();
 
-            page[0].setText(texts[i][0]);
-            page[1].setText(texts[i][1]);
-            page[0].setCursorPosition(Math.min(cursorPositions[i][0], texts[i][0].length()));
-            page[1].setCursorPosition(Math.min(cursorPositions[i][1], texts[i][1].length()));
+                page[0].setStyle(style);
+                page[1].setStyle(style);
+
+                page[0].setText(texts[i][0]);
+                page[1].setText(texts[i][1]);
+                page[0].setCursorPosition(Math.min(cursorPositions[i][0], texts[i][0].length()));
+                page[1].setCursorPosition(Math.min(cursorPositions[i][1], texts[i][1].length()));
+            }
+        } finally {
+            programmaticChange = wasProgrammaticChange;
         }
     }
 
@@ -156,9 +171,17 @@ public class NotePages {
 
         page[0].setSize(columnWidth, columnHeight);
         page[0].setPosition(first[0].getX(), first[0].getY());
+        refreshTextMetrics(page[0]);
 
         page[1].setSize(columnWidth, columnHeight);
         page[1].setPosition(first[1].getX(), first[1].getY());
+        refreshTextMetrics(page[1]);
+    }
+
+    private void refreshTextMetrics(TextArea area) {
+        if (area instanceof NoteTextArea) {
+            ((NoteTextArea) area).refreshTextMetrics();
+        }
     }
 
 
@@ -214,7 +237,7 @@ public class NotePages {
     private boolean handleOverflow(TextArea[] page, int colIndex, int pageIndex) {
         TextArea area = page[colIndex];
         BitmapFont font = area.getStyle().font;
-        int maxLines = (int) (columnHeight / font.getLineHeight());
+        int maxLines = Math.max(1, area.getLinesShowing());
 
         String text = area.getText();
         int overflowStart = findOverflowStartIndex(text, font, columnWidth, maxLines);
