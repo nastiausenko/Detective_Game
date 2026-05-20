@@ -120,7 +120,7 @@ public class NpcDialogueService {
         return "LIE_RISK=" + risk + "/5 (" + label + ").";
     }
 
-    private String buildSystemPrompt(String npcId) {
+    private String buildSystemPrompt(String npcId, String currentBuildingId) {
         DossierData dossier = dossierDb != null ? dossierDb.characters.get(npcId) : null;
         NpcState state = getOrCreateState(npcId);
 
@@ -147,6 +147,16 @@ public class NpcDialogueService {
                 .append(", fear=").append(String.format(Locale.ROOT, "%.2f", state.fear))
                 .append(" (0..1). If trust>0.7 and fear<0.4, be more open and honest. ")
                 .append("If fear>0.7, avoid direct answers or distort truth, especially about dangerous topics.\n");
+
+        if (currentBuildingId != null && !currentBuildingId.isEmpty()) {
+            sb.append("LOCATION_CONTEXT:\n")
+                .append("- current_building_id: ").append(currentBuildingId).append("\n")
+                .append("- current_location_uk: ").append(describeLocation(currentBuildingId)).append("\n")
+                .append("Treat this as your physical location right now. ")
+                .append("If the detective asks where you are, why you are here, or what is around you, ")
+                .append("answer consistently with this location. Do not claim to be in another building ")
+                .append("unless you are describing a past event.\n");
+        }
 
         if (dossier != null && dossier.publicFacts != null && !dossier.publicFacts.isEmpty()) {
             sb.append("FACTS_PUBLIC (you may mention freely when relevant):\n");
@@ -191,6 +201,27 @@ public class NpcDialogueService {
         return sb.toString();
     }
 
+    private String describeLocation(String buildingId) {
+        if (buildingId == null || buildingId.isEmpty()) return "невідома локація";
+
+        switch (buildingId) {
+            case "cafe":
+                return "кав'ярня Blume";
+            case "shop":
+                return "міський магазин";
+            case "hospital":
+                return "лікарня Розенфельда";
+            case "med_school":
+                return "медична школа";
+            case "town_hall":
+                return "ратуша";
+            case "house2":
+                return "житловий будинок";
+            default:
+                return buildingId;
+        }
+    }
+
     public boolean shouldRevealFactFromExchange(String question, String answer, String hiddenFact) throws IOException {
         String system = "You are a STRICT binary classifier for a detective game. " +
                         "You receive a FACT, a detective QUESTION and an NPC ANSWER. " +
@@ -227,10 +258,14 @@ public class NpcDialogueService {
     }
 
     public String askNpcSync(String npcId, String question) throws IOException {
+        return askNpcSync(npcId, question, null);
+    }
+
+    public String askNpcSync(String npcId, String question, String currentBuildingId) throws IOException {
         NpcState state = getOrCreateState(npcId);
         state.questionsAsked += 1;
 
-        String systemPrompt = buildSystemPrompt(npcId);
+        String systemPrompt = buildSystemPrompt(npcId, currentBuildingId);
         String userMessage  = buildUserMessageWithHistory(npcId, question);
 
         String answer = llmClient.ask(systemPrompt, userMessage);

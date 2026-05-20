@@ -158,9 +158,12 @@ public class MapScreen implements Screen {
             if (Objects.equals(icon.getBuildingId(), targetBuildingId)) {
                 continue;
             }
-            applyNpcLocation(icon);
+
+            BuildingData building = buildingMap.get(targetBuildingId);
             if (drawWidth > 0 && drawHeight > 0) {
-                icon.updatePositionFromBuilding(drawWidth, drawHeight, getMapScale());
+                icon.moveToBuilding(building, drawWidth, drawHeight, getMapScale());
+            } else {
+                icon.setBuilding(building);
             }
         }
     }

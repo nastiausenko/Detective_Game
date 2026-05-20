@@ -3,6 +3,8 @@ package com.gdx.game.ui.component.chars;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -13,12 +15,25 @@ import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.ui.screens.CharacterInteriorScreen;
 
 public class CharacterIcon extends Image {
+    private static final float MIN_MOVEMENT_DURATION = 0.75f;
+    private static final float MAX_MOVEMENT_DURATION = 1.8f;
+    private static final float MOVEMENT_SPEED = 520f;
+
     private final String id;
     private final String fullBodyPath;
     private String buildingId;
     private BuildingData linkedBuilding;
     private String fallbackInteriorBackground;
     private final float baseSize = 40;
+
+    private boolean positionInitialized = false;
+    private boolean moving = false;
+    private float moveElapsed = 0f;
+    private float moveDuration = MIN_MOVEMENT_DURATION;
+    private float startX;
+    private float startY;
+    private float targetX;
+    private float targetY;
 
     public CharacterIcon(DetectiveGame game, String id, String iconPath, String fullBodyPath, String buildingId) {
         super(new Texture(iconPath));
@@ -48,7 +63,8 @@ public class CharacterIcon extends Image {
                 if (linkedBuilding != null) {
                     String backgroundPath = resolveInteriorBackground();
                     if (backgroundPath == null) {
-                        Gdx.app.error("CharacterIcon", "Missing interior background for npc=" + id + ", building=" + buildingId);
+                        Gdx.app.error("CharacterIcon", "Missing interior background for npc=" + id
+                            + ", building=" + CharacterIcon.this.buildingId);
                         return true;
                     }
 
@@ -59,7 +75,8 @@ public class CharacterIcon extends Image {
                                 game,
                                 backgroundPath,
                                 id,
-                                CharacterIcon.this.fullBodyPath
+                                CharacterIcon.this.fullBodyPath,
+                                CharacterIcon.this.buildingId
                             );
                             game.setScreen(interiorScreen);
                             transition.startFadeIn(0.7f);
@@ -76,6 +93,69 @@ public class CharacterIcon extends Image {
     }
 
     public void setBuilding(BuildingData building) {
+        setLinkedBuilding(building);
+        moving = false;
+    }
+
+    public void moveToBuilding(BuildingData building, float mapWidth, float mapHeight, float scale) {
+        setLinkedBuilding(building);
+        if (linkedBuilding == null) return;
+
+        updateIconSize(scale);
+        targetX = calculateIconX(linkedBuilding, mapWidth);
+        targetY = calculateIconY(linkedBuilding, mapHeight);
+
+        if (!positionInitialized) {
+            setPosition(targetX, targetY);
+            positionInitialized = true;
+            moving = false;
+            return;
+        }
+
+        startX = getX();
+        startY = getY();
+
+        float dx = targetX - startX;
+        float dy = targetY - startY;
+        float distance = (float)Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 1f) {
+            setPosition(targetX, targetY);
+            moving = false;
+            return;
+        }
+
+        moveElapsed = 0f;
+        moveDuration = MathUtils.clamp(
+            distance / MOVEMENT_SPEED,
+            MIN_MOVEMENT_DURATION,
+            MAX_MOVEMENT_DURATION
+        );
+        moving = true;
+    }
+
+    @Override
+    public void act(float delta) {
+        super.act(delta);
+
+        if (!moving) return;
+
+        moveElapsed += delta;
+        float progress = MathUtils.clamp(moveElapsed / moveDuration, 0f, 1f);
+        float smoothProgress = Interpolation.smooth.apply(progress);
+
+        setPosition(
+            MathUtils.lerp(startX, targetX, smoothProgress),
+            MathUtils.lerp(startY, targetY, smoothProgress)
+        );
+
+        if (progress >= 1f) {
+            setPosition(targetX, targetY);
+            moving = false;
+        }
+    }
+
+    private void setLinkedBuilding(BuildingData building) {
         this.linkedBuilding = building;
         this.buildingId = (building != null) ? building.id : null;
         if (building != null && hasInteriorBackground(building.interiorBackground)) {
@@ -85,19 +165,16 @@ public class CharacterIcon extends Image {
 
     public void updatePositionFromBuilding(float mapWidth, float mapHeight, float scale) {
         if (linkedBuilding != null) {
-            float iconWidth = baseSize * scale;
-            float iconHeight = iconWidth * 1.3f;
-            setSize(iconWidth, iconHeight);
+            updateIconSize(scale);
 
-            float bx = linkedBuilding.x * mapWidth;
-            float by = linkedBuilding.y * mapHeight;
-            float bw = linkedBuilding.width * mapWidth;
-            float bh = linkedBuilding.height * mapHeight;
+            targetX = calculateIconX(linkedBuilding, mapWidth);
+            targetY = calculateIconY(linkedBuilding, mapHeight);
 
-            float iconX = bx + bw / 2f - getWidth() / 2f;
-            float iconY = by + bh - getHeight() * 0.5f;
-
-            setPosition(iconX, iconY);
+            if (!positionInitialized || !moving) {
+                setPosition(targetX, targetY);
+                positionInitialized = true;
+                moving = false;
+            }
         }
     }
 
@@ -114,6 +191,24 @@ public class CharacterIcon extends Image {
 
     private boolean hasInteriorBackground(String backgroundPath) {
         return backgroundPath != null && !backgroundPath.isEmpty();
+    }
+
+    private void updateIconSize(float scale) {
+        float iconWidth = baseSize * scale;
+        float iconHeight = iconWidth * 1.3f;
+        setSize(iconWidth, iconHeight);
+    }
+
+    private float calculateIconX(BuildingData building, float mapWidth) {
+        float bx = building.x * mapWidth;
+        float bw = building.width * mapWidth;
+        return bx + bw / 2f - getWidth() / 2f;
+    }
+
+    private float calculateIconY(BuildingData building, float mapHeight) {
+        float by = building.y * mapHeight;
+        float bh = building.height * mapHeight;
+        return by + bh - getHeight() * 0.5f;
     }
 
 }

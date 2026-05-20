@@ -49,6 +49,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final TiledTextureHelper tiledHelper;
 
     private final String characterId;
+    private final String buildingId;
     private final Texture characterTexture;
     private final Image characterImage;
 
@@ -83,10 +84,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final GlyphLayout glyphLayout = new GlyphLayout();
     private static final String DOCTOR_ID = "walter";
 
-    public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String characterId, String fullBody) {
+    public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String characterId, String fullBody,
+                                   String buildingId) {
         this.game = game;
         this.background = new Texture(backgroundPath);
         this.characterId = characterId;
+        this.buildingId = buildingId;
         this.characterTexture = new Texture(fullBody);
         this.npcService = game.getNpcDialogueService();
 
@@ -468,7 +471,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 DossierData doctorData = game.getDossierDb().characters.get(DOCTOR_ID);
                 collectCandidateFacts(doctorData, qLower, candidateFactsDoctor, "DOCTOR");
 
-                answer = npcService.askNpcSync(characterId, q);
+                answer = npcService.askNpcSync(characterId, q, buildingId);
 
                 int newlyRevealedTotal = 0;
 

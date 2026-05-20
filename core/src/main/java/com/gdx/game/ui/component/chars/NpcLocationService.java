@@ -104,6 +104,9 @@ public class NpcLocationService {
             if (building == null || building.id == null) {
                 continue;
             }
+            if (building.interiorBackground == null || building.interiorBackground.isEmpty()) {
+                continue;
+            }
             buildingIds.add(building.id);
         }
     }
