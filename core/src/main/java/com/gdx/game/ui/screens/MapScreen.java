@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.world.BuildingData;
+import com.gdx.game.infrastructure.AudioManager;
 import com.gdx.game.ui.component.chars.BuildingLoader;
 import com.gdx.game.ui.component.chars.CharacterIcon;
 import com.gdx.game.ui.component.chars.CharacterLoader;
@@ -66,6 +67,7 @@ public class MapScreen implements Screen {
     @Override
     public void show() {
         game.overlay.setVisible(true);
+        game.getAudioManager().playAmbience(Assets.SOUND_MAP);
 
         if (!firstShow) return;
         firstShow = false;

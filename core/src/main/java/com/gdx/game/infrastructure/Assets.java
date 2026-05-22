@@ -62,6 +62,13 @@ public class Assets {
     public static final String YES_BUTTON = "menu/story/yes_btn.png";
     public static final String NO_BUTTON = "menu/story/no_btn.png";
 
+    public static final String SOUND_BUTTON = "audio/click.ogg";
+    public static final String SOUND_MAP = "audio/map.ogg";
+    public static final String SOUND_DOOR = "audio/door.ogg";
+    public static final String SOUND_DOORBELL = "audio/doorbell.ogg";
+    public static final String SOUND_HOSPITAL = "audio/hospital.ogg";
+    public static final String SOUND_CAFE = "audio/cafe.ogg";
+
     public static final float TOTAL_TIME = 60 * 60f;
     public static final int FACTS_TO_REVEAL = 0;
 

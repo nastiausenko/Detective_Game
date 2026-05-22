@@ -199,6 +199,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         game.overlay.setVisible(true);
         game.overlay.setInInterior(true);
         game.overlay.setCurrentNpcId(characterId);
+        game.overlay.setCurrentInteriorBuildingId(buildingId);
+        playLocationAmbience();
 
         imageWidth = background.getWidth();
         imageHeight = background.getHeight();
@@ -231,6 +233,21 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             dialogueStage,
             new GestureDetector(this)
         ));
+    }
+
+    private void playLocationAmbience() {
+        if (game.getAudioManager() == null || buildingId == null) return;
+
+        switch (buildingId) { //TODO change switch case
+            case "hospital":
+                game.getAudioManager().playAmbience(Assets.SOUND_HOSPITAL);
+                break;
+            case "cafe":
+                game.getAudioManager().playAmbience(Assets.SOUND_CAFE);
+                break;
+            default:
+                break;
+        }
     }
 
     private TextField.TextFieldStyle createTextFieldStyle() {

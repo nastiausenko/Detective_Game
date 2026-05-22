@@ -70,6 +70,11 @@ public class CharacterIcon extends Image {
 
                     FadeTransition transition = game.getTransition();
                     if (!transition.isTransitioning()) {
+                        if (game.getAudioManager() != null) {
+                            game.getAudioManager().stopAmbience();
+                            game.getAudioManager().playLocationTransition(CharacterIcon.this.buildingId);
+                        }
+
                         transition.startFadeOut(0.7f, () -> {
                             CharacterInteriorScreen interiorScreen = new CharacterInteriorScreen(
                                 game,

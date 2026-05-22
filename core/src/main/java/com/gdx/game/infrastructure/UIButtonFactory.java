@@ -9,12 +9,25 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 public class UIButtonFactory {
+    private final AudioManager audioManager;
+
+    public UIButtonFactory(AudioManager audioManager) {
+        this.audioManager = audioManager;
+    }
+
     public Image createButton(String path, float width, float height, Runnable onClick) {
+        return createButton(path, width, height, onClick, true);
+    }
+
+    public Image createButton(String path, float width, float height, Runnable onClick, boolean playClickSound) {
         Image button = new Image(new Texture(Gdx.files.internal(path)));
         button.setSize(width, height);
         button.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                if (playClickSound && audioManager != null) {
+                    audioManager.playButtonClick();
+                }
                 onClick.run();
             }
 

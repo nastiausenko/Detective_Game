@@ -48,6 +48,7 @@ public class UIOverlayManager {
     private StoryPopup storyPopup;
     private TheEndPopup theEndPopup;
     private String currentNpcId;
+    private String currentInteriorBuildingId;
 
     private boolean menuOpened = false;
     private boolean visible = true;
@@ -66,7 +67,7 @@ public class UIOverlayManager {
         dossierButton = game.getButtonFactory().createButton(Assets.DOSSIER_BUTTON, 64, 64, this::showDossier);
         settingsButton = game.getButtonFactory().createButton(Assets.SETTINGS_BUTTON, 64, 64, this::showSettings);
         accuseButton = game.getButtonFactory().createButton(Assets.ACCUSATION_BUTTON, 64, 64, this::showAccusation);
-        homeButton = game.getButtonFactory().createButton(Assets.HOME_BUTTON, 64, 64, this::backToMap);
+        homeButton = game.getButtonFactory().createButton(Assets.HOME_BUTTON, 64, 64, this::backToMap, false);
         chatButton = game.getButtonFactory().createButton(Assets.CHAT_BUTTON, 64, 64, this::showChatHistory);
 
         dossierBadge = new Image(new Texture(Assets.BADGE));
@@ -104,6 +105,10 @@ public class UIOverlayManager {
     private void backToMap() {
         if (!inInterior) return;
 
+        if (game.getAudioManager() != null) {
+            game.getAudioManager().playLocationTransition(currentInteriorBuildingId);
+        }
+
         game.getTransition().startFadeOut(0.7f, () -> {
             game.setScreen(new MapScreen(game, game.getTransition()));
             game.getTransition().startFadeIn(0.7f);
@@ -137,6 +142,10 @@ public class UIOverlayManager {
             chatHistoryPopup.remove();
             chatHistoryPopup = null;
         }
+    }
+
+    public void setCurrentInteriorBuildingId(String buildingId) {
+        this.currentInteriorBuildingId = buildingId;
     }
 
     private void showChatHistory() {
@@ -252,6 +261,9 @@ public class UIOverlayManager {
 
     public void setInInterior(boolean value) {
         this.inInterior = value;
+        if (!value) {
+            currentInteriorBuildingId = null;
+        }
         updateUIVisibility();
     }
 
@@ -403,6 +415,7 @@ public class UIOverlayManager {
         resetTimer();
 
         currentNpcId = null;
+        currentInteriorBuildingId = null;
         newFactsCount = 0;
         menuOpened = false;
         inInterior = false;

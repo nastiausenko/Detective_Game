@@ -9,6 +9,7 @@ import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.domain.world.LoreDatabase;
 import com.gdx.game.ai.LlmClient;
 import com.gdx.game.ai.NpcDialogueService;
+import com.gdx.game.infrastructure.AudioManager;
 import com.gdx.game.ui.overlay.FadeTransition;
 import com.gdx.game.ui.screens.MenuScreen;
 import com.gdx.game.infrastructure.UIButtonFactory;
@@ -19,6 +20,7 @@ import com.gdx.game.ui.overlay.UIOverlayManager;
 public class DetectiveGame extends Game {
     public SpriteBatch batch;
     public UIOverlayManager overlay;
+    public AudioManager audioManager;
 
     private UIButtonFactory buttonFactory;
     private FadeTransition transition;
@@ -42,7 +44,10 @@ public class DetectiveGame extends Game {
     public void create() {
         batch = new SpriteBatch();
         transition = new FadeTransition();
-        buttonFactory = new UIButtonFactory();
+        audioManager = new AudioManager();
+        audioManager.load();
+
+        buttonFactory = new UIButtonFactory(audioManager);
 
         Json json = new Json();
         dossierDb = json.fromJson(DossierDatabase.class, Gdx.files.internal("dossier_ukr.json"));
@@ -62,7 +67,6 @@ public class DetectiveGame extends Game {
         investigationState = new InvestigationState();
         epilogueService = new EpilogueService(llmClient, loreDb, dossierDb, npcDialogueService);
         npcLocationService = new NpcLocationService();
-
         overlay = new UIOverlayManager(this);
 
         setScreen(new MenuScreen(this, transition));
@@ -79,6 +83,7 @@ public class DetectiveGame extends Game {
     public void dispose() {
         if (overlay != null) overlay.dispose();
         if (batch != null) batch.dispose();
+        if (audioManager != null) audioManager.dispose();
     }
 
     public UIButtonFactory getButtonFactory() {
@@ -91,6 +96,10 @@ public class DetectiveGame extends Game {
 
     public DossierDatabase getDossierDb() {
         return dossierDb;
+    }
+
+    public AudioManager getAudioManager() {
+        return audioManager;
     }
 
     public NpcDialogueService getNpcDialogueService() {
