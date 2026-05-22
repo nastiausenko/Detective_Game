@@ -18,9 +18,11 @@ public class SettingsPopup extends AbstractPopup {
 
     private final Image exitBtn;
     private final Image continueBtn;
+    private final Image soundBtn;
 
     private final DetectiveGame game;
     private final FadeTransition transition;
+    private SoundPopup soundPopup;
 
     public SettingsPopup(Stage stage, DetectiveGame game, FadeTransition transition) {
         super(stage);
@@ -38,6 +40,7 @@ public class SettingsPopup extends AbstractPopup {
 
         continueBtn = game.getButtonFactory().createButton(Assets.CONTINUE_BUTTON, 0, 0, this::remove);
         exitBtn = game.getButtonFactory().createButton(Assets.EXIT_BUTTON, 0, 0, this::handleExit);
+        soundBtn = game.getButtonFactory().createButton(Assets.SOUND_SETTINGS_BUTTON, 0, 0, this::showSound);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
@@ -49,6 +52,14 @@ public class SettingsPopup extends AbstractPopup {
                 transition.startFadeIn(0.7f);
             });
         }
+    }
+
+    private void showSound() {
+        if (soundPopup == null) {
+            soundPopup = new SoundPopup(stage, game);
+        }
+
+        soundPopup.show();
     }
 
     public void resize(float screenWidth, float screenHeight) {
@@ -68,6 +79,18 @@ public class SettingsPopup extends AbstractPopup {
             settImage.getX() + (settImage.getWidth() - btnWidth) / 2f,
             exitBtn.getY() + btnHeight + buttonGap
         );
+
+        float soundBtnWidth = settImage.getWidth() * (565f / 753f);
+        float soundBtnHeight = settImage.getHeight() * (149f / 1024f);
+        soundBtn.setSize(soundBtnWidth, soundBtnHeight);
+        soundBtn.setPosition(
+            settImage.getX() + (settImage.getWidth() - soundBtnWidth) / 2f,
+            settImage.getY() + settImage.getHeight() * (96f / 1024f)
+        );
+
+        if (soundPopup != null) {
+            soundPopup.resize(screenWidth, screenHeight);
+        }
     }
 
     @Override
@@ -76,17 +99,26 @@ public class SettingsPopup extends AbstractPopup {
         stage.addActor(settImage);
         stage.addActor(continueBtn);
         stage.addActor(exitBtn);
+        stage.addActor(soundBtn);
     }
 
     @Override
     public void remove() {
+        if (soundPopup != null) {
+            soundPopup.remove();
+        }
+
         super.remove();
         settImage.remove();
         continueBtn.remove();
         exitBtn.remove();
+        soundBtn.remove();
     }
 
     public void dispose() {
         settTexture.dispose();
+        if (soundPopup != null) {
+            soundPopup.dispose();
+        }
     }
 }

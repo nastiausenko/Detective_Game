@@ -23,6 +23,10 @@ public class Assets {
     public static final String CLOSE_BUTTON = "menu/note/close_btn.png";
 
     public static final String SETTINGS = "menu/settings/settings.png";
+    public static final String SOUND_SETTINGS_BUTTON = "menu/settings/sound_btn.png";
+    public static final String SOUND_SETTINGS_POPUP = "menu/settings/sound/sound.png";
+    public static final String SOUND_TOGGLE_CHECKED = "menu/settings/sound/checked.png";
+    public static final String SOUND_TOGGLE_UNCHECKED = "menu/settings/sound/unchecked.png";
 
     public static final String DOSSIER_VICTIM = "menu/dossier/dossier_victim.png";
     public static final String DOSSIER_SISTER = "menu/dossier/dossier_sister.png";
