@@ -4,11 +4,16 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.math.MathUtils;
 
 public class AudioManager {
     private static final String PREFS_NAME = "audio_settings";
     private static final String PREF_MUSIC_ENABLED = "musicEnabled";
     private static final String PREF_SOUND_EFFECTS_ENABLED = "soundEffectsEnabled";
+    private static final String PREF_MASTER_VOLUME = "masterVolume";
+    private static final float MUSIC_VOLUME = 0.35f;
+    private static final float BUTTON_VOLUME = 0.45f;
+    private static final float TRANSITION_VOLUME = 0.55f;
 
     private Sound buttonClick;
     private Sound homeTransition;
@@ -18,11 +23,13 @@ public class AudioManager {
     private boolean currentAmbienceLooping;
     private boolean musicEnabled = true;
     private boolean soundEffectsEnabled = true;
+    private float masterVolume = 1f;
 
     public void load() {
         Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
         musicEnabled = prefs.getBoolean(PREF_MUSIC_ENABLED, true);
         soundEffectsEnabled = prefs.getBoolean(PREF_SOUND_EFFECTS_ENABLED, true);
+        masterVolume = MathUtils.clamp(prefs.getFloat(PREF_MASTER_VOLUME, 1f), 0f, 1f);
 
         buttonClick = Gdx.audio.newSound(Gdx.files.internal(Assets.SOUND_BUTTON));
         homeTransition = Gdx.audio.newSound(Gdx.files.internal(Assets.SOUND_DOOR));
@@ -30,10 +37,10 @@ public class AudioManager {
     }
 
     public void playButtonClick() {
-        if (!soundEffectsEnabled) return;
+        if (!soundEffectsEnabled || masterVolume <= 0f) return;
 
         if (buttonClick != null) {
-            buttonClick.play(0.45f);
+            buttonClick.play(BUTTON_VOLUME * masterVolume);
         }
     }
 
@@ -88,13 +95,29 @@ public class AudioManager {
         }
     }
 
+    public float getMasterVolume() {
+        return masterVolume;
+    }
+
+    public void setMasterVolume(float volume) {
+        float clampedVolume = MathUtils.clamp(volume, 0f, 1f);
+        if (Math.abs(masterVolume - clampedVolume) < 0.001f) return;
+
+        masterVolume = clampedVolume;
+        saveSettings();
+
+        if (currentAmbience != null) {
+            currentAmbience.setVolume(MUSIC_VOLUME * masterVolume);
+        }
+    }
+
     private void playCurrentAmbience() {
         if (currentAmbiencePath == null) return;
 
         stopCurrentAmbience();
         currentAmbience = Gdx.audio.newMusic(Gdx.files.internal(currentAmbiencePath));
         currentAmbience.setLooping(currentAmbienceLooping);
-        currentAmbience.setVolume(0.35f);
+        currentAmbience.setVolume(MUSIC_VOLUME * masterVolume);
         currentAmbience.play();
     }
 
@@ -115,10 +138,10 @@ public class AudioManager {
     }
 
     private void playOneShot(Sound sound) {
-        if (!soundEffectsEnabled) return;
+        if (!soundEffectsEnabled || masterVolume <= 0f) return;
 
         if (sound != null) {
-            sound.play(0.55f);
+            sound.play(TRANSITION_VOLUME * masterVolume);
         }
     }
 
@@ -140,6 +163,7 @@ public class AudioManager {
         Preferences prefs = Gdx.app.getPreferences(PREFS_NAME);
         prefs.putBoolean(PREF_MUSIC_ENABLED, musicEnabled);
         prefs.putBoolean(PREF_SOUND_EFFECTS_ENABLED, soundEffectsEnabled);
+        prefs.putFloat(PREF_MASTER_VOLUME, masterVolume);
         prefs.flush();
     }
 
