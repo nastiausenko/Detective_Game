@@ -6,14 +6,14 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.world.BuildingData;
-import com.gdx.game.infrastructure.AudioManager;
 import com.gdx.game.ui.component.chars.BuildingLoader;
 import com.gdx.game.ui.component.chars.CharacterIcon;
 import com.gdx.game.ui.component.chars.CharacterLoader;
@@ -27,6 +27,9 @@ import java.util.Map;
 import java.util.Objects;
 
 public class MapScreen implements Screen {
+    private static final boolean DEBUG_BUILDING_RECTS = false;
+    private static final float FOUNTAIN_FRAME_DURATION = 0.14f;
+
     private final DetectiveGame game;
     private final FadeTransition transition;
     private final TiledTextureHelper tiledHelper;
@@ -34,9 +37,13 @@ public class MapScreen implements Screen {
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
     private final Stage mapStage;
+    private final ShapeRenderer shapeRenderer;
 
     private final Texture mapTexture;
+    private final Texture[] fountainTextures;
+    private final Animation<TextureRegion> fountainAnimation;
     private float drawWidth, drawHeight;
+    private float fountainAnimationTime;
 
     private final MapInputController inputController;
 
@@ -52,10 +59,13 @@ public class MapScreen implements Screen {
 
         mapTexture = new Texture(Assets.MAP_BACKGROUND);
         tiledHelper = new TiledTextureHelper(mapTexture, 256);
+        fountainTextures = loadFountainTextures();
+        fountainAnimation = createFountainAnimation(fountainTextures);
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
         mapStage = new Stage(viewport, game.batch);
+        shapeRenderer = new ShapeRenderer();
 
         inputController = new MapInputController(camera, viewport);
 
@@ -88,7 +98,6 @@ public class MapScreen implements Screen {
     @Override
     public void render(float delta) {
         boolean isIOS = Gdx.app.getType() == Application.ApplicationType.iOS;
-        ScreenUtils.clear(0, 0, 0, 1);
 
         inputController.handleKeyboard(delta);
         syncIconsWithNpcLocations();
@@ -101,6 +110,12 @@ public class MapScreen implements Screen {
             game.batch.begin();
             game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
             game.batch.end();
+        }
+
+        drawFountainAnimation(delta);
+
+        if (DEBUG_BUILDING_RECTS) {
+            drawBuildingDebugRects();
         }
 
         mapStage.act(delta);
@@ -144,7 +159,11 @@ public class MapScreen implements Screen {
     @Override
     public void dispose() {
         mapTexture.dispose();
+        for (Texture texture : fountainTextures) {
+            texture.dispose();
+        }
         mapStage.dispose();
+        shapeRenderer.dispose();
         if (transition != null) transition.dispose();
     }
 
@@ -183,9 +202,37 @@ public class MapScreen implements Screen {
         ));
     }
 
+    private Texture[] loadFountainTextures() {
+        return new Texture[]{
+            new Texture(Assets.FOUNTAIN_FRAME_1),
+            new Texture(Assets.FOUNTAIN_FRAME_2),
+            new Texture(Assets.FOUNTAIN_FRAME_3),
+            new Texture(Assets.FOUNTAIN_FRAME_4),
+            new Texture(Assets.FOUNTAIN_FRAME_5)
+        };
+    }
+
+    private Animation<TextureRegion> createFountainAnimation(Texture[] textures) {
+        TextureRegion[] frames = new TextureRegion[textures.length];
+        for (int i = 0; i < textures.length; i++) {
+            frames[i] = new TextureRegion(textures[i]);
+        }
+
+        Animation<TextureRegion> animation = new Animation<>(FOUNTAIN_FRAME_DURATION, frames);
+        animation.setPlayMode(Animation.PlayMode.LOOP_PINGPONG);
+        return animation;
+    }
+
+    private void drawFountainAnimation(float delta) {
+        fountainAnimationTime += delta;
+
+        game.batch.begin();
+        game.batch.draw(fountainAnimation.getKeyFrame(fountainAnimationTime), 0, 0, drawWidth, drawHeight);
+        game.batch.end();
+    }
+
     //TODO temporary method for visualizing building coords
     private void drawBuildingDebugRects() {
-        ShapeRenderer shapeRenderer = new ShapeRenderer();
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(1, 1, 0, 1);
