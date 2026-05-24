@@ -1,13 +1,13 @@
 [
-  { "id": "cafe", "x": 0.12, "y": 0.68, "width": 0.15, "height": 0.08 },
-  { "id": "shop", "x": 0.095, "y": 0.81, "width": 0.18, "height": 0.106, "interiorBackground": "map/interior/shop.png" },
-  { "id": "hospital", "x": 0.657, "y": 0.84, "width": 0.255, "height": 0.13, "interiorBackground": "map/interior/hospital.png" },
-  { "id": "med_school", "x": 0.69, "y": 0.66, "width": 0.24, "height": 0.15, "interiorBackground": "map/interior/med_school.png"},
-  { "id": "town_hall", "x": 0.637, "y": 0.28, "width": 0.25, "height": 0.15, "interiorBackground": "map/interior/town_hall.png" },
-  { "id": "house1", "x": 0.37, "y": 0.26, "width": 0.13, "height": 0.13 },
-  { "id": "house2", "x": 0.07, "y": 0.25, "width": 0.15, "height": 0.09, "interiorBackground": "map/interior/house_2.png" },
-  { "id": "house3", "x": 0.26, "y": 0.075, "width": 0.16, "height": 0.095 },
-  { "id": "house4", "x": 0.49, "y": 0, "width": 0.18, "height": 0.077 },
-  { "id": "house5", "x": 0.22, "y": 0.535, "width": 0.145, "height": 0.11 },
-  { "id": "barn", "x": 0.42, "y": 0.515, "width": 0.13, "height": 0.07 }
+  { "id": "cafe", "x": 0.12, "y": 0.62, "width": 0.13, "height": 0.12, "interiorBackground": "map/interior/img_6.png"},
+  { "id": "shop", "x": 0.1, "y": 0.78, "width": 0.18, "height": 0.102, "interiorBackground": "map/interior/shop.png" },
+  { "id": "hospital", "x": 0.67, "y": 0.78, "width": 0.23, "height": 0.13, "interiorBackground": "map/interior/hospital.png" },
+  { "id": "med_school", "x": 0.657, "y": 0.6, "width": 0.26, "height": 0.15, "interiorBackground": "map/interior/med_school.png"},
+  { "id": "town_hall", "x": 0.58, "y": 0.25, "width": 0.3, "height": 0.13, "interiorBackground": "map/interior/town_hall.png" },
+  { "id": "doctor_house", "x": 0.35, "y": 0.26, "width": 0.14, "height": 0.12, "interiorBackground": "map/interior/doctor_house.png" },
+  { "id": "sister_house", "x": 0.08, "y": 0.3, "width": 0.15, "height": 0.1, "interiorBackground": "map/interior/sister_house.png" },
+  { "id": "professor_house", "x": 0.08, "y": 0.17, "width": 0.16, "height": 0.11 },
+  { "id": "cashier_house", "x": 0.35, "y": 0.07, "width": 0.15, "height": 0.12 },
+  { "id": "officer_house", "x": 0.15, "y": 0.47, "width": 0.145, "height": 0.11 },
+  { "id": "student_house", "x": 0.42, "y": 0.45, "width": 0.1, "height": 0.08 }
 ]

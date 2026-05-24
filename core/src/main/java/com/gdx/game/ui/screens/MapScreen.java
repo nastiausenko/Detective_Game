@@ -4,12 +4,14 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
@@ -29,6 +31,12 @@ import java.util.Objects;
 public class MapScreen implements Screen {
     private static final boolean DEBUG_BUILDING_RECTS = false;
     private static final float FOUNTAIN_FRAME_DURATION = 0.14f;
+    private static final float MAX_NIGHT_ALPHA = 0.52f;
+    private static final float MAX_LIGHT_ALPHA = 0.82f;
+    private static final int DAWN_START_MINUTE = 5 * 60;
+    private static final int DAY_START_MINUTE = 7 * 60;
+    private static final int DUSK_START_MINUTE = 17 * 60;
+    private static final int NIGHT_START_MINUTE = 20 * 60;
 
     private final DetectiveGame game;
     private final FadeTransition transition;
@@ -40,10 +48,14 @@ public class MapScreen implements Screen {
     private final ShapeRenderer shapeRenderer;
 
     private final Texture mapTexture;
+    private final Texture lightOverlayTexture;
     private final Texture[] fountainTextures;
+    private final Texture[] lakeTextures;
     private final Animation<TextureRegion> fountainAnimation;
+    private final Animation<TextureRegion> lakeAnimation;
     private float drawWidth, drawHeight;
     private float fountainAnimationTime;
+    private float lakeAnimationTime;
 
     private final MapInputController inputController;
 
@@ -58,9 +70,12 @@ public class MapScreen implements Screen {
         this.transition = transition;
 
         mapTexture = new Texture(Assets.MAP_BACKGROUND);
+        lightOverlayTexture = new Texture(Assets.MAP_LIGHT_OVERLAY);
         tiledHelper = new TiledTextureHelper(mapTexture, 256);
         fountainTextures = loadFountainTextures();
         fountainAnimation = createFountainAnimation(fountainTextures);
+        lakeTextures = loadLakeTextures();
+        lakeAnimation = createLakeAnimation(lakeTextures);
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -113,6 +128,8 @@ public class MapScreen implements Screen {
         }
 
         drawFountainAnimation(delta);
+        drawLakeAnimation(delta);
+        drawDayNightEffect();
 
         if (DEBUG_BUILDING_RECTS) {
             drawBuildingDebugRects();
@@ -159,7 +176,11 @@ public class MapScreen implements Screen {
     @Override
     public void dispose() {
         mapTexture.dispose();
+        lightOverlayTexture.dispose();
         for (Texture texture : fountainTextures) {
+            texture.dispose();
+        }
+        for (Texture texture : lakeTextures) {
             texture.dispose();
         }
         mapStage.dispose();
@@ -212,7 +233,23 @@ public class MapScreen implements Screen {
         };
     }
 
+    private Texture[] loadLakeTextures() {
+        return new Texture[]{
+            new Texture(Assets.LAKE_FRAME_1),
+            new Texture(Assets.LAKE_FRAME_2),
+            new Texture(Assets.LAKE_FRAME_3)
+        };
+    }
+
     private Animation<TextureRegion> createFountainAnimation(Texture[] textures) {
+        return createPingPongAnimation(textures);
+    }
+
+    private Animation<TextureRegion> createLakeAnimation(Texture[] textures) {
+        return createPingPongAnimation(textures);
+    }
+
+    private Animation<TextureRegion> createPingPongAnimation(Texture[] textures) {
         TextureRegion[] frames = new TextureRegion[textures.length];
         for (int i = 0; i < textures.length; i++) {
             frames[i] = new TextureRegion(textures[i]);
@@ -228,6 +265,84 @@ public class MapScreen implements Screen {
 
         game.batch.begin();
         game.batch.draw(fountainAnimation.getKeyFrame(fountainAnimationTime), 0, 0, drawWidth, drawHeight);
+        game.batch.end();
+    }
+
+    private void drawLakeAnimation(float delta) {
+        lakeAnimationTime += delta;
+
+        game.batch.begin();
+        game.batch.draw(lakeAnimation.getKeyFrame(lakeAnimationTime), 0, 0, drawWidth, drawHeight);
+        game.batch.end();
+    }
+
+    private void drawDayNightEffect() {
+        float nightAlpha = calculateNightAlpha();
+        float lightAlpha = calculateLightAlpha();
+
+        if (nightAlpha <= 0f && lightAlpha <= 0f) {
+            return;
+        }
+
+        drawNightOverlay(nightAlpha);
+        drawLightOverlay(lightAlpha);
+    }
+
+    private float calculateNightAlpha() {
+        return MAX_NIGHT_ALPHA * calculateNightProgress();
+    }
+
+    private float calculateLightAlpha() {
+        return MAX_LIGHT_ALPHA * calculateNightProgress();
+    }
+
+    private float calculateNightProgress() {
+        int minute = game.overlay.getTimer().getMinutesOfCurrentDay();
+
+        if (minute >= NIGHT_START_MINUTE || minute < DAWN_START_MINUTE) {
+            return 1f;
+        }
+
+        if (minute < DAY_START_MINUTE) {
+            return 1f - smoothStep(DAWN_START_MINUTE, DAY_START_MINUTE, minute);
+        }
+
+        if (minute < DUSK_START_MINUTE) {
+            return 0f;
+        }
+
+        return smoothStep(DUSK_START_MINUTE, NIGHT_START_MINUTE, minute);
+    }
+
+    private float smoothStep(int start, int end, int value) {
+        float progress = MathUtils.clamp((value - start) / (float) (end - start), 0f, 1f);
+        return progress * progress * (3f - 2f * progress);
+    }
+
+    private void drawNightOverlay(float alpha) {
+        if (alpha <= 0f) return;
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.02f, 0.035f, 0.12f, alpha);
+        shapeRenderer.rect(0, 0, drawWidth, drawHeight);
+        shapeRenderer.end();
+
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+    }
+
+    private void drawLightOverlay(float alpha) {
+        if (alpha <= 0f) return;
+
+        game.batch.begin();
+        game.batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
+        game.batch.setColor(1f, 1f, 1f, alpha);
+        game.batch.draw(lightOverlayTexture, 0, 0, drawWidth, drawHeight);
+        game.batch.setColor(1f, 1f, 1f, 1f);
+        game.batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         game.batch.end();
     }
 

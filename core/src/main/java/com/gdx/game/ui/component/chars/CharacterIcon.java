@@ -24,7 +24,7 @@ public class CharacterIcon extends Image {
     private String buildingId;
     private BuildingData linkedBuilding;
     private String fallbackInteriorBackground;
-    private final float baseSize = 40;
+    private final float baseSize = 50;
 
     private boolean positionInitialized = false;
     private boolean moving = false;
@@ -41,7 +41,7 @@ public class CharacterIcon extends Image {
         this.fullBodyPath = fullBodyPath;
         this.buildingId = buildingId;
 
-        setSize(baseSize, baseSize * 1.3f);
+        setSize(baseSize , baseSize);
 
         getColor().a = 0.7f;
 

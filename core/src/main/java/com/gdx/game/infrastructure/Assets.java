@@ -1,13 +1,22 @@
 package com.gdx.game.infrastructure;
 
 public class Assets {
-    public static final String MENU_BACKGROUND = "background.png";
+    public static final String MENU_BACKGROUND = "background2.png";
     public static final String START_BUTTON = "menu/home/start_btn.png";
     public static final String EXIT_MENU_BUTTON = "menu/home/exit_btn.png";
     public static final String NEW_GAME_BUTTON = "menu/home/new_btn.png";
     public static final String GAME_TITLE = "map/title.png";
 
-    public static final String MAP_BACKGROUND = "map.png";
+    public static final String MAP_BACKGROUND = "map2.png";
+    public static final String FOUNTAIN_FRAME_1 = "map/animations/fountain/fountain1.png";
+    public static final String FOUNTAIN_FRAME_2 = "map/animations/fountain/fountain2.png";
+    public static final String FOUNTAIN_FRAME_3 = "map/animations/fountain/fountain3.png";
+    public static final String FOUNTAIN_FRAME_4 = "map/animations/fountain/fountain4.png";
+    public static final String FOUNTAIN_FRAME_5 = "map/animations/fountain/fountain5.png";
+    public static final String LAKE_FRAME_1 = "map/animations/lake/lake1.png";
+    public static final String LAKE_FRAME_2 = "map/animations/lake/lake2.png";
+    public static final String LAKE_FRAME_3 = "map/animations/lake/lake3.png";
+    public static final String MAP_LIGHT_OVERLAY = "map/animations/light2.png";
     public static final String TOGGLE_BUTTON_DOWN = "menu/arrow_down.png";
     public static final String TOGGLE_BUTTON_UP = "menu/arrow_up.png";
     public static final String NOTE_ICON = "menu/note/note_icon.png";

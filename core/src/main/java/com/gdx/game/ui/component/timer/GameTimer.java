@@ -142,4 +142,9 @@ public class GameTimer {
     public int getElapsedGameMinutes() {
         return (int) (elapsedRealTime * REAL_TO_GAME_MINUTES);
     }
+
+    public int getMinutesOfCurrentDay() {
+        int minutesInDay = getElapsedGameMinutes() + START_HOUR * 60;
+        return minutesInDay % (24 * 60);
+    }
 }
