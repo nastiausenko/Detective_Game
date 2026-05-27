@@ -2,7 +2,7 @@
   { "id": "ernst", "name": "Ernst Bauer", "icon": "chars/icons/officer2.png", "fullBody": "chars/full/officer2.png", "buildingId": "town_hall" },
   { "id": "mara", "name": "Mara Kovács", "icon": "chars/icons/doctor2.png", "fullBody": "chars/full/doctor2.png", "buildingId": "hospital" },
   { "id": "liam", "name": "Liam Becker", "icon": "chars/icons/student2.png", "fullBody": "chars/full/student2.png", "buildingId": "med_school" },
-  { "id": "elena", "name": "Elena Varga", "icon": "chars/icons/cashier2.png", "fullBody": "chars/full/cashier2.png", "buildingId": "shop" },
-  { "id": "clara", "name": "Clara Weiss", "icon": "chars/icons/sister2.png", "fullBody": "chars/full/sister2.png", "buildingId": "house2" }
+  { "id": "elena", "name": "Elena Varga", "icon": "chars/icons/cashier2.png", "fullBody": "chars/full/cashier2.png", "buildingId": "cafe" },
+  { "id": "clara", "name": "Clara Weiss", "icon": "chars/icons/sister2.png", "fullBody": "chars/full/sister2.png", "buildingId": "sister_house" }
 ]
 

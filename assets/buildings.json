@@ -6,8 +6,8 @@
   { "id": "town_hall", "x": 0.58, "y": 0.25, "width": 0.3, "height": 0.13, "interiorBackground": "map/interior/town_hall.png" },
   { "id": "doctor_house", "x": 0.35, "y": 0.26, "width": 0.14, "height": 0.12, "interiorBackground": "map/interior/doctor_house.png" },
   { "id": "sister_house", "x": 0.08, "y": 0.3, "width": 0.15, "height": 0.1, "interiorBackground": "map/interior/sister_house.png" },
-  { "id": "professor_house", "x": 0.08, "y": 0.17, "width": 0.16, "height": 0.11 },
-  { "id": "cashier_house", "x": 0.35, "y": 0.07, "width": 0.15, "height": 0.12 },
-  { "id": "officer_house", "x": 0.15, "y": 0.47, "width": 0.145, "height": 0.11 },
-  { "id": "student_house", "x": 0.42, "y": 0.45, "width": 0.1, "height": 0.08 }
+  { "id": "professor_house", "x": 0.08, "y": 0.17, "width": 0.16, "height": 0.11, "interiorBackground": "map/interior/professor_house.png"  },
+  { "id": "cashier_house", "x": 0.35, "y": 0.07, "width": 0.15, "height": 0.12, "interiorBackground": "map/interior/cashier_house.png" },
+  { "id": "officer_house", "x": 0.15, "y": 0.47, "width": 0.145, "height": 0.11, "interiorBackground": "map/interior/officer_house.png" },
+  { "id": "student_house", "x": 0.42, "y": 0.45, "width": 0.1, "height": 0.08, "interiorBackground": "map/interior/student_house.png"}
 ]
