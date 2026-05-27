@@ -15,10 +15,13 @@ public class NpcLocationService {
     private static final String BUILDING_KEY_PREFIX = "npc.";
     private static final int MOVE_INTERVAL_GAME_MINUTES = 10;
     private static final int MOVE_CHANCE_PERCENT = 45;
+    private static final String VICTIM_HOME_BUILDING_ID = "doctor_house";
 
     private final Preferences prefs;
     private final Array<String> npcIds = new Array<>();
     private final Array<String> buildingIds = new Array<>();
+    private final ObjectMap<String, String> homeLocations = new ObjectMap<>();
+    private final ObjectSet<String> privateHomeBuildings = new ObjectSet<>();
     private final ObjectMap<String, String> defaultLocations = new ObjectMap<>();
     private final ObjectMap<String, String> currentLocations = new ObjectMap<>();
 
@@ -27,8 +30,9 @@ public class NpcLocationService {
 
     public NpcLocationService() {
         prefs = Gdx.app.getPreferences(PREFS_NAME);
-        loadCharacterDefaults();
+        configurePrivateHomes();
         loadBuildings();
+        loadCharacterDefaults();
         loadSavedState();
     }
 
@@ -68,7 +72,7 @@ public class NpcLocationService {
     public void reset() {
         currentLocations.clear();
         for (String npcId : npcIds) {
-            currentLocations.put(npcId, defaultLocations.get(npcId));
+            currentLocations.put(npcId, getSafeDefaultLocation(npcId));
         }
         hasSavedMovementSlot = false;
         lastProcessedMovementSlot = -1;
@@ -89,8 +93,23 @@ public class NpcLocationService {
             }
             npcIds.add(character.id);
             defaultLocations.put(character.id, character.buildingId);
-            currentLocations.put(character.id, character.buildingId);
+            currentLocations.put(character.id, getSafeDefaultLocation(character.id));
         }
+    }
+
+    private void configurePrivateHomes() {
+        registerHome("ernst", "officer_house");
+        registerHome("mara", "doctor_house");
+        registerHome("liam", "student_house");
+        registerHome("elena", "cashier_house");
+        registerHome("clara", "sister_house");
+
+        privateHomeBuildings.add(VICTIM_HOME_BUILDING_ID);
+    }
+
+    private void registerHome(String npcId, String buildingId) {
+        homeLocations.put(npcId, buildingId);
+        privateHomeBuildings.add(buildingId);
     }
 
     private void loadBuildings() {
@@ -122,6 +141,9 @@ public class NpcLocationService {
             if (savedBuildingId.isEmpty() || !isKnownBuilding(savedBuildingId)) {
                 continue;
             }
+            if (!isAllowedBuildingForNpc(npcId, savedBuildingId)) {
+                continue;
+            }
             currentLocations.put(npcId, savedBuildingId);
         }
     }
@@ -145,7 +167,7 @@ public class NpcLocationService {
                 occupiedBuildings.remove(currentBuildingId);
             }
 
-            Array<String> candidates = collectAvailableBuildings(currentBuildingId, occupiedBuildings);
+            Array<String> candidates = collectAvailableBuildings(npcId, currentBuildingId, occupiedBuildings);
             if (candidates.size == 0) {
                 if (currentBuildingId != null) {
                     occupiedBuildings.add(currentBuildingId);
@@ -159,10 +181,17 @@ public class NpcLocationService {
         }
     }
 
-    private Array<String> collectAvailableBuildings(String currentBuildingId, ObjectSet<String> occupiedBuildings) {
+    private Array<String> collectAvailableBuildings(
+        String npcId,
+        String currentBuildingId,
+        ObjectSet<String> occupiedBuildings
+    ) {
         Array<String> candidates = new Array<>();
         for (String buildingId : buildingIds) {
             if (buildingId.equals(currentBuildingId)) {
+                continue;
+            }
+            if (!isAllowedBuildingForNpc(npcId, buildingId)) {
                 continue;
             }
             if (occupiedBuildings.contains(buildingId)) {
@@ -196,6 +225,45 @@ public class NpcLocationService {
             }
         }
         return false;
+    }
+
+    private boolean isAllowedBuildingForNpc(String npcId, String buildingId) {
+        if (buildingId == null || buildingId.isEmpty()) {
+            return false;
+        }
+        if (VICTIM_HOME_BUILDING_ID.equals(buildingId)) {
+            return false;
+        }
+        if (!privateHomeBuildings.contains(buildingId)) {
+            return true;
+        }
+
+        String ownHome = homeLocations.get(npcId);
+        return buildingId.equals(ownHome);
+    }
+
+    private String getSafeDefaultLocation(String npcId) {
+        String defaultLocation = defaultLocations.get(npcId);
+        if (
+            defaultLocation != null
+                && isKnownBuilding(defaultLocation)
+                && isAllowedBuildingForNpc(npcId, defaultLocation)
+        ) {
+            return defaultLocation;
+        }
+
+        String ownHome = homeLocations.get(npcId);
+        if (ownHome != null && isKnownBuilding(ownHome)) {
+            return ownHome;
+        }
+
+        for (String buildingId : buildingIds) {
+            if (isAllowedBuildingForNpc(npcId, buildingId)) {
+                return buildingId;
+            }
+        }
+
+        return defaultLocation;
     }
 
     private void saveState() {
