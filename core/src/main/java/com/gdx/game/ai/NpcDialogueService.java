@@ -13,6 +13,10 @@ import com.gdx.game.domain.character.NpcState;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class NpcDialogueService {
     private static final int MAX_HISTORY_PAIRS = 6;
@@ -37,10 +41,20 @@ public class NpcDialogueService {
     private final LlmClient llmClient;
     private final DossierDatabase dossierDb;
     private final ObjectMap<String, NpcState> npcStates = new ObjectMap<>();
+    private final ExecutorService npcQuestionExecutor = createExecutor("npc-question-worker");
+    private final ExecutorService factRevealExecutor = createExecutor("npc-fact-worker");
 
     public NpcDialogueService(LlmClient llmClient, DossierDatabase dossierDb) {
         this.llmClient = llmClient;
         this.dossierDb = dossierDb;
+    }
+
+    private static ExecutorService createExecutor(String threadName) {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(r, threadName);
+            thread.setDaemon(true);
+            return thread;
+        });
     }
 
     public NpcState getStateForUi(String npcId) {
@@ -261,6 +275,20 @@ public class NpcDialogueService {
         return askNpcSync(npcId, question, null);
     }
 
+    public CompletableFuture<String> askNpcAsync(String npcId, String question, String currentBuildingId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return askNpcSync(npcId, question, currentBuildingId);
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }, npcQuestionExecutor);
+    }
+
+    public CompletableFuture<Void> runFactRevealCheckAsync(Runnable task) {
+        return CompletableFuture.runAsync(task, factRevealExecutor);
+    }
+
     public String askNpcSync(String npcId, String question, String currentBuildingId) throws IOException {
         NpcState state = getOrCreateState(npcId);
         state.questionsAsked += 1;
@@ -277,7 +305,12 @@ public class NpcDialogueService {
         return answer;
     }
 
-         private void updateStateAfterExchange(NpcState state, String question) {
+    public void dispose() {
+        npcQuestionExecutor.shutdownNow();
+        factRevealExecutor.shutdownNow();
+    }
+
+    private void updateStateAfterExchange(NpcState state, String question) {
             if (question == null) question = "";
 
             String qLower = question.toLowerCase(Locale.ROOT);

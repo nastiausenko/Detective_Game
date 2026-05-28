@@ -27,6 +27,7 @@ public class DetectiveGame extends Game {
 
     private DossierDatabase dossierDb;
     private LoreDatabase loreDb;
+    private LlmClient llmClient;
     private NpcDialogueService npcDialogueService;
     private InvestigationState investigationState;
     private EpilogueService epilogueService;
@@ -61,7 +62,7 @@ public class DetectiveGame extends Game {
             Gdx.app.error("LlmClient", "GROQ_API_KEY is missing");
         }
 
-        LlmClient llmClient = new LlmClient(openAiKey, groqKey);
+        llmClient = new LlmClient(openAiKey, groqKey);
 
         npcDialogueService = new NpcDialogueService(llmClient, dossierDb);
         investigationState = new InvestigationState();
@@ -82,6 +83,7 @@ public class DetectiveGame extends Game {
     @Override
     public void dispose() {
         if (overlay != null) overlay.dispose();
+        if (npcDialogueService != null) npcDialogueService.dispose();
         if (batch != null) batch.dispose();
         if (audioManager != null) audioManager.dispose();
     }

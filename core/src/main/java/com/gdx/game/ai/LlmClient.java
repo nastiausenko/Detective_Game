@@ -20,8 +20,6 @@ public class LlmClient {
     private final String openAiKey;
     private final String groqKey;
 
-    private final JsonReader jsonReader = new JsonReader();
-
     public LlmClient(String openAiKey, String groqKey) {
         this.openAiKey = openAiKey;
         this.groqKey = groqKey;
@@ -142,7 +140,7 @@ public class LlmClient {
     }
 
     private String extractAnswerFromResponse(String json) {
-        JsonValue root = jsonReader.parse(json);
+        JsonValue root = new JsonReader().parse(json);
         JsonValue choices = root.get("choices");
 
         if (choices == null || !choices.isArray() || choices.size == 0) {

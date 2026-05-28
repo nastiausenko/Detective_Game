@@ -99,7 +99,7 @@ public class NpcLocationService {
 
     private void configurePrivateHomes() {
         registerHome("ernst", "officer_house");
-        registerHome("mara", "doctor_house");
+        registerHome("mara", "professor_house");
         registerHome("liam", "student_house");
         registerHome("elena", "cashier_house");
         registerHome("clara", "sister_house");

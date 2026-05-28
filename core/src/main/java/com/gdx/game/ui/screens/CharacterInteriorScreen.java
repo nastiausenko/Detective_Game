@@ -36,10 +36,8 @@ import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.ScreenUtilsHelper;
 import com.gdx.game.utils.TiledTextureHelper;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
 
@@ -484,11 +482,13 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         final String q = question.trim();
-        final DossierData npcData = game.getDossierDb().characters.get(characterId);
-        final DossierData doctorData = game.getDossierDb().characters.get(DOCTOR_ID);
+        final String qLower = q.toLowerCase(Locale.ROOT);
 
         waitingForAnswer = true;
         inputField.setDisabled(true);
+
+        final DossierData npcData = game.getDossierDb().characters.get(characterId);
+        final DossierData doctorData = game.getDossierDb().characters.get(DOCTOR_ID);
 
         npcService.askNpcAsync(characterId, q, buildingId).whenComplete((answer, error) -> {
             String response = answer != null ? answer : "";
@@ -499,15 +499,15 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             }
 
             final String finalAnswer = response;
-            Runnable afterAnswerShown = error == null
-                ? () -> scheduleFactRevealCheck(q, finalAnswer, npcData, doctorData)
-                : null;
+            showAnswer(q, finalAnswer);
 
-            showAnswer(q, finalAnswer, afterAnswerShown);
+            if (error == null) {
+                scheduleFactRevealCheck(q, qLower, finalAnswer, npcData, doctorData);
+            }
         });
     }
 
-    private void showAnswer(String question, String answer, Runnable afterAnswerShown) {
+    private void showAnswer(String question, String answer) {
         Gdx.app.postRunnable(() -> {
             waitingForAnswer = false;
 
@@ -523,59 +523,47 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
                 DialogueHistory.append(characterId, question, answer);
             }
-
-            if (afterAnswerShown != null) {
-                afterAnswerShown.run();
-            }
         });
     }
 
     private void scheduleFactRevealCheck(
         String question,
+        String questionLower,
         String answer,
         DossierData npcData,
         DossierData doctorData
     ) {
-        npcService.runFactRevealCheckAsync(() ->
-            revealFactsInBackground(question, answer, npcData, doctorData)
-        ).whenComplete((ignored, error) -> {
+        npcService.runFactRevealCheckAsync(() -> {
+            IntArray candidateFactsNpc = new IntArray();
+            IntArray candidateFactsDoctor = new IntArray();
+
+            collectCandidateFacts(npcData, questionLower, candidateFactsNpc, "npc=" + characterId);
+            collectCandidateFacts(doctorData, questionLower, candidateFactsDoctor, "DOCTOR");
+
+            int newlyRevealedTotal = 0;
+
+            newlyRevealedTotal += revealFactsAfterExchange(characterId, npcData, question, answer,
+                candidateFactsNpc, "npc=" + characterId
+            );
+
+            newlyRevealedTotal += revealFactsAfterExchange(DOCTOR_ID, doctorData, question, answer,
+                candidateFactsDoctor, "DOCTOR");
+
+            if (newlyRevealedTotal > 0) {
+                int finalNew = newlyRevealedTotal;
+                Gdx.app.postRunnable(() ->
+                    game.overlay.onNewFactsDiscovered(finalNew));
+            }
+        }).whenComplete((ignored, error) -> {
             if (error != null) {
                 error.printStackTrace();
             }
         });
     }
 
-    private void revealFactsInBackground(
-        String question,
-        String answer,
-        DossierData npcData,
-        DossierData doctorData
-    ) {
-        IntArray candidateFactsNpc = new IntArray();
-        IntArray candidateFactsDoctor = new IntArray();
-        String revealText = (question + " " + answer).toLowerCase(Locale.ROOT);
-
-        collectCandidateFacts(npcData, revealText, candidateFactsNpc, "npc=" + characterId);
-        collectCandidateFacts(doctorData, revealText, candidateFactsDoctor, "DOCTOR");
-
-        int newlyRevealedTotal = 0;
-
-        newlyRevealedTotal += revealFactsAfterExchange(characterId, npcData, question, answer,
-            candidateFactsNpc, "npc=" + characterId
-        );
-
-        newlyRevealedTotal += revealFactsAfterExchange(DOCTOR_ID, doctorData, question, answer,
-            candidateFactsDoctor, "DOCTOR");
-
-        if (newlyRevealedTotal > 0) {
-            int finalNew = newlyRevealedTotal;
-            Gdx.app.postRunnable(() -> game.overlay.onNewFactsDiscovered(finalNew));
-        }
-    }
-
-    private void collectCandidateFacts(DossierData data, String revealTextLower, IntArray outIndexes, String debugPrefix) {
+    private void collectCandidateFacts(DossierData data, String questionLower, IntArray outIndexes, String debugPrefix) {
         if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) return;
-        if (revealTextLower == null || revealTextLower.isEmpty()) return;
+        if (questionLower == null || questionLower.isEmpty()) return;
 
         List<List<String>> allTriggers = data.hiddenFactTriggers;
 
@@ -590,7 +578,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
             if (triggersForFact == null || triggersForFact.isEmpty()) continue;
 
-            if (!matchesAnyTrigger(triggersForFact, revealTextLower)) {
+            if (!matchesAnyTrigger(triggersForFact, questionLower)) {
                 Gdx.app.log("FACT_DEBUG", "No trigger for fact #" + i + " (" + debugPrefix + ")");
                 continue;
             }
@@ -614,18 +602,11 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             String hidden = data.hiddenFacts.get(idx);
             if (hidden == null || hidden.isEmpty()) continue;
 
-            List<String> triggersForFact = getTriggersForFact(data, idx);
-            boolean logical = hasStrongAnswerEvidence(hidden, triggersForFact, answer);
-
-            if (logical) {
-                Gdx.app.log("FACT_DEBUG",
-                    "LOCAL_REVEAL_EVIDENCE (" + debugPrefix + ") fact #" + idx + " -> true");
-            } else {
-                try {
-                    logical = npcService.shouldRevealFactFromExchange(question, answer, hidden);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+            boolean logical = false;
+            try {
+                logical = npcService.shouldRevealFactFromExchange(question, answer, hidden);
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
 
             Gdx.app.log("FACT_DEBUG",
@@ -643,71 +624,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         return toReveal.size;
     }
 
-    private List<String> getTriggersForFact(DossierData data, int factIndex) {
-        if (data == null || data.hiddenFactTriggers == null) return null;
-        if (factIndex < 0 || factIndex >= data.hiddenFactTriggers.size()) return null;
-        return data.hiddenFactTriggers.get(factIndex);
-    }
-
-    private boolean hasStrongAnswerEvidence(String hiddenFact, List<String> triggers, String answer) {
-        String hiddenLower = normalizeForFactMatch(hiddenFact);
-        String answerLower = normalizeForFactMatch(answer);
-
-        if (hiddenLower.isEmpty() || answerLower.isEmpty()) return false;
-
-        Set<String> evidenceStems = new HashSet<>();
-
-        if (triggers != null) {
-            for (String trigger : triggers) {
-                String triggerLower = normalizeForFactMatch(trigger);
-                if (triggerLower.length() < 4) continue;
-                if (!answerLower.contains(triggerLower)) continue;
-                if (!isSpecificTriggerForFact(triggerLower, hiddenLower)) continue;
-
-                evidenceStems.add(toFactStem(triggerLower));
-            }
-        }
-
-        String[] hiddenWords = hiddenLower.split("[^\\p{L}\\p{Nd}']+");
-        for (String word : hiddenWords) {
-            String stem = toFactStem(word);
-            if (stem.length() < 4) continue;
-            if (answerLower.contains(stem)) {
-                evidenceStems.add(stem);
-            }
-        }
-
-        return evidenceStems.size() >= 2;
-    }
-
-    private String normalizeForFactMatch(String text) {
-        if (text == null) return "";
-        return text.toLowerCase(Locale.ROOT)
-            .replace('’', '\'')
-            .replace('`', '\'')
-            .trim();
-    }
-
-    private boolean isSpecificTriggerForFact(String triggerLower, String hiddenLower) {
-        return triggerLower.contains(" ")
-            || hiddenLower.contains(triggerLower)
-            || triggerLower.length() >= 8;
-    }
-
-    private String toFactStem(String text) {
-        if (text == null) return "";
-
-        String compact = text.replaceAll("[^\\p{L}\\p{Nd}']+", "");
-        if (compact.length() <= 5) return compact;
-        return compact.substring(0, 5);
-    }
-
-    private boolean matchesAnyTrigger(List<String> triggers, String revealTextLower) {
+    private boolean matchesAnyTrigger(List<String> triggers, String questionLower) {
         if (triggers == null || triggers.isEmpty()) return false;
 
         for (String t : triggers) {
             if (t == null || t.isEmpty()) continue;
-            if (revealTextLower.contains(t.toLowerCase(Locale.ROOT))) {
+            if (questionLower.contains(t.toLowerCase(Locale.ROOT))) {
                 return true;
             }
         }
