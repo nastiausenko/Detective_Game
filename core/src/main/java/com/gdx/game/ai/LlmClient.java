@@ -8,13 +8,17 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class LlmClient {
 
     private static final String OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+    private static final String OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
     private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
     private static final String OPENAI_MODEL = "gpt-5-mini";
+    private static final String OPENAI_EMBEDDING_MODEL = "text-embedding-3-small";
+    private static final int OPENAI_EMBEDDING_DIMENSIONS = 512;
     private static final String GROQ_MODEL = "openai/gpt-oss-120b";
 
     private final String openAiKey;
@@ -39,6 +43,16 @@ public class LlmClient {
                 throw groqErr;
             }
         }
+    }
+
+    public float[][] createEmbeddings(List<String> inputs) throws IOException {
+        if (inputs == null || inputs.isEmpty()) {
+            return new float[0][];
+        }
+
+        String body = buildOpenAiEmbeddingsBody(inputs);
+        String responseJson = postJson(OPENAI_EMBEDDINGS_URL, openAiKey, body);
+        return extractEmbeddingsFromResponse(responseJson, inputs.size());
     }
 
     private String askOpenAi(String systemPrompt, String userMessage) throws IOException {
@@ -78,6 +92,26 @@ public class LlmClient {
             "}";
     }
 
+    private String buildOpenAiEmbeddingsBody(List<String> inputs) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\n")
+            .append("  \"model\": ").append(jsonEscape(OPENAI_EMBEDDING_MODEL)).append(",\n")
+            .append("  \"encoding_format\": \"float\",\n")
+            .append("  \"dimensions\": ").append(OPENAI_EMBEDDING_DIMENSIONS).append(",\n")
+            .append("  \"input\": [\n");
+
+        for (int i = 0; i < inputs.size(); i++) {
+            if (i > 0) {
+                sb.append(",\n");
+            }
+            sb.append("    ").append(jsonEscape(inputs.get(i)));
+        }
+
+        sb.append("\n  ]\n")
+            .append("}");
+
+        return sb.toString();
+    }
 
     private String jsonEscape(String s) {
         if (s == null) return "\"\"";
@@ -137,6 +171,48 @@ public class LlmClient {
             }
         }
         return sb.toString();
+    }
+
+    private float[][] extractEmbeddingsFromResponse(String json, int expectedCount) throws IOException {
+        JsonValue root = new JsonReader().parse(json);
+        JsonValue data = root.get("data");
+
+        if (data == null || !data.isArray()) {
+            throw new IOException("Embeddings API response does not contain data array.");
+        }
+
+        float[][] embeddings = new float[expectedCount][];
+
+        for (JsonValue item = data.child; item != null; item = item.next) {
+            JsonValue indexNode = item.get("index");
+            JsonValue embeddingNode = item.get("embedding");
+
+            if (indexNode == null || embeddingNode == null || !embeddingNode.isArray()) {
+                continue;
+            }
+
+            int index = indexNode.asInt();
+            if (index < 0 || index >= expectedCount) {
+                continue;
+            }
+
+            float[] vector = new float[embeddingNode.size];
+            int vectorIndex = 0;
+            for (JsonValue value = embeddingNode.child; value != null; value = value.next) {
+                if (vectorIndex >= vector.length) break;
+                vector[vectorIndex] = value.asFloat();
+                vectorIndex++;
+            }
+            embeddings[index] = vector;
+        }
+
+        for (int i = 0; i < embeddings.length; i++) {
+            if (embeddings[i] == null) {
+                throw new IOException("Embeddings API response is missing vector at index " + i + ".");
+            }
+        }
+
+        return embeddings;
     }
 
     private String extractAnswerFromResponse(String json) {

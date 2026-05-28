@@ -11,5 +11,4 @@ public class DossierData {
 
     public List<String> publicFacts;
     public List<String> hiddenFacts;
-    public List<List<String>> hiddenFactTriggers;
 }

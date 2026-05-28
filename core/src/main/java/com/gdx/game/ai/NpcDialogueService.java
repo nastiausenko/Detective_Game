@@ -12,6 +12,8 @@ import com.gdx.game.domain.character.DossierDatabase;
 import com.gdx.game.domain.character.NpcState;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -21,6 +23,9 @@ import java.util.concurrent.Executors;
 public class NpcDialogueService {
     private static final int MAX_HISTORY_PAIRS = 6;
     private static final int MAX_HISTORY_CHARS = 1200;
+    private static final int FACT_RETRIEVAL_TOP_K = 2;
+    private static final float FACT_RETRIEVAL_MIN_SIMILARITY = 0.28f;
+    private static final float FACT_RETRIEVAL_FALLBACK_SIMILARITY = 0.20f;
     private static final float SESSION_BREAK_SECONDS = 180f;
     private static final String NPC_PREFS_NAME = "npc_state";
     private static final String GLOBAL_RULES =
@@ -41,6 +46,7 @@ public class NpcDialogueService {
     private final LlmClient llmClient;
     private final DossierDatabase dossierDb;
     private final ObjectMap<String, NpcState> npcStates = new ObjectMap<>();
+    private final ObjectMap<String, float[]> factEmbeddingCache = new ObjectMap<>();
     private final ExecutorService npcQuestionExecutor = createExecutor("npc-question-worker");
     private final ExecutorService factRevealExecutor = createExecutor("npc-fact-worker");
 
@@ -239,9 +245,17 @@ public class NpcDialogueService {
     public boolean shouldRevealFactFromExchange(String question, String answer, String hiddenFact) throws IOException {
         String system = "You are a STRICT binary classifier for a detective game. " +
                         "You receive a FACT, a detective QUESTION and an NPC ANSWER. " +
-                        "Answer YES only if the ANSWER explicitly mentions or clearly paraphrases " +
-                        "the KEY IDEA of the FACT.\n" +
-                        "- If the answer talks only about time, place, mood or generic things, answer NO.\n" +
+                        "Answer YES only if the NPC ANSWER explicitly mentions or clearly paraphrases " +
+                        "the exact KEY IDEA of the FACT.\n" +
+                        "- The QUESTION may define the topic and resolve pronouns, but it cannot reveal the fact by itself.\n" +
+                        "- Semantic similarity, same location, same time of day, or a shared broad topic is not enough.\n" +
+                        "- If the FACT contains a specific person, group, object, place, cause, or consequence, " +
+                        "the ANSWER must reveal that specific detail or a clear paraphrase of it.\n" +
+                        "- For example, an answer about hospital nights is NOT enough for a fact about children " +
+                        "unless the answer also reveals children or a child-related detail.\n" +
+                        "- For example, 'experiments existed' is NOT enough for a fact about pain sensitivity.\n" +
+                        "- If the detective asks about a specific relationship and the ANSWER admits it existed, answer YES.\n" +
+                        "- If the answer talks only about time, place, mood, work, or generic things, answer NO.\n" +
                         "- If you are NOT SURE, answer NO.\n" +
                         "Reply with a single word: YES or NO.";
 
@@ -255,6 +269,101 @@ public class NpcDialogueService {
 
         result = result.trim().toUpperCase(Locale.ROOT);
         return result.startsWith("YES");
+    }
+
+    public IntArray findRelevantHiddenFacts(
+        String npcId,
+        DossierData data,
+        String question,
+        String answer
+    ) throws IOException {
+        IntArray candidates = new IntArray();
+        if (npcId == null || data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) {
+            return candidates;
+        }
+
+        String exchangeText = buildExchangeEmbeddingText(question, answer);
+        if (exchangeText.isEmpty()) {
+            return candidates;
+        }
+
+        ArrayList<String> inputs = new ArrayList<>();
+        ArrayList<String> missingCacheKeys = new ArrayList<>();
+        int unrevealedFactCount = 0;
+
+        inputs.add(exchangeText);
+
+        for (int i = 0; i < data.hiddenFacts.size(); i++) {
+            String hiddenFact = data.hiddenFacts.get(i);
+            if (hiddenFact == null || hiddenFact.isEmpty()) continue;
+            if (isFactRevealed(npcId, i)) continue;
+
+            unrevealedFactCount++;
+            String cacheKey = buildFactEmbeddingCacheKey(npcId, i, hiddenFact);
+            if (!factEmbeddingCache.containsKey(cacheKey)) {
+                missingCacheKeys.add(cacheKey);
+                inputs.add(buildFactEmbeddingText(data, hiddenFact));
+            }
+        }
+
+        if (unrevealedFactCount == 0) {
+            return candidates;
+        }
+
+        float[][] embeddings = llmClient.createEmbeddings(inputs);
+        float[] exchangeEmbedding = embeddings[0];
+
+        for (int i = 0; i < missingCacheKeys.size(); i++) {
+            factEmbeddingCache.put(missingCacheKeys.get(i), embeddings[i + 1]);
+        }
+
+        List<FactCandidate> ranked = new ArrayList<>();
+        for (int i = 0; i < data.hiddenFacts.size(); i++) {
+            String hiddenFact = data.hiddenFacts.get(i);
+            if (hiddenFact == null || hiddenFact.isEmpty()) continue;
+            if (isFactRevealed(npcId, i)) continue;
+
+            String cacheKey = buildFactEmbeddingCacheKey(npcId, i, hiddenFact);
+            float[] factEmbedding = factEmbeddingCache.get(cacheKey);
+            if (factEmbedding == null) continue;
+
+            float similarity = cosineSimilarity(exchangeEmbedding, factEmbedding);
+            Gdx.app.log("FACT_DEBUG",
+                "SEMANTIC_SCORE (npc=" + npcId + ") fact #" + i + " -> "
+                    + String.format(Locale.ROOT, "%.3f", similarity));
+
+            ranked.add(new FactCandidate(i, similarity));
+        }
+
+        ranked.sort((a, b) -> Float.compare(b.similarity, a.similarity));
+
+        int maxCandidates = Math.min(FACT_RETRIEVAL_TOP_K, ranked.size());
+        for (int i = 0; i < maxCandidates; i++) {
+            FactCandidate candidate = ranked.get(i);
+            boolean aboveMainThreshold = candidate.similarity >= FACT_RETRIEVAL_MIN_SIMILARITY;
+            boolean usefulFallback = candidates.size == 0
+                && candidate.similarity >= FACT_RETRIEVAL_FALLBACK_SIMILARITY;
+
+            if (!aboveMainThreshold && !usefulFallback) {
+                continue;
+            }
+
+            Gdx.app.log("FACT_DEBUG",
+                "SEMANTIC_CANDIDATE (npc=" + npcId + ") fact #" + candidate.index + " -> "
+                    + String.format(Locale.ROOT, "%.3f", candidate.similarity));
+            candidates.add(candidate.index);
+        }
+
+        return candidates;
+    }
+
+    public boolean isFactRevealed(String npcId, int factIndex) {
+        if (npcId == null || factIndex < 0) return false;
+
+        NpcState state = getOrCreateState(npcId);
+        return state.hiddenRevealed != null
+            && factIndex < state.hiddenRevealed.length
+            && state.hiddenRevealed[factIndex];
     }
 
     public void markFactsRevealed(String npcId, IntArray factIndexes) {
@@ -308,6 +417,56 @@ public class NpcDialogueService {
     public void dispose() {
         npcQuestionExecutor.shutdownNow();
         factRevealExecutor.shutdownNow();
+    }
+
+    private String buildExchangeEmbeddingText(String question, String answer) {
+        String q = question != null ? question.trim() : "";
+        String a = answer != null ? answer.trim() : "";
+        if (q.isEmpty() && a.isEmpty()) return "";
+
+        return "Питання детектива: " + q + "\nВідповідь персонажа: " + a;
+    }
+
+    private String buildFactEmbeddingText(DossierData data, String hiddenFact) {
+        String name = data.name != null ? data.name : "";
+        String role = data.role != null ? data.role : "";
+        return "Прихований факт персонажа. Ім'я: " + name
+            + ". Роль: " + role
+            + ". Факт: " + hiddenFact;
+    }
+
+    private String buildFactEmbeddingCacheKey(String npcId, int factIndex, String hiddenFact) {
+        return npcId + ":" + factIndex + ":" + hiddenFact.hashCode();
+    }
+
+    private float cosineSimilarity(float[] a, float[] b) {
+        if (a == null || b == null) return 0f;
+
+        int length = Math.min(a.length, b.length);
+        if (length == 0) return 0f;
+
+        double dot = 0;
+        double aNorm = 0;
+        double bNorm = 0;
+
+        for (int i = 0; i < length; i++) {
+            dot += a[i] * b[i];
+            aNorm += a[i] * a[i];
+            bNorm += b[i] * b[i];
+        }
+
+        if (aNorm == 0 || bNorm == 0) return 0f;
+        return (float) (dot / (Math.sqrt(aNorm) * Math.sqrt(bNorm)));
+    }
+
+    private static class FactCandidate {
+        final int index;
+        final float similarity;
+
+        FactCandidate(int index, float similarity) {
+            this.index = index;
+            this.similarity = similarity;
+        }
     }
 
     private void updateStateAfterExchange(NpcState state, String question) {

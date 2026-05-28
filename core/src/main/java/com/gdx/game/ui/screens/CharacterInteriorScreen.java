@@ -36,7 +36,6 @@ import com.gdx.game.infrastructure.UiLayoutProfile;
 import com.gdx.game.utils.ScreenUtilsHelper;
 import com.gdx.game.utils.TiledTextureHelper;
 
-import java.util.List;
 import java.util.Locale;
 
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
@@ -482,7 +481,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         final String q = question.trim();
-        final String qLower = q.toLowerCase(Locale.ROOT);
 
         waitingForAnswer = true;
         inputField.setDisabled(true);
@@ -502,7 +500,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             showAnswer(q, finalAnswer);
 
             if (error == null) {
-                scheduleFactRevealCheck(q, qLower, finalAnswer, npcData, doctorData);
+                scheduleFactRevealCheck(q, finalAnswer, npcData, doctorData);
             }
         });
     }
@@ -528,17 +526,17 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private void scheduleFactRevealCheck(
         String question,
-        String questionLower,
         String answer,
         DossierData npcData,
         DossierData doctorData
     ) {
         npcService.runFactRevealCheckAsync(() -> {
-            IntArray candidateFactsNpc = new IntArray();
-            IntArray candidateFactsDoctor = new IntArray();
-
-            collectCandidateFacts(npcData, questionLower, candidateFactsNpc, "npc=" + characterId);
-            collectCandidateFacts(doctorData, questionLower, candidateFactsDoctor, "DOCTOR");
+            IntArray candidateFactsNpc = collectSemanticCandidateFacts(
+                characterId, npcData, question, answer, "npc=" + characterId
+            );
+            IntArray candidateFactsDoctor = collectSemanticCandidateFacts(
+                DOCTOR_ID, doctorData, question, answer, "DOCTOR"
+            );
 
             int newlyRevealedTotal = 0;
 
@@ -561,30 +559,24 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         });
     }
 
-    private void collectCandidateFacts(DossierData data, String questionLower, IntArray outIndexes, String debugPrefix) {
-        if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) return;
-        if (questionLower == null || questionLower.isEmpty()) return;
-
-        List<List<String>> allTriggers = data.hiddenFactTriggers;
-
-        for (int i = 0; i < data.hiddenFacts.size(); i++) {
-            String hidden = data.hiddenFacts.get(i);
-            if (hidden == null || hidden.isEmpty()) continue;
-
-            List<String> triggersForFact = null;
-            if (allTriggers != null && i < allTriggers.size()) {
-                triggersForFact = allTriggers.get(i);
+    private IntArray collectSemanticCandidateFacts(
+        String npcId,
+        DossierData data,
+        String question,
+        String answer,
+        String debugPrefix
+    ) {
+        try {
+            IntArray candidates = npcService.findRelevantHiddenFacts(npcId, data, question, answer);
+            if (candidates.size == 0) {
+                Gdx.app.log("FACT_DEBUG", "No semantic candidates (" + debugPrefix + ")");
             }
-
-            if (triggersForFact == null || triggersForFact.isEmpty()) continue;
-
-            if (!matchesAnyTrigger(triggersForFact, questionLower)) {
-                Gdx.app.log("FACT_DEBUG", "No trigger for fact #" + i + " (" + debugPrefix + ")");
-                continue;
-            }
-
-            Gdx.app.log("FACT_DEBUG", "Trigger hit for fact #" + i + " (" + debugPrefix + ")");
-            outIndexes.add(i);
+            return candidates;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            Gdx.app.log("FACT_DEBUG",
+                "Semantic retrieval failed; skipping fact check (" + debugPrefix + ")");
+            return new IntArray();
         }
     }
 
@@ -601,6 +593,14 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
             String hidden = data.hiddenFacts.get(idx);
             if (hidden == null || hidden.isEmpty()) continue;
+
+            if (shouldVetoRevealByLocalEvidence(hidden, answer)) {
+                Gdx.app.log("FACT_DEBUG",
+                    "LOCAL_REVEAL_VETO (" + debugPrefix + ") fact #" + idx + " -> true");
+                Gdx.app.log("FACT_DEBUG",
+                    "REVEAL_CHECK (" + debugPrefix + ") fact #" + idx + " -> false");
+                continue;
+            }
 
             boolean logical = false;
             try {
@@ -624,16 +624,129 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         return toReveal.size;
     }
 
-    private boolean matchesAnyTrigger(List<String> triggers, String questionLower) {
-        if (triggers == null || triggers.isEmpty()) return false;
+    private boolean shouldVetoRevealByLocalEvidence(String hiddenFact, String answer) {
+        String hiddenLower = normalizeForFactMatch(hiddenFact);
+        String answerLower = normalizeForFactMatch(answer);
+        if (hiddenLower.isEmpty() || answerLower.isEmpty()) return true;
 
-        for (String t : triggers) {
-            if (t == null || t.isEmpty()) continue;
-            if (questionLower.contains(t.toLowerCase(Locale.ROOT))) {
-                return true;
-            }
+        if (isRomanticFact(hiddenLower)) {
+            return !hasRomanticEvidence(answerLower);
+        }
+
+        if (containsAny(hiddenLower, "дит", "діт") && !hasChildEvidence(answerLower)) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "записк", "лист") && !hasNoteEvidence(answerLower)) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "лаборатор") && !containsAny(answerLower, "лаборатор", "лаба")) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "архів", "документ") && !hasArchiveEvidence(answerLower)) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "плач", "крик") && !containsAny(answerLower, "плач", "крик", "дитяч", "дит", "діт")) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "доступ", "ключ") && !hasAccessEvidence(answerLower)) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "клінік", "пацієнт", "пациент") && !hasClinicEvidence(answerLower)) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "больов", "болю", "біль", "чутлив") && !hasPainEvidence(answerLower)) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "зізнат", "зізнав", "зайшов надто далеко", "невиправн") && !hasConfessionEvidence(answerLower)) {
+            return true;
+        }
+
+        if (containsAny(hiddenLower, "закрити проєкт", "закрити проект", "закрити", "згорнут") && !hasProjectClosureEvidence(answerLower)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isRomanticFact(String hiddenLower) {
+        return hiddenLower.contains("роман")
+            || hiddenLower.contains("романтич")
+            || hiddenLower.contains("стосунк")
+            || hiddenLower.contains("зв'язок")
+            || hiddenLower.contains("звязок")
+            || hiddenLower.contains("кохан");
+    }
+
+    private boolean hasRomanticEvidence(String answerLower) {
+        return answerLower.contains("роман")
+            || answerLower.contains("стосунк")
+            || answerLower.contains("зв'язок")
+            || answerLower.contains("звязок")
+            || answerLower.contains("кохан")
+            || answerLower.contains("любов")
+            || answerLower.contains("зустрічал")
+            || answerLower.contains("побаченн")
+            || answerLower.contains("близьк")
+            || answerLower.contains("між нами")
+            || answerLower.contains("між мною")
+            || answerLower.contains("щось було");
+    }
+
+    private boolean hasChildEvidence(String answerLower) {
+        return containsAny(answerLower, "дит", "діт", "дитяч", "сирот", "неповноліт");
+    }
+
+    private boolean hasNoteEvidence(String answerLower) {
+        return containsAny(answerLower, "записк", "лист", "повідомлен", "папір", "папер", "написав", "написан");
+    }
+
+    private boolean hasArchiveEvidence(String answerLower) {
+        return containsAny(answerLower, "архів", "документ", "папк", "папер", "сховал", "забрала", "забрав");
+    }
+
+    private boolean hasAccessEvidence(String answerLower) {
+        return containsAny(answerLower, "доступ", "ключ", "ключі", "прохід", "пускав", "пустив", "зайти");
+    }
+
+    private boolean hasClinicEvidence(String answerLower) {
+        return containsAny(answerLower, "клінік", "пацієнт", "пациент", "лікуван", "дитинств", "фінансував");
+    }
+
+    private boolean hasPainEvidence(String answerLower) {
+        return containsAny(answerLower, "біль", "болю", "боляче", "чутлив", "поріг", "не відчува");
+    }
+
+    private boolean hasConfessionEvidence(String answerLower) {
+        return containsAny(answerLower, "зізнан", "зізнат", "провин", "невиправн", "надто далеко", "каят", "сповід");
+    }
+
+    private boolean hasProjectClosureEvidence(String answerLower) {
+        return containsAny(answerLower, "закрит", "закрити", "згорнут", "припин", "правд", "бояв", "боял");
+    }
+
+    private boolean containsAny(String text, String... needles) {
+        if (text == null || text.isEmpty() || needles == null) return false;
+        for (String needle : needles) {
+            if (needle == null || needle.isEmpty()) continue;
+            if (text.contains(needle)) return true;
         }
         return false;
+    }
+
+    private String normalizeForFactMatch(String text) {
+        if (text == null) return "";
+        return text.toLowerCase(Locale.ROOT)
+            .replace('’', '\'')
+            .replace('`', '\'')
+            .trim();
     }
 
     private void updateAnswerBubbleLayout(float screenWidth, float screenHeight) {
