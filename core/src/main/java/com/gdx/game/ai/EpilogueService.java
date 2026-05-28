@@ -156,7 +156,7 @@ public class EpilogueService {
                         anyForNpc = true;
                         npcPart.append((data.name != null ? data.name : npcId)).append(":\n");
                     }
-                    npcPart.append("  - ").append(data.hiddenFacts.get(i)).append("\n");
+                    npcPart.append("  - ").append(data.getHiddenFactText(i)).append("\n");
                 }
             }
 

@@ -162,7 +162,7 @@ public class DossierPopup extends AbstractPopup {
             }
 
             for (int i = 0; i < data.hiddenFacts.size(); i++) {
-                String fact = data.hiddenFacts.get(i);
+                String fact = data.getHiddenFactText(i);
 
                 boolean isRevealed =
                     revealed != null &&

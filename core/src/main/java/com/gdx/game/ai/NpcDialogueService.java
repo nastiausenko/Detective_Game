@@ -205,7 +205,7 @@ public class NpcDialogueService {
                 sb.append("FACTS_REVEALED (already clearly admitted, you cannot deny them):\n");
                 for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
                     if (state.hiddenRevealed[i]) {
-                        sb.append("- ").append(dossier.hiddenFacts.get(i)).append("\n");
+                        sb.append("- ").append(dossier.getHiddenFactText(i)).append("\n");
                     }
                 }
             }
@@ -214,7 +214,7 @@ public class NpcDialogueService {
                     .append("or you feel morally forced to confess; you may hint, dodge or partially admit):\n");
             for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
                 if (!state.hiddenRevealed[i]) {
-                    sb.append("- ").append(dossier.hiddenFacts.get(i)).append("\n");
+                    sb.append("- ").append(dossier.getHiddenFactText(i)).append("\n");
                 }
             }
         }
@@ -307,8 +307,8 @@ public class NpcDialogueService {
         inputs.add(exchangeText);
 
         for (int i = 0; i < data.hiddenFacts.size(); i++) {
-            String hiddenFact = data.hiddenFacts.get(i);
-            if (hiddenFact == null || hiddenFact.isEmpty()) continue;
+            String hiddenFact = data.getHiddenFactText(i);
+            if (hiddenFact.isEmpty()) continue;
             if (isFactRevealed(npcId, i)) continue;
 
             unrevealedFactCount++;
@@ -332,8 +332,8 @@ public class NpcDialogueService {
 
         List<FactCandidate> ranked = new ArrayList<>();
         for (int i = 0; i < data.hiddenFacts.size(); i++) {
-            String hiddenFact = data.hiddenFacts.get(i);
-            if (hiddenFact == null || hiddenFact.isEmpty()) continue;
+            String hiddenFact = data.getHiddenFactText(i);
+            if (hiddenFact.isEmpty()) continue;
             if (isFactRevealed(npcId, i)) continue;
 
             String cacheKey = buildFactEmbeddingCacheKey(npcId, i, hiddenFact);

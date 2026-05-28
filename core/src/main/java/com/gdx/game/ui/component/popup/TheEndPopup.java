@@ -48,6 +48,7 @@ public class TheEndPopup extends AbstractPopup {
                 GameData.clearAll();
                 game.getNpcDialogueService().resetAllNpcState();
                 game.getNpcLocationService().reset();
+                game.getCrimeSceneService().reset();
                 game.overlay.resetForNewGame();
 
                 InvestigationState inv = game.getInvestigationState();

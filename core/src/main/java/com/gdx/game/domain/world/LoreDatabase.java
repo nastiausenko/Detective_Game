@@ -26,8 +26,19 @@ public class LoreDatabase {
         public String weapon;
         public Array<String> crimeScenePublic;
         public Array<String> crimeSceneHidden;
+        public Array<CrimeSceneHint> crimeSceneHints;
         public String officialStory;
         public String realStory;
+    }
+
+    public static class CrimeSceneHint {
+        public String id;
+        public String locationId;
+        public float iconX;
+        public float iconY;
+        public String text;
+        public Array<String> unlockFactsAny;
+        public Array<String> unlockFactsAll;
     }
 
     public static class KillerView {

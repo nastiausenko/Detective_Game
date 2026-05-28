@@ -87,7 +87,7 @@ public class AccusationPopup extends AbstractPopup {
 
         float maxPortraitHeight = availableHeight * 0.4f;
 
-        float spacingX = maxPortraitHeight * 0.3f;
+        float spacingX = maxPortraitHeight * 0.2f;
         float spacingY = maxPortraitHeight * 0.3f;
 
         int[][] rows = {{0, 1, 2}, {3, 4}};

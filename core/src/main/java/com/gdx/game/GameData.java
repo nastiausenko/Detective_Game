@@ -10,7 +10,8 @@ public class GameData {
         "game_timer",
         "dialogue_history",
         "npc_state",
-        "npc_locations"
+        "npc_locations",
+        "crime_scene_state"
     };
 
     public static void clearAll() {

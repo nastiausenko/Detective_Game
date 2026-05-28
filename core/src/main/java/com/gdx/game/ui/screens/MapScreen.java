@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.world.BuildingData;
@@ -50,6 +51,7 @@ public class MapScreen implements Screen {
 
     private final Texture mapTexture;
     private final Texture lightOverlayTexture;
+    private final Texture crimeSceneBadgeTexture;
     private final Texture[] fountainTextures;
     private final Texture[] lakeTextures;
     private final Animation<TextureRegion> fountainAnimation;
@@ -62,6 +64,7 @@ public class MapScreen implements Screen {
 
     private final List<CharacterIcon> icons;
     private final CharacterIcon crimeSceneIcon;
+    private final Image crimeSceneBadge;
     private final List<BuildingData> buildings;
     private final Map<String, BuildingData> buildingMap;
 
@@ -73,6 +76,7 @@ public class MapScreen implements Screen {
 
         mapTexture = new Texture(Assets.MAP_BACKGROUND);
         lightOverlayTexture = new Texture(Assets.MAP_LIGHT_OVERLAY);
+        crimeSceneBadgeTexture = new Texture(Assets.BADGE);
         tiledHelper = new TiledTextureHelper(mapTexture, 256);
         fountainTextures = loadFountainTextures();
         fountainAnimation = createFountainAnimation(fountainTextures);
@@ -94,6 +98,8 @@ public class MapScreen implements Screen {
             null,
             CRIME_SCENE_BUILDING_ID
         );
+        crimeSceneBadge = new Image(crimeSceneBadgeTexture);
+        crimeSceneBadge.setVisible(false);
         buildings = BuildingLoader.loadBuildings("buildings.json");
         buildingMap = BuildingLoader.toMap(buildings);
     }
@@ -117,6 +123,7 @@ public class MapScreen implements Screen {
         BuildingData crimeSceneBuilding = buildingMap.get(CRIME_SCENE_BUILDING_ID);
         crimeSceneIcon.setBuilding(crimeSceneBuilding);
         mapStage.addActor(crimeSceneIcon);
+        mapStage.addActor(crimeSceneBadge);
 
        game.overlay.showProloguePublic();
 
@@ -147,6 +154,8 @@ public class MapScreen implements Screen {
         if (DEBUG_BUILDING_RECTS) {
             drawBuildingDebugRects();
         }
+
+        updateCrimeSceneBadge();
 
         mapStage.act(delta);
         mapStage.draw();
@@ -185,12 +194,14 @@ public class MapScreen implements Screen {
             marker.updatePositionFromBuilding(drawWidth, drawHeight, getMapScale());
         }
         crimeSceneIcon.updatePositionFromBuilding(drawWidth, drawHeight, getMapScale());
+        layoutCrimeSceneBadge();
     }
 
     @Override
     public void dispose() {
         mapTexture.dispose();
         lightOverlayTexture.dispose();
+        crimeSceneBadgeTexture.dispose();
         for (Texture texture : fountainTextures) {
             texture.dispose();
         }
@@ -228,6 +239,27 @@ public class MapScreen implements Screen {
         String buildingId = game.getNpcLocationService().getCurrentBuildingId(icon.getId());
         BuildingData building = buildingMap.get(buildingId);
         icon.setBuilding(building);
+    }
+
+    private void updateCrimeSceneBadge() {
+        boolean hasPendingCrimeSceneHints =
+            game.getCrimeSceneService() != null
+                && game.getCrimeSceneService().hasPendingHints(CRIME_SCENE_BUILDING_ID);
+
+        crimeSceneBadge.setVisible(hasPendingCrimeSceneHints);
+        if (hasPendingCrimeSceneHints) {
+            layoutCrimeSceneBadge();
+            crimeSceneBadge.toFront();
+        }
+    }
+
+    private void layoutCrimeSceneBadge() {
+        float badgeSize = crimeSceneIcon.getWidth() * 0.48f;
+        crimeSceneBadge.setSize(badgeSize, badgeSize);
+        crimeSceneBadge.setPosition(
+            crimeSceneIcon.getX() + crimeSceneIcon.getWidth() - badgeSize * 0.72f,
+            crimeSceneIcon.getY() + crimeSceneIcon.getHeight() - badgeSize * 0.68f
+        );
     }
 
     private float getMapScale() {

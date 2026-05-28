@@ -3,6 +3,7 @@ package com.gdx.game.ui.screens;
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -12,6 +13,7 @@ import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -21,6 +23,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -28,6 +31,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.investigation.DialogueHistory;
 import com.gdx.game.domain.character.DossierData;
+import com.gdx.game.domain.world.LoreDatabase;
 import com.gdx.game.ai.NpcDialogueService;
 import com.gdx.game.domain.character.NpcState;
 import com.gdx.game.infrastructure.Assets;
@@ -39,6 +43,11 @@ import com.gdx.game.utils.TiledTextureHelper;
 import java.util.Locale;
 
 public class CharacterInteriorScreen implements Screen, GestureDetector.GestureListener {
+    private static final String DOCTOR_ID = "walter";
+    private static final String CRIME_SCENE_BUILDING_ID = "professor_house";
+    private static final boolean DEBUG_SHOW_ALL_CRIME_SCENE_HINTS = false;
+    private static final float HINT_ICON_IDLE_ALPHA = 0.48f;
+    private static final float HINT_ICON_HOVER_ALPHA = 0.95f;
 
     private final DetectiveGame game;
     private final NpcDialogueService npcService;
@@ -74,6 +83,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final Image fearImage;
     private final Image trustImage;
     private final Image moodImage;
+    private Texture hintIconTexture;
+    private Image cluePopupBackground;
+    private Label cluePopupLabel;
+    private final Array<CrimeSceneHintMarker> crimeSceneHintMarkers = new Array<>();
+    private LoreDatabase.CrimeSceneHint activeCrimeSceneHint;
+    private final Vector3 projectedHintPosition = new Vector3();
 
     private final Label fearLabel;
     private final Label trustLabel;
@@ -86,7 +101,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private boolean waitingForAnswer = false;
     private boolean screenActive = false;
     private final GlyphLayout glyphLayout = new GlyphLayout();
-    private static final String DOCTOR_ID = "walter";
 
     public CharacterInteriorScreen(DetectiveGame game, String backgroundPath, String characterId, String fullBody,
                                    String buildingId) {
@@ -231,6 +245,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         return characterId != null && !characterId.isEmpty() && characterTexture != null;
     }
 
+    private boolean isCrimeSceneScreen() {
+        return CRIME_SCENE_BUILDING_ID.equals(buildingId) && !hasInteractiveNpc();
+    }
+
     @Override
     public void show() {
         screenActive = true;
@@ -298,6 +316,13 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             characterImage.setVisible(false);
         }
 
+        if (isCrimeSceneScreen()) {
+            setupCrimeSceneHints();
+            if (game.getCrimeSceneService() != null) {
+                game.getCrimeSceneService().clearPendingForLocation(buildingId);
+            }
+        }
+
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         Gdx.input.setInputProcessor(new InputMultiplexer(
@@ -305,6 +330,115 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             dialogueStage,
             new GestureDetector(this)
         ));
+    }
+
+    private void setupCrimeSceneHints() {
+        hintIconTexture = new Texture(Assets.HINT_ICON);
+
+        NinePatch cluePatch = new NinePatch(questionAreaTexture, 60, 60, 16, 16);
+        cluePopupBackground = new Image(new NinePatchDrawable(cluePatch));
+        cluePopupBackground.setVisible(false);
+        dialogueStage.addActor(cluePopupBackground);
+
+        Label.LabelStyle clueStyle = new Label.LabelStyle();
+        clueStyle.font = skin.getFont("default-font");
+        clueStyle.fontColor = Color.BLACK;
+
+        cluePopupLabel = new Label("", clueStyle);
+        cluePopupLabel.setWrap(true);
+        cluePopupLabel.setAlignment(Align.left);
+        cluePopupLabel.setVisible(false);
+        dialogueStage.addActor(cluePopupLabel);
+
+        Array<LoreDatabase.CrimeSceneHint> visibleHints = game.getCrimeSceneService() != null
+            ? (DEBUG_SHOW_ALL_CRIME_SCENE_HINTS
+                ? game.getCrimeSceneService().getHintsForLocation(buildingId)
+                : game.getCrimeSceneService().getUnlockedHintsForLocation(buildingId))
+            : new Array<>();
+
+        for (LoreDatabase.CrimeSceneHint hint : visibleHints) {
+            createCrimeSceneHintMarker(hint);
+        }
+    }
+
+    private void createCrimeSceneHintMarker(LoreDatabase.CrimeSceneHint hint) {
+        if (hint == null) {
+            return;
+        }
+
+        Image hintIcon = new Image(hintIconTexture);
+        hintIcon.getColor().a = HINT_ICON_IDLE_ALPHA;
+        hintIcon.addListener(new InputListener() {
+            @Override
+            public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
+                hintIcon.getColor().a = HINT_ICON_HOVER_ALPHA;
+                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
+            }
+
+            @Override
+            public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
+                if (activeCrimeSceneHint == hint) {
+                    hintIcon.getColor().a = HINT_ICON_HOVER_ALPHA;
+                } else {
+                    hintIcon.getColor().a = HINT_ICON_IDLE_ALPHA;
+                }
+                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
+            }
+
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                toggleCrimeSceneHint(hint);
+                event.stop();
+                return true;
+            }
+        });
+
+        crimeSceneHintMarkers.add(new CrimeSceneHintMarker(hint, hintIcon));
+        dialogueStage.addActor(hintIcon);
+    }
+
+    private void toggleCrimeSceneHint(LoreDatabase.CrimeSceneHint hint) {
+        if (hint == null) {
+            hideCrimeSceneHintPopup();
+            return;
+        }
+
+        if (activeCrimeSceneHint == hint) {
+            hideCrimeSceneHintPopup();
+            return;
+        }
+
+        activeCrimeSceneHint = hint;
+        if (cluePopupLabel != null) {
+            cluePopupLabel.setText(hint.text != null ? hint.text : "");
+            cluePopupLabel.setVisible(true);
+        }
+        if (cluePopupBackground != null) {
+            cluePopupBackground.setVisible(true);
+            cluePopupBackground.toFront();
+        }
+        if (cluePopupLabel != null) {
+            cluePopupLabel.toFront();
+        }
+
+        for (CrimeSceneHintMarker marker : crimeSceneHintMarkers) {
+            marker.icon.getColor().a = marker.hint == hint ? HINT_ICON_HOVER_ALPHA : HINT_ICON_IDLE_ALPHA;
+        }
+
+        updateCrimeSceneHintLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    private void hideCrimeSceneHintPopup() {
+        activeCrimeSceneHint = null;
+        if (cluePopupBackground != null) {
+            cluePopupBackground.setVisible(false);
+        }
+        if (cluePopupLabel != null) {
+            cluePopupLabel.setVisible(false);
+        }
+        for (CrimeSceneHintMarker marker : crimeSceneHintMarkers) {
+            marker.icon.getColor().a = HINT_ICON_IDLE_ALPHA;
+        }
     }
 
     private void playLocationAmbience() {
@@ -350,6 +484,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         }
 
         updateNpcStateHud();
+        updateCrimeSceneHintLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         dialogueStage.act(delta);
         dialogueStage.draw();
@@ -526,6 +661,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
         camera.update();
+        updateCrimeSceneHintLayout(width, height);
 
         game.overlay.resize(width, height);
     }
@@ -559,6 +695,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     @Override
     public void hide() {
         screenActive = false;
+        hideCrimeSceneHintPopup();
         game.overlay.hideAllPopups();
         game.overlay.setInInterior(false);
     }
@@ -569,6 +706,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         background.dispose();
         if (characterTexture != null) {
             characterTexture.dispose();
+        }
+        if (hintIconTexture != null) {
+            hintIconTexture.dispose();
         }
     }
 
@@ -655,6 +795,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             newlyRevealedTotal += revealFactsAfterExchange(DOCTOR_ID, doctorData, question, answer,
                 candidateFactsDoctor, "DOCTOR");
 
+            if (newlyRevealedTotal > 0 && game.getCrimeSceneService() != null) {
+                game.getCrimeSceneService().syncUnlockedHints();
+            }
+
             if (newlyRevealedTotal > 0) {
                 int finalNew = newlyRevealedTotal;
                 Gdx.app.postRunnable(() ->
@@ -699,10 +843,11 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             int idx = candidateIndexes.get(i);
             if (idx < 0 || idx >= data.hiddenFacts.size()) continue;
 
-            String hidden = data.hiddenFacts.get(idx);
-            if (hidden == null || hidden.isEmpty()) continue;
+            DossierData.HiddenFactData hiddenFact = data.getHiddenFact(idx);
+            String hidden = data.getHiddenFactText(idx);
+            if (hidden.isEmpty()) continue;
 
-            if (shouldVetoRevealByLocalEvidence(hidden, answer)) {
+            if (shouldVetoRevealByLocalEvidence(hiddenFact, answer)) {
                 Gdx.app.log("FACT_DEBUG",
                     "LOCAL_REVEAL_VETO (" + debugPrefix + ") fact #" + idx + " -> true");
                 Gdx.app.log("FACT_DEBUG",
@@ -732,116 +877,52 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         return toReveal.size;
     }
 
-    private boolean shouldVetoRevealByLocalEvidence(String hiddenFact, String answer) {
-        String hiddenLower = normalizeForFactMatch(hiddenFact);
+    private boolean shouldVetoRevealByLocalEvidence(DossierData.HiddenFactData hiddenFact, String answer) {
+        if (hiddenFact == null) return true;
+
         String answerLower = normalizeForFactMatch(answer);
-        if (hiddenLower.isEmpty() || answerLower.isEmpty()) return true;
+        if (answerLower.isEmpty()) return true;
+        if (!hasEvidenceRequirements(hiddenFact)) return false;
 
-        if (isRomanticFact(hiddenLower)) {
-            return !hasRomanticEvidence(answerLower);
+        boolean anyOk = hiddenFact.requiredEvidenceAny == null || hiddenFact.requiredEvidenceAny.isEmpty();
+        if (!anyOk) {
+            anyOk = containsAny(answerLower, hiddenFact.requiredEvidenceAny);
         }
 
-        if (containsAny(hiddenLower, "дит", "діт") && !hasChildEvidence(answerLower)) {
-            return true;
+        boolean groupsOk = true;
+        if (hiddenFact.requiredEvidenceAllGroups != null && !hiddenFact.requiredEvidenceAllGroups.isEmpty()) {
+            for (java.util.List<String> group : hiddenFact.requiredEvidenceAllGroups) {
+                if (group == null || group.isEmpty()) {
+                    continue;
+                }
+                if (!containsAny(answerLower, group)) {
+                    groupsOk = false;
+                    break;
+                }
+            }
         }
 
-        if (containsAny(hiddenLower, "записк", "лист") && !hasNoteEvidence(answerLower)) {
-            return true;
-        }
-
-        if (containsAny(hiddenLower, "лаборатор") && !containsAny(answerLower, "лаборатор", "лаба")) {
-            return true;
-        }
-
-        if (containsAny(hiddenLower, "архів", "документ") && !hasArchiveEvidence(answerLower)) {
-            return true;
-        }
-
-        if (containsAny(hiddenLower, "плач", "крик") && !containsAny(answerLower, "плач", "крик", "дитяч", "дит", "діт")) {
-            return true;
-        }
-
-        if (containsAny(hiddenLower, "доступ", "ключ") && !hasAccessEvidence(answerLower)) {
-            return true;
-        }
-
-        if (containsAny(hiddenLower, "клінік", "пацієнт", "пациент") && !hasClinicEvidence(answerLower)) {
-            return true;
-        }
-
-        if (containsAny(hiddenLower, "больов", "болю", "біль", "чутлив") && !hasPainEvidence(answerLower)) {
-            return true;
-        }
-
-        if (containsAny(hiddenLower, "зізнат", "зізнав", "зайшов надто далеко", "невиправн") && !hasConfessionEvidence(answerLower)) {
-            return true;
-        }
-
-        if (containsAny(hiddenLower, "закрити проєкт", "закрити проект", "закрити", "згорнут") && !hasProjectClosureEvidence(answerLower)) {
-            return true;
-        }
-
-        return false;
+        return !(anyOk && groupsOk);
     }
 
-    private boolean isRomanticFact(String hiddenLower) {
-        return hiddenLower.contains("роман")
-            || hiddenLower.contains("романтич")
-            || hiddenLower.contains("стосунк")
-            || hiddenLower.contains("зв'язок")
-            || hiddenLower.contains("звязок")
-            || hiddenLower.contains("кохан");
-    }
-
-    private boolean hasRomanticEvidence(String answerLower) {
-        return answerLower.contains("роман")
-            || answerLower.contains("стосунк")
-            || answerLower.contains("зв'язок")
-            || answerLower.contains("звязок")
-            || answerLower.contains("кохан")
-            || answerLower.contains("любов")
-            || answerLower.contains("зустрічал")
-            || answerLower.contains("побаченн")
-            || answerLower.contains("близьк")
-            || answerLower.contains("між нами")
-            || answerLower.contains("між мною")
-            || answerLower.contains("щось було");
-    }
-
-    private boolean hasChildEvidence(String answerLower) {
-        return containsAny(answerLower, "дит", "діт", "дитяч", "сирот", "неповноліт");
-    }
-
-    private boolean hasNoteEvidence(String answerLower) {
-        return containsAny(answerLower, "записк", "лист", "повідомлен", "папір", "папер", "написав", "написан");
-    }
-
-    private boolean hasArchiveEvidence(String answerLower) {
-        return containsAny(answerLower, "архів", "документ", "папк", "папер", "сховал", "забрала", "забрав");
-    }
-
-    private boolean hasAccessEvidence(String answerLower) {
-        return containsAny(answerLower, "доступ", "ключ", "ключі", "прохід", "пускав", "пустив", "зайти");
-    }
-
-    private boolean hasClinicEvidence(String answerLower) {
-        return containsAny(answerLower, "клінік", "пацієнт", "пациент", "лікуван", "дитинств", "фінансував");
-    }
-
-    private boolean hasPainEvidence(String answerLower) {
-        return containsAny(answerLower, "біль", "болю", "боляче", "чутлив", "поріг", "не відчува");
-    }
-
-    private boolean hasConfessionEvidence(String answerLower) {
-        return containsAny(answerLower, "зізнан", "зізнат", "провин", "невиправн", "надто далеко", "каят", "сповід");
-    }
-
-    private boolean hasProjectClosureEvidence(String answerLower) {
-        return containsAny(answerLower, "закрит", "закрити", "згорнут", "припин", "правд", "бояв", "боял");
+    private boolean hasEvidenceRequirements(DossierData.HiddenFactData hiddenFact) {
+        return hiddenFact != null && (
+            (hiddenFact.requiredEvidenceAny != null && !hiddenFact.requiredEvidenceAny.isEmpty())
+                || (hiddenFact.requiredEvidenceAllGroups != null && !hiddenFact.requiredEvidenceAllGroups.isEmpty())
+        );
     }
 
     private boolean containsAny(String text, String... needles) {
         if (text == null || text.isEmpty() || needles == null) return false;
+        for (String needle : needles) {
+            if (needle == null || needle.isEmpty()) continue;
+            if (text.contains(needle)) return true;
+        }
+        return false;
+    }
+
+    private boolean containsAny(String text, java.util.List<String> needles) {
+        if (text == null || text.isEmpty() || needles == null || needles.isEmpty()) return false;
         for (String needle : needles) {
             if (needle == null || needle.isEmpty()) continue;
             if (text.contains(needle)) return true;
@@ -975,5 +1056,111 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         trustLabel.invalidateHierarchy();
         fearLabel.invalidateHierarchy();
         moodLabel.invalidateHierarchy();
+    }
+
+    private void updateCrimeSceneHintLayout(int screenWidth, int screenHeight) {
+        if (!isCrimeSceneScreen()) {
+            return;
+        }
+
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
+        float iconSize = Math.max(profile.scale(24f), screenHeight * 0.042f);
+
+        CrimeSceneHintMarker activeMarker = null;
+        for (CrimeSceneHintMarker marker : crimeSceneHintMarkers) {
+            float worldX = marker.hint.iconX * drawWidth;
+            float worldY = marker.hint.iconY * drawHeight;
+
+            projectedHintPosition.set(worldX, worldY, 0f);
+            camera.project(projectedHintPosition, 0, 0, screenWidth, screenHeight);
+
+            boolean onScreen =
+                projectedHintPosition.x + iconSize >= 0f
+                    && projectedHintPosition.x - iconSize <= screenWidth
+                    && projectedHintPosition.y + iconSize >= 0f
+                    && projectedHintPosition.y - iconSize <= screenHeight;
+
+            marker.icon.setVisible(onScreen);
+            marker.icon.setSize(iconSize, iconSize);
+            marker.icon.setPosition(
+                projectedHintPosition.x - iconSize * 0.5f,
+                projectedHintPosition.y - iconSize * 0.5f
+            );
+
+            if (marker.hint == activeCrimeSceneHint) {
+                activeMarker = marker;
+            }
+        }
+
+        if (activeMarker == null || !activeMarker.icon.isVisible()) {
+            if (cluePopupBackground != null) {
+                cluePopupBackground.setVisible(false);
+            }
+            if (cluePopupLabel != null) {
+                cluePopupLabel.setVisible(false);
+            }
+            return;
+        }
+
+        layoutActiveCrimeScenePopup(activeMarker, screenWidth, screenHeight, profile);
+    }
+
+    private void layoutActiveCrimeScenePopup(
+        CrimeSceneHintMarker marker,
+        int screenWidth,
+        int screenHeight,
+        UiLayoutProfile profile
+    ) {
+        if (cluePopupBackground == null || cluePopupLabel == null || activeCrimeSceneHint == null) {
+            return;
+        }
+
+        float maxBubbleWidth = Math.min(screenWidth * 0.34f, profile.scale(360f));
+        float padX = profile.scale(16f);
+        float padY = profile.scale(12f);
+        float margin = profile.scale(10f);
+        float iconGap = profile.scale(8f);
+
+        cluePopupLabel.setFontScale(profile.getBubbleFontScale() * 0.72f);
+        cluePopupLabel.setWidth(maxBubbleWidth - padX * 2f);
+        cluePopupLabel.setText(activeCrimeSceneHint.text != null ? activeCrimeSceneHint.text : "");
+        cluePopupLabel.invalidateHierarchy();
+        cluePopupLabel.layout();
+
+        float textHeight = cluePopupLabel.getPrefHeight();
+        float bubbleWidth = cluePopupLabel.getWidth() + padX * 2f;
+        float bubbleHeight = textHeight + padY * 2f;
+
+        float bubbleX = marker.icon.getX() + marker.icon.getWidth() + iconGap;
+        if (bubbleX + bubbleWidth > screenWidth - margin) {
+            bubbleX = marker.icon.getX() - bubbleWidth - iconGap;
+        }
+        bubbleX = MathUtils.clamp(bubbleX, margin, screenWidth - bubbleWidth - margin);
+
+        float bubbleY = marker.icon.getY() + marker.icon.getHeight() * 0.15f;
+        bubbleY = MathUtils.clamp(bubbleY, margin, screenHeight - bubbleHeight - margin);
+
+        cluePopupBackground.setVisible(true);
+        cluePopupLabel.setVisible(true);
+        cluePopupBackground.setBounds(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+        cluePopupLabel.setBounds(
+            bubbleX + padX,
+            bubbleY + padY,
+            bubbleWidth - padX * 2f,
+            textHeight
+        );
+        cluePopupBackground.toFront();
+        cluePopupLabel.toFront();
+        marker.icon.toFront();
+    }
+
+    private static class CrimeSceneHintMarker {
+        final LoreDatabase.CrimeSceneHint hint;
+        final Image icon;
+
+        CrimeSceneHintMarker(LoreDatabase.CrimeSceneHint hint, Image icon) {
+            this.hint = hint;
+            this.icon = icon;
+        }
     }
 }

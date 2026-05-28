@@ -64,6 +64,7 @@ public class Assets {
     public static final String QUESTION_AREA = "map/question.9.png";
     public static final String SEND_BUTTON = "map/send.png";
     public static final String CRIME_SCENE_ICON = "map/crime_scene_icon.png";
+    public static final String HINT_ICON = "map/interior/hint_icon.png";
     public static final String CHAT_HISTORY_POPUP = "map/chat/chat_history.png";
     public static final String ANSWER_AREA = "map/answer.png";
     public static final String STATISTICS = "map/stats.9.png";

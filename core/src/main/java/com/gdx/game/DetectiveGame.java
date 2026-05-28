@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Json;
 import com.gdx.game.domain.character.DossierDatabase;
 import com.gdx.game.domain.investigation.InvestigationState;
+import com.gdx.game.domain.world.CrimeSceneService;
 import com.gdx.game.domain.world.LoreDatabase;
 import com.gdx.game.ai.LlmClient;
 import com.gdx.game.ai.NpcDialogueService;
@@ -32,6 +33,7 @@ public class DetectiveGame extends Game {
     private InvestigationState investigationState;
     private EpilogueService epilogueService;
     private NpcLocationService npcLocationService;
+    private CrimeSceneService crimeSceneService;
 
     private final String openAiKey;
     private final String groqKey;
@@ -68,6 +70,7 @@ public class DetectiveGame extends Game {
         investigationState = new InvestigationState();
         epilogueService = new EpilogueService(llmClient, loreDb, dossierDb, npcDialogueService);
         npcLocationService = new NpcLocationService();
+        crimeSceneService = new CrimeSceneService(loreDb, npcDialogueService);
         overlay = new UIOverlayManager(this);
 
         setScreen(new MenuScreen(this, transition));
@@ -118,5 +121,9 @@ public class DetectiveGame extends Game {
 
     public NpcLocationService getNpcLocationService() {
         return npcLocationService;
+    }
+
+    public CrimeSceneService getCrimeSceneService() {
+        return crimeSceneService;
     }
 }
