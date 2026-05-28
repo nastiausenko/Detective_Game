@@ -94,7 +94,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         this.background = new Texture(backgroundPath);
         this.characterId = characterId;
         this.buildingId = buildingId;
-        this.characterTexture = new Texture(fullBody);
+        this.characterTexture = fullBody != null && !fullBody.isEmpty()
+            ? new Texture(fullBody)
+            : null;
         this.npcService = game.getNpcDialogueService();
 
         camera = new OrthographicCamera();
@@ -118,7 +120,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         dialogueStage.addActor(statsPanelBackground);
         statsPanelBackground.toBack();
 
-        characterImage = new Image(characterTexture);
+        characterImage = characterTexture != null ? new Image(characterTexture) : new Image();
         dialogueStage.addActor(characterImage);
 
         questionAreaTexture = new Texture(Assets.QUESTION_AREA);
@@ -225,12 +227,16 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         lastQuestionLabel.setVisible(lastSubmittedQuestion != null && !lastSubmittedQuestion.isEmpty());
     }
 
+    private boolean hasInteractiveNpc() {
+        return characterId != null && !characterId.isEmpty() && characterTexture != null;
+    }
+
     @Override
     public void show() {
         screenActive = true;
         game.overlay.setVisible(true);
         game.overlay.setInInterior(true);
-        game.overlay.setCurrentNpcId(characterId);
+        game.overlay.setCurrentNpcId(hasInteractiveNpc() ? characterId : null);
         game.overlay.setCurrentInteriorBuildingId(buildingId);
         playLocationAmbience();
 
@@ -272,6 +278,25 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         dialogueStage.addActor(lastQuestionLabel);
         dialogueStage.addActor(inputField);
         dialogueStage.addActor(charCounterLabel);
+
+        if (!hasInteractiveNpc()) {
+            questionAreaImage.setVisible(false);
+            sendButtonImage.setVisible(false);
+            inputField.setVisible(false);
+            inputField.setDisabled(true);
+            lastQuestionLabel.setVisible(false);
+            charCounterLabel.setVisible(false);
+            answerAreaImage.setVisible(false);
+            dialogueLabel.setVisible(false);
+            statsPanelBackground.setVisible(false);
+            trustImage.setVisible(false);
+            fearImage.setVisible(false);
+            moodImage.setVisible(false);
+            trustLabel.setVisible(false);
+            fearLabel.setVisible(false);
+            moodLabel.setVisible(false);
+            characterImage.setVisible(false);
+        }
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
@@ -333,6 +358,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     }
 
     private void updateNpcStateHud() {
+        if (!hasInteractiveNpc()) return;
         if (trustLabel == null || fearLabel == null || moodLabel == null) return;
 
         NpcState state = npcService.getStateForUi(characterId);
@@ -446,53 +472,55 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         inputField.setPosition(inputX, inputBottom);
         inputField.setStyle(createTextFieldStyle());
 
-        float texW = characterTexture.getWidth();
-        float texH = characterTexture.getHeight();
+        if (hasInteractiveNpc()) {
+            float texW = characterTexture.getWidth();
+            float texH = characterTexture.getHeight();
 
-        float scaleByWidth = (width * profile.getCharacterWidthRatio()) / texW;
-        float scaleByHeight = (height * profile.getCharacterHeightRatio()) / texH;
+            float scaleByWidth = (width * profile.getCharacterWidthRatio()) / texW;
+            float scaleByHeight = (height * profile.getCharacterHeightRatio()) / texH;
 
-        float scale = Math.min(scaleByWidth, scaleByHeight);
+            float scale = Math.min(scaleByWidth, scaleByHeight);
 
-        float characterDrawW = texW * scale;
-        float characterDrawH = texH * scale;
+            float characterDrawW = texW * scale;
+            float characterDrawH = texH * scale;
 
-        float iconSize = characterDrawH * 0.10f;
-        float lineGap = iconSize + profile.scale(8f);
+            float iconSize = characterDrawH * 0.10f;
+            float lineGap = iconSize + profile.scale(8f);
 
-        updateStatsFontScale(iconSize);
+            updateStatsFontScale(iconSize);
 
-        float charY = height * profile.getCharacterBottomRatio();
-        float charX = width  * 0.5f - characterDrawW / 2f;
+            float charY = height * profile.getCharacterBottomRatio();
+            float charX = width  * 0.5f - characterDrawW / 2f;
 
-        float panelX = charX + characterDrawW + profile.scale(20f);
-        float panelY = charY + characterDrawH * 0.6f;
+            float panelX = charX + characterDrawW + profile.scale(20f);
+            float panelY = charY + characterDrawH * 0.6f;
 
-        if (panelX + iconSize + profile.scale(80f) > width) {
-            panelX = charX - iconSize - profile.scale(90f);
+            if (panelX + iconSize + profile.scale(80f) > width) {
+                panelX = charX - iconSize - profile.scale(90f);
+            }
+
+            trustImage.setBounds(panelX, panelY + lineGap, iconSize, iconSize);
+            trustLabel.setPosition(
+                trustImage.getX() + iconSize + profile.scale(6f),
+                trustImage.getY() + iconSize * 0.4f
+            );
+
+            fearImage.setBounds(panelX, panelY, iconSize, iconSize);
+            fearLabel.setPosition(
+                fearImage.getX() + iconSize + profile.scale(6f),
+                fearImage.getY() + iconSize * 0.4f
+            );
+
+            moodImage.setBounds(panelX, panelY - lineGap, iconSize, iconSize);
+            moodLabel.setPosition(
+                moodImage.getX() + iconSize + profile.scale(6f),
+                moodImage.getY() + iconSize * 0.4f
+            );
+
+            characterImage.setBounds(charX, charY, characterDrawW, characterDrawH);
+            updateAnswerBubbleLayout(width, height);
+            layoutStatsPanel();
         }
-
-        trustImage.setBounds(panelX, panelY + lineGap, iconSize, iconSize);
-        trustLabel.setPosition(
-            trustImage.getX() + iconSize + profile.scale(6f),
-            trustImage.getY() + iconSize * 0.4f
-        );
-
-        fearImage.setBounds(panelX, panelY, iconSize, iconSize);
-        fearLabel.setPosition(
-            fearImage.getX() + iconSize + profile.scale(6f),
-            fearImage.getY() + iconSize * 0.4f
-        );
-
-        moodImage.setBounds(panelX, panelY - lineGap, iconSize, iconSize);
-        moodLabel.setPosition(
-            moodImage.getX() + iconSize + profile.scale(6f),
-            moodImage.getY() + iconSize * 0.4f
-        );
-
-        characterImage.setBounds(charX, charY, characterDrawW, characterDrawH);
-        updateAnswerBubbleLayout(width, height);
-        layoutStatsPanel();
 
         dialogueStage.getViewport().update(width, height, true);
 
@@ -539,7 +567,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     public void dispose() {
         screenActive = false;
         background.dispose();
-        characterTexture.dispose();
+        if (characterTexture != null) {
+            characterTexture.dispose();
+        }
     }
 
     private void handleQuestion(String question) {

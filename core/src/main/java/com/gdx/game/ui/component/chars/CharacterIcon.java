@@ -21,6 +21,7 @@ public class CharacterIcon extends Image {
 
     private final String id;
     private final String fullBodyPath;
+    private final boolean opensInterior;
     private String buildingId;
     private BuildingData linkedBuilding;
     private String fallbackInteriorBackground;
@@ -36,10 +37,22 @@ public class CharacterIcon extends Image {
     private float targetY;
 
     public CharacterIcon(DetectiveGame game, String id, String iconPath, String fullBodyPath, String buildingId) {
+        this(game, id, iconPath, fullBodyPath, buildingId, true);
+    }
+
+    public CharacterIcon(
+        DetectiveGame game,
+        String id,
+        String iconPath,
+        String fullBodyPath,
+        String buildingId,
+        boolean opensInterior
+    ) {
         super(new Texture(iconPath));
         this.id = id;
         this.fullBodyPath = fullBodyPath;
         this.buildingId = buildingId;
+        this.opensInterior = opensInterior;
 
         setSize(baseSize , baseSize);
 
@@ -49,7 +62,9 @@ public class CharacterIcon extends Image {
             @Override
             public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
                 getColor().a = 1f;
-                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
+                Gdx.graphics.setSystemCursor(
+                    CharacterIcon.this.opensInterior ? Cursor.SystemCursor.Hand : Cursor.SystemCursor.Arrow
+                );
             }
 
             @Override
@@ -60,6 +75,10 @@ public class CharacterIcon extends Image {
 
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                if (!CharacterIcon.this.opensInterior) {
+                    return true;
+                }
+
                 if (linkedBuilding != null) {
                     String backgroundPath = resolveInteriorBackground();
                     if (backgroundPath == null) {
@@ -76,10 +95,11 @@ public class CharacterIcon extends Image {
                         }
 
                         transition.startFadeOut(0.7f, () -> {
+                            String interiorNpcId = CharacterIcon.this.fullBodyPath != null ? id : null;
                             CharacterInteriorScreen interiorScreen = new CharacterInteriorScreen(
                                 game,
                                 backgroundPath,
-                                id,
+                                interiorNpcId,
                                 CharacterIcon.this.fullBodyPath,
                                 CharacterIcon.this.buildingId
                             );

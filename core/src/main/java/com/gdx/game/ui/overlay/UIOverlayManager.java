@@ -142,6 +142,8 @@ public class UIOverlayManager {
             chatHistoryPopup.remove();
             chatHistoryPopup = null;
         }
+
+        chatButton.setVisible(inInterior && currentNpcId != null && !currentNpcId.isEmpty());
     }
 
     public void setCurrentInteriorBuildingId(String buildingId) {
@@ -279,6 +281,7 @@ public class UIOverlayManager {
                 uiStage.getViewport().getWorldWidth(),
                 uiStage.getViewport().getWorldHeight()
             );
+            chatButton.setVisible(currentNpcId != null && !currentNpcId.isEmpty());
 
         } else {
             timer.showGameTimeLabel(true);

@@ -239,11 +239,11 @@ public class NpcDialogueService {
             case "town_hall":
                 return "ратуша";
             case "doctor_house":
+                return "будинок Мари";
+            case "professor_house":
                 return "будинок Вальтера";
             case "sister_house":
                 return "будинок Клари";
-            case "professor_house":
-                return "будинок Мари";
             case "cashier_house":
                 return "будинок Елени";
             case "officer_house":

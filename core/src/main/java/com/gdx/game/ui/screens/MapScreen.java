@@ -30,6 +30,7 @@ import java.util.Objects;
 
 public class MapScreen implements Screen {
     private static final boolean DEBUG_BUILDING_RECTS = false;
+    private static final String CRIME_SCENE_BUILDING_ID = "professor_house";
     private static final float FOUNTAIN_FRAME_DURATION = 0.14f;
     private static final float MAX_NIGHT_ALPHA = 0.52f;
     private static final float MAX_LIGHT_ALPHA = 0.82f;
@@ -60,6 +61,7 @@ public class MapScreen implements Screen {
     private final MapInputController inputController;
 
     private final List<CharacterIcon> icons;
+    private final CharacterIcon crimeSceneIcon;
     private final List<BuildingData> buildings;
     private final Map<String, BuildingData> buildingMap;
 
@@ -85,6 +87,13 @@ public class MapScreen implements Screen {
         inputController = new MapInputController(camera, viewport);
 
         icons = CharacterLoader.loadMarkers(game, "characters.json");
+        crimeSceneIcon = new CharacterIcon(
+            game,
+            "crime_scene",
+            Assets.CRIME_SCENE_ICON,
+            null,
+            CRIME_SCENE_BUILDING_ID
+        );
         buildings = BuildingLoader.loadBuildings("buildings.json");
         buildingMap = BuildingLoader.toMap(buildings);
     }
@@ -104,6 +113,10 @@ public class MapScreen implements Screen {
             applyNpcLocation(icon);
             mapStage.addActor(icon);
         }
+
+        BuildingData crimeSceneBuilding = buildingMap.get(CRIME_SCENE_BUILDING_ID);
+        crimeSceneIcon.setBuilding(crimeSceneBuilding);
+        mapStage.addActor(crimeSceneIcon);
 
        game.overlay.showProloguePublic();
 
@@ -171,6 +184,7 @@ public class MapScreen implements Screen {
         for (CharacterIcon marker : icons) {
             marker.updatePositionFromBuilding(drawWidth, drawHeight, getMapScale());
         }
+        crimeSceneIcon.updatePositionFromBuilding(drawWidth, drawHeight, getMapScale());
     }
 
     @Override

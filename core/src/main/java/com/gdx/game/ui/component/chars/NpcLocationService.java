@@ -15,7 +15,7 @@ public class NpcLocationService {
     private static final String BUILDING_KEY_PREFIX = "npc.";
     private static final int MOVE_INTERVAL_GAME_MINUTES = 10;
     private static final int MOVE_CHANCE_PERCENT = 45;
-    private static final String VICTIM_HOME_BUILDING_ID = "doctor_house";
+    private static final String VICTIM_HOME_BUILDING_ID = "professor_house";
 
     private final Preferences prefs;
     private final Array<String> npcIds = new Array<>();
@@ -99,7 +99,7 @@ public class NpcLocationService {
 
     private void configurePrivateHomes() {
         registerHome("ernst", "officer_house");
-        registerHome("mara", "professor_house");
+        registerHome("mara", "doctor_house");
         registerHome("liam", "student_house");
         registerHome("elena", "cashier_house");
         registerHome("clara", "sister_house");
