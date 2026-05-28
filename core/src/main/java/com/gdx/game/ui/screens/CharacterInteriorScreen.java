@@ -59,6 +59,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final Stage dialogueStage;
     private TextField inputField;
     private Label dialogueLabel;
+    private Label lastQuestionLabel;
+    private Label charCounterLabel;
 
     private final Texture questionAreaTexture;
     private final Image questionAreaImage;
@@ -80,6 +82,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private float drawWidth, drawHeight;
 
     private String currentResponse = "";
+    private String lastSubmittedQuestion = "";
     private boolean waitingForAnswer = false;
     private boolean screenActive = false;
     private final GlyphLayout glyphLayout = new GlyphLayout();
@@ -174,10 +177,13 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         String text = inputField.getText();
 
         if (text == null || text.trim().isEmpty()) {
-            inputField.setText("Введіть питання");
+            inputField.setMessageText("Введіть питання");
+            inputField.setText("");
+            updateCharCounter();
             return;
         }
 
+        inputField.setMessageText("Запитайте персонажа...");
         handleQuestion(text.trim());
     }
 
@@ -193,10 +199,30 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     }
 
     private void updateInputField() {
+        if (inputField == null) {
+            return;
+        }
         inputField.setTextFieldFilter((textField, c) -> {
             if (c == '\n' || c == '\r') return true;
             return inputField.getText().length() < Assets.MAX_CHARS_INPUT;
         });
+        updateCharCounter();
+    }
+
+    private void updateCharCounter() {
+        if (charCounterLabel == null || inputField == null) {
+            return;
+        }
+        int length = inputField.getText() != null ? inputField.getText().length() : 0;
+        charCounterLabel.setText(length + "/" + Assets.MAX_CHARS_INPUT);
+    }
+
+    private void updateLastQuestionLabel() {
+        if (lastQuestionLabel == null) {
+            return;
+        }
+        lastQuestionLabel.setText(lastSubmittedQuestion);
+        lastQuestionLabel.setVisible(lastSubmittedQuestion != null && !lastSubmittedQuestion.isEmpty());
     }
 
     @Override
@@ -216,21 +242,36 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         dialogueLabel.setColor(Color.BLACK);
         dialogueLabel.setVisible(false);
 
+        lastQuestionLabel = new Label("", skin);
+        lastQuestionLabel.setWrap(true);
+        lastQuestionLabel.setAlignment(Align.left);
+        lastQuestionLabel.setColor(new Color(0.82f, 0.69f, 0.47f, 1f));
+        lastQuestionLabel.setVisible(false);
+
+        charCounterLabel = new Label("", skin);
+        charCounterLabel.setAlignment(Align.right);
+        charCounterLabel.setColor(new Color(0.32f, 0.18f, 0.08f, 0.85f));
+
         inputField = new TextField("", createTextFieldStyle());
         inputField.setMessageText("Запитайте персонажа...");
         inputField.setWidth(Gdx.graphics.getWidth() * 0.8f);
         inputField.setPosition(Gdx.graphics.getWidth() * 0.1f, 40);
+        updateInputField();
+        updateLastQuestionLabel();
 
         inputField.setTextFieldListener((textField, c) -> {
             if (c == '\n' || c == '\r') {
                 send();
                 return;
             }
-            updateInputField();
+            inputField.setMessageText("Запитайте персонажа...");
+            updateCharCounter();
         });
 
         dialogueStage.addActor(dialogueLabel);
+        dialogueStage.addActor(lastQuestionLabel);
         dialogueStage.addActor(inputField);
+        dialogueStage.addActor(charCounterLabel);
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
@@ -350,18 +391,6 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             questionBottom
         );
 
-        float inputPadding = Math.max(profile.scale(18f), desiredWidth * 0.05f);
-        float inputWidth = desiredWidth - inputPadding * 2f;
-        float inputHeight = desiredHeight * profile.getInputHeightRatio();
-
-        inputField.setSize(inputWidth, inputHeight);
-        inputField.setPosition(
-            questionAreaImage.getX() + (desiredWidth - inputWidth) / 2f,
-            questionAreaImage.getY() + (desiredHeight - inputHeight) / 2f
-        );
-
-        inputField.setStyle(createTextFieldStyle());
-
         float innerMarginX = desiredWidth * 0.04f;
         float bubbleX = questionAreaImage.getX();
         float bubbleY = questionAreaImage.getY();
@@ -374,6 +403,48 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         float sendX = bubbleX + bubbleW - innerMarginX - sendButtonImage.getWidth();
         float sendY = bubbleY + (bubbleH - sendButtonImage.getHeight()) / 2f;
         sendButtonImage.setPosition(sendX, sendY);
+
+        float sidePadding = Math.max(profile.scale(18f), desiredWidth * 0.05f);
+        float gapToSend = profile.scale(14f);
+        float inputX = bubbleX + sidePadding;
+        float inputWidth = Math.max(profile.scale(120f), sendX - gapToSend - inputX);
+
+        float topPadding = profile.scale(12f);
+        float bottomPadding = profile.scale(10f);
+        float questionGap = profile.scale(8f);
+        float counterGap = profile.scale(4f);
+        float questionMaxHeight = bubbleH * 0.34f;
+
+        lastQuestionLabel.setFontScale(profile.getBubbleFontScale() * 0.78f);
+        lastQuestionLabel.setWidth(inputWidth);
+        lastQuestionLabel.invalidateHierarchy();
+        float questionHeight = 0f;
+        if (lastQuestionLabel.isVisible()) {
+            questionHeight = Math.min(lastQuestionLabel.getPrefHeight(), questionMaxHeight);
+        }
+
+        float questionY = bubbleY + bubbleH - topPadding - questionHeight;
+        if (lastQuestionLabel.isVisible()) {
+            lastQuestionLabel.setBounds(inputX, questionY, inputWidth, questionHeight);
+        } else {
+            lastQuestionLabel.setBounds(inputX, bubbleY + bubbleH, inputWidth, 0f);
+        }
+
+        charCounterLabel.setFontScale(profile.getBubbleFontScale() * 0.52f);
+        charCounterLabel.invalidateHierarchy();
+        float counterWidth = charCounterLabel.getPrefWidth();
+        float counterHeight = charCounterLabel.getPrefHeight();
+        float counterX = inputX + inputWidth - counterWidth;
+        float counterY = bubbleY + bottomPadding;
+        charCounterLabel.setBounds(counterX, counterY, counterWidth, counterHeight);
+
+        float inputTop = (lastQuestionLabel.isVisible() ? questionY - questionGap : bubbleY + bubbleH - topPadding);
+        float inputBottom = counterY + counterHeight + counterGap;
+        float inputHeight = Math.max(profile.scale(28f), inputTop - inputBottom);
+
+        inputField.setSize(inputWidth, inputHeight);
+        inputField.setPosition(inputX, inputBottom);
+        inputField.setStyle(createTextFieldStyle());
 
         float texW = characterTexture.getWidth();
         float texH = characterTexture.getHeight();
@@ -481,6 +552,13 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         updateAnswerBubbleLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         final String q = question.trim();
+        lastSubmittedQuestion = q;
+        updateLastQuestionLabel();
+
+        if (inputField != null) {
+            inputField.setText("");
+            updateCharCounter();
+        }
 
         waitingForAnswer = true;
         inputField.setDisabled(true);

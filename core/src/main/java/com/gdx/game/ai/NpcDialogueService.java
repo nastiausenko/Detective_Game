@@ -32,11 +32,14 @@ public class NpcDialogueService {
             "You are an NPC in a detective game.\n" +
                     "Setting: town Rosenfeld, quiet European town, moral thriller tone.\n" +
                     "Canon murder (do NOT contradict):\n" +
-                    "- Victim: Dr. Adrian Walter, found dead at night in his office in the old wing of the hospital.\n" +
-                    "- Official story: accident or burnout, town avoids idea of murder.\n" +
+                    "- Victim: Dr. Adrian Walter, found dead at night in the private office of his own house.\n" +
+                    "- Initial public knowledge: the death happened in Walter's home office, but detailed crime scene clues " +
+                    "should be treated as investigation discoveries, not common gossip.\n" +
+                    "- Official story: exhaustion, guilt, or possible suicide; the town avoids the idea of murder.\n" +
                     "- Real killer in this canonical story: Liam Becker (Walter's student). " +
                     "NPCs may suspect others or be wrong, but must NOT claim with certainty that someone else is the true killer " +
                     "or that Walter is alive.\n" +
+                    "Treat canon as a consistency guard; reveal details only when your identity and facts make it plausible. " +
                     "You may improvise feelings, wording and small memories, but keep these canon facts consistent. " +
                     "Do not invent time travel, other murders or resurrections.\n" +
                     "Always answer in Ukrainian, 1–3 short sentences, in first person (\"я\", \"мені\", \"мене\"). " +
@@ -235,8 +238,18 @@ public class NpcDialogueService {
                 return "медична школа";
             case "town_hall":
                 return "ратуша";
-            case "house2":
-                return "житловий будинок";
+            case "doctor_house":
+                return "будинок Вальтера";
+            case "sister_house":
+                return "будинок Клари";
+            case "professor_house":
+                return "будинок Мари";
+            case "cashier_house":
+                return "будинок Елени";
+            case "officer_house":
+                return "будинок Ернста";
+            case "student_house":
+                return "будинок Ліама";
             default:
                 return buildingId;
         }

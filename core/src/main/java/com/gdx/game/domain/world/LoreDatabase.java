@@ -9,6 +9,7 @@ public class LoreDatabase {
     public Murder murder;
     public KillerView killerView;
     public Array<Relationship> relationships;
+    public Array<Location> locations;
     public static class Setting {
         public String townName;
         public String tone;
@@ -42,5 +43,14 @@ public class LoreDatabase {
         public String type;
         public String publicView;
         public String hiddenView;
+    }
+
+    public static class Location {
+        public String id;
+        public String name;
+        public String role;
+        public String publicDescription;
+        public String hiddenDescription;
+        public Array<String> investigationClues;
     }
 }

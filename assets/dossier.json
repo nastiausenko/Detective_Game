@@ -4,18 +4,17 @@
       "name": "Dr. Adrian Walter",
       "age": 46,
       "role": "Victim",
-      "personality": "Intelligent, respected, but morally conflicted",
+      "personality": "Respected, intelligent, morally broken",
       "publicFacts": [
-        "Chief doctor of Rosenfeld.",
-        "Taught at the medical school and was beloved by students.",
-        "Had a perfect reputation: charity work, helped orphans.",
-        "Found dead in his office in the hospital.",
-        "Official early version: suicide, but inconsistencies exist."
+        "Chief doctor and medical school founder.",
+        "Had the reputation of Rosenfeld's conscience.",
+        "Found dead in his home office.",
+        "The official version remains unclear."
       ],
       "hiddenFacts": [
-        "Conducted secret psychological experiments on children.",
-        "Liam was one of his experimental subjects.",
-        "Planned to confess that he 'went too far' days before death."
+        "Conducted secret psychological experiments on children to suppress fear, guilt, and empathy.",
+        "Liam was his most successful experiment.",
+        "Wanted to stop the project before his death."
       ]
     },
 
@@ -26,14 +25,14 @@
       "personality": "Friendly, warm, emotionally unstable",
       "lieRisk": 2,
       "publicFacts": [
-        "Walter visited her café almost daily.",
-        "Knew Walter since their student years.",
-        "Saw him unusually depressed the day before his death."
+        "Walter visited her café every day.",
+        "Knew him since their student years.",
+        "Saw him frightened before his death."
       ],
       "hiddenFacts": [
-        "Knew Walter secretly met children at the hospital at night.",
-        "Had a brief romantic relationship with Walter years ago.",
-        "Has a note from Walter implying he 'did something irreversible'."
+        "Once had a romance with Walter.",
+        "Has Walter's note hinting that he \"did something irreversible\".",
+        "Saw Liam near Walter's house after midnight."
       ]
     },
 
@@ -45,49 +44,49 @@
       "lieRisk": 2,
       "publicFacts": [
         "Worked as a hospital guard for over 20 years.",
-        "Thought Walter was 'the only good man here'.",
-        "Avoids questions about the 'old wing'."
+        "Thought Walter was \"the only normal person here\".",
+        "Worked night shifts and often saw Walter after the hospital closed."
       ],
       "hiddenFacts": [
-        "Guarded a closed lab where Walter worked.",
-        "Heard children’s cries at night but trusted Walter’s excuses.",
-        "Knows Liam had night access to the hospital and hides it."
+        "Guarded archives of old experiments.",
+        "Allowed night visitors through for years.",
+        "Knows about Liam's special access to the school."
       ]
     },
 
     "clara": {
       "name": "Clara Weiss",
       "age": 29,
-      "role": "Town Hall employee, Walter’s sister",
+      "role": "Town Hall employee, Walter's sister",
       "personality": "Reserved, rational, suspiciously cold",
       "lieRisk": 4,
       "publicFacts": [
-        "Took over all documents after Walter’s death.",
-        "Some residents claim she lived elsewhere for a while.",
-        "Supported her brother but avoids details about their relationship."
+        "Helped organize Walter's personal documents after his death.",
+        "Some residents say she lived in another town for a while.",
+        "Supported her brother publicly, but avoids details about their final conversations."
       ],
       "hiddenFacts": [
         "Knew Walter conducted unofficial experiments on children.",
-        "Hid part of Walter’s archives before the detective arrived.",
-        "Was near the hospital on the night of the murder for unknown reasons."
+        "Hid part of the family archives.",
+        "Noticed the missing files about Liam."
       ]
     },
 
     "liam": {
       "name": "Liam Becker",
       "age": 17,
-      "role": "Medical school student, Walter’s protégé",
+      "role": "Medical school student, Walter's protégé",
       "personality": "Quiet, polite, emotionally detached; logical",
       "lieRisk": 3,
       "publicFacts": [
         "Helps around the medical school with cleaning and paperwork.",
-        "Has no friends among peers, but adults respect him.",
-        "Seems calm, but looks deeply shaken by Walter’s death."
+        "Has almost no friends among peers.",
+        "Seems calm, but looks deeply affected by Walter's death."
       ],
       "hiddenFacts": [
-        "Was a child patient at a private clinic funded by Walter.",
-        "Has an abnormally low pain reaction due to experiments.",
-        "Was at the hospital late on the night of the murder, but hides it."
+        "Was a child patient at the private clinic.",
+        "Has abnormally low pain sensitivity due to the experiments.",
+        "Met Walter after midnight."
       ]
     },
 
@@ -99,12 +98,12 @@
       "lieRisk": 3,
       "publicFacts": [
         "Worked with Walter for over 10 years.",
-        "Regularly tested students for psychological stability.",
-        "Was closing the school on the evening of the murder."
+        "Regularly conducted psychological tests for students.",
+        "Wants to preserve the medical school's work."
       ],
       "hiddenFacts": [
-        "Witnessed Walter’s early experiments but didn’t stop him.",
-        "Possesses copies of Liam’s psychological test results.",
+        "Witnessed Walter's early experiments but did not stop him.",
+        "Has copies of Liam's psychological test results.",
         "Knew Walter wanted to shut down the project and feared the truth."
       ]
     }
