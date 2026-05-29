@@ -1,0 +1,149 @@
+package com.gdx.game.widgets.timer;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.Align;
+import com.gdx.game.shared.config.Assets;
+import com.gdx.game.shared.ui.FontScaler;
+import com.gdx.game.shared.config.UiLayoutProfile;
+import com.gdx.game.shared.ui.UiStyles;
+import com.gdx.game.shared.lib.ScreenUtilsHelper;
+
+public class GameTimer {
+    private static final float REAL_TO_GAME_MINUTES = 1.2f;
+    private static final int START_HOUR = 9;
+
+    private final Stage stage;
+
+    private final Image timerBackground;
+    private final Label countdownLabel;
+    private final Label gameTimeLabel;
+
+    private final Preferences prefs;
+    private final Skin skin;
+
+    private float elapsedRealTime;
+    private final float totalRealSeconds;
+    private boolean timeOver = false;
+    private boolean paused = false;
+
+    public GameTimer(Stage stage, float totalRealSeconds) {
+        this.stage = stage;
+        this.totalRealSeconds = totalRealSeconds;
+        prefs = Gdx.app.getPreferences("game_timer");
+        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
+
+        elapsedRealTime = prefs.getFloat("elapsedTime", 0f);
+
+        timerBackground = new Image(new Texture(Assets.TIMER));
+        stage.addActor(timerBackground);
+
+        Label.LabelStyle labelStyle = UiStyles.label(skin, UiStyles.parchmentText());
+
+        countdownLabel = new Label("Time Left: 60:00", labelStyle);
+        countdownLabel.setAlignment(Align.center);
+        stage.addActor(countdownLabel);
+
+        gameTimeLabel = new Label("Day 1 09:00", labelStyle);
+        gameTimeLabel.setAlignment(Align.right);
+        stage.addActor(gameTimeLabel);
+    }
+
+    public void update(float delta) {
+        if (paused || timeOver) {
+            return;
+        }
+
+        elapsedRealTime += delta;
+        if (elapsedRealTime >= totalRealSeconds) {
+            elapsedRealTime = totalRealSeconds;
+            timeOver = true;
+        }
+
+        float remaining = totalRealSeconds - elapsedRealTime;
+        int minutes = (int) (remaining / 60);
+        int seconds = (int) (remaining % 60);
+        countdownLabel.setText(String.format("Time Left: %02d:%02d", minutes, seconds));
+
+        int minutesInDay = getElapsedGameMinutes() + START_HOUR * 60;
+
+        int day = (minutesInDay / (24 * 60)) + 1;
+        int minutesOfCurrentDay = minutesInDay % (24 * 60);
+        int hour = minutesOfCurrentDay / 60;
+        int minute = minutesOfCurrentDay % 60;
+
+        gameTimeLabel.setText(String.format("Day %d %02d:%02d", day, hour, minute));
+    }
+
+    public void setPositions(float targetHeight, UiLayoutProfile profile) {
+        float worldWidth = stage.getViewport().getWorldWidth();
+        float worldHeight = stage.getViewport().getWorldHeight();
+        float topPadding = profile.scale(10f);
+        float sidePadding = profile.scale(20f);
+
+        FontScaler.applyScale(skin.getFont("default-font"));
+        ScreenUtilsHelper.scaleButton(timerBackground, targetHeight, stage);
+
+        timerBackground.setPosition(
+                (worldWidth - timerBackground.getWidth()) / 2f,
+                worldHeight - timerBackground.getHeight() - topPadding
+        );
+
+        countdownLabel.setSize(timerBackground.getWidth(), timerBackground.getHeight());
+        countdownLabel.setPosition(timerBackground.getX(), timerBackground.getY());
+        countdownLabel.setAlignment(Align.center);
+
+        gameTimeLabel.pack();
+        gameTimeLabel.setPosition(
+                worldWidth - gameTimeLabel.getWidth() - sidePadding,
+                sidePadding
+        );
+    }
+
+    public void pause() {
+        paused = true;
+    }
+
+    public void resume() {
+        paused = false;
+    }
+
+    public void saveTime() {
+        prefs.putFloat("elapsedTime", elapsedRealTime);
+        prefs.flush();
+    }
+
+    public void reset() {
+        elapsedRealTime = 0f;
+        refreshLabel();
+        timeOver = false;
+        paused = false;
+    }
+
+    public boolean isTimeOver() {
+        return timeOver;
+    }
+
+    private void refreshLabel() {
+        countdownLabel.setText("Time Left: 60:00");
+        gameTimeLabel.setText("Day 1 09:00");
+    }
+
+    public void showGameTimeLabel(boolean show) {
+        gameTimeLabel.setVisible(show);
+    }
+
+    public int getElapsedGameMinutes() {
+        return (int) (elapsedRealTime * REAL_TO_GAME_MINUTES);
+    }
+
+    public int getMinutesOfCurrentDay() {
+        int minutesInDay = getElapsedGameMinutes() + START_HOUR * 60;
+        return minutesInDay % (24 * 60);
+    }
+}
