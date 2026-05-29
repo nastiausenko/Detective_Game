@@ -110,7 +110,7 @@ public class ChatHistoryPopup extends AbstractPopup {
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
-    public void resize(int width, int height) {
+    public void resize(float width, float height) {
         UiLayoutProfile profile = UiLayout.current(width, height);
         resizeCentered(chatHistoryImage, chatHistoryTexture, width, height);
 
@@ -146,18 +146,14 @@ public class ChatHistoryPopup extends AbstractPopup {
     @Override
     public void show() {
         super.show();
-        stage.addActor(chatHistoryImage);
-        stage.addActor(scrollPane);
-        stage.addActor(closeBtn);
+        addPopupActors(chatHistoryImage, scrollPane, closeBtn);
         rebuildHistory();
     }
 
     @Override
     public void remove() {
         super.remove();
-        chatHistoryImage.remove();
-        scrollPane.remove();
-        closeBtn.remove();
+        removePopupActors(chatHistoryImage, scrollPane, closeBtn);
     }
 
     public void dispose() {

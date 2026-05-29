@@ -96,11 +96,9 @@ public class NotePopup extends AbstractPopup {
     @Override
     public void show() {
         super.show();
-        stage.addActor(noteImage);
+        addPopupActors(noteImage);
         pages.show();
-        stage.addActor(btnPrev);
-        stage.addActor(btnNext);
-        stage.addActor(closeBtn);
+        addPopupActors(btnPrev, btnNext, closeBtn);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
@@ -109,11 +107,8 @@ public class NotePopup extends AbstractPopup {
     public void remove() {
         clearTextFocus();
         super.remove();
-        noteImage.remove();
         pages.remove();
-        btnPrev.remove();
-        btnNext.remove();
-        closeBtn.remove();
+        removePopupActors(noteImage, btnPrev, btnNext, closeBtn);
     }
 
     public void dispose() {

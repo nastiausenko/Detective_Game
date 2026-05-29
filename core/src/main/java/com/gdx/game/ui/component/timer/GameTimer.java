@@ -2,7 +2,6 @@ package com.gdx.game.ui.component.timer;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -12,6 +11,7 @@ import com.badlogic.gdx.utils.Align;
 import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.infrastructure.FontScaler;
 import com.gdx.game.infrastructure.UiLayoutProfile;
+import com.gdx.game.infrastructure.UiStyles;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class GameTimer {
@@ -43,8 +43,7 @@ public class GameTimer {
         timerBackground = new Image(new Texture(Assets.TIMER));
         stage.addActor(timerBackground);
 
-        Label.LabelStyle labelStyle = new Label.LabelStyle(skin.getFont("default-font"),
-                new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f));
+        Label.LabelStyle labelStyle = UiStyles.label(skin, UiStyles.parchmentText());
 
         countdownLabel = new Label("Time Left: 60:00", labelStyle);
         countdownLabel.setAlignment(Align.center);

@@ -203,11 +203,11 @@ public class NpcLocationService {
     }
 
     private boolean shouldMoveThisSlot(String npcId, int slot) {
-        return Math.floorMod(stableHash(npcId, slot, 17), 100) < MOVE_CHANCE_PERCENT;
+        return positiveMod(stableHash(npcId, slot, 17), 100) < MOVE_CHANCE_PERCENT;
     }
 
     private int selectCandidateIndex(String npcId, int slot, int candidatesCount) {
-        return Math.floorMod(stableHash(npcId, slot, 53), candidatesCount);
+        return positiveMod(stableHash(npcId, slot, 53), candidatesCount);
     }
 
     private int stableHash(String npcId, int slot, int salt) {
@@ -216,6 +216,11 @@ public class NpcLocationService {
         hash = 31 * hash + slot;
         hash = 31 * hash + salt;
         return hash;
+    }
+
+    private int positiveMod(int value, int divisor) {
+        int mod = value % divisor;
+        return mod < 0 ? mod + divisor : mod;
     }
 
     private boolean isKnownBuilding(String buildingId) {

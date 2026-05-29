@@ -1,7 +1,6 @@
 package com.gdx.game.ui.component.popup;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -10,7 +9,7 @@ import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.infrastructure.Assets;
-import com.gdx.game.infrastructure.FontScaler;
+import com.gdx.game.infrastructure.UiStyles;
 
 public class TimeOverPopup extends AbstractPopup {
 
@@ -27,12 +26,7 @@ public class TimeOverPopup extends AbstractPopup {
         backgroundTexture = new Texture(Assets.TIME_OVER_POPUP);
         backgroundImage = new Image(backgroundTexture);
 
-        Label.LabelStyle style = new Label.LabelStyle();
-        style.font = skin.getFont("default-font");
-        style.fontColor = new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f);
-
-        FontScaler.applyScale(style.font);
-
+        Label.LabelStyle style = UiStyles.label(skin, UiStyles.parchmentText());
         messageLabel = new Label("Час закінчився.\nПерейти до звинувачення?", style);
         messageLabel.setAlignment(Align.center);
         messageLabel.setWrap(true);
@@ -51,62 +45,27 @@ public class TimeOverPopup extends AbstractPopup {
                 inv.accusationDone = true;
             }
 
-            game.overlay.showEpiloguePublic();
+            game.overlay.showEpilogue();
         });
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        resizeCentered(backgroundImage, backgroundTexture, screenWidth, screenHeight);
-
-        float height = backgroundImage.getHeight();
-        float width = backgroundImage.getWidth();
-
-        messageLabel.setWidth(backgroundImage.getWidth() * 0.7f);
-        messageLabel.setPosition(
-            backgroundImage.getX() + width * 0.15f,
-            backgroundImage.getY() + height * 0.52f
-        );
-
-        FontScaler.applyScale(skin.getFont("default-font"));
-
-        float btnWidth = width * 0.2f;
-        float btnHeight = height * 0.2f;
-        float paddingBottom = height * 0.2f;
-
-        yesButton.setSize(btnWidth, btnHeight);
-        noButton.setSize(btnWidth, btnHeight);
-
-        yesButton.setPosition(
-            backgroundImage.getX() + width/2 - btnWidth * 1.2f,
-            backgroundImage.getY() + paddingBottom
-        );
-
-        noButton.setPosition(
-            yesButton.getX() + btnWidth * 1.4f,
-            backgroundImage.getY() + paddingBottom
-        );
+        ConfirmPopupLayout.resize(this, backgroundImage, backgroundTexture, messageLabel, yesButton, noButton,
+            screenWidth, screenHeight);
     }
 
     @Override
     public void show() {
         super.show();
-        stage.addActor(backgroundImage);
-        stage.addActor(messageLabel);
-        stage.addActor(yesButton);
-        stage.addActor(noButton);
-
-        resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
+        ConfirmPopupLayout.show(this, stage, backgroundImage, messageLabel, yesButton, noButton);
     }
 
     @Override
     public void remove() {
         super.remove();
-        backgroundImage.remove();
-        messageLabel.remove();
-        yesButton.remove();
-        noButton.remove();
+        ConfirmPopupLayout.remove(this, backgroundImage, messageLabel, yesButton, noButton);
     }
 
     public void dispose() {

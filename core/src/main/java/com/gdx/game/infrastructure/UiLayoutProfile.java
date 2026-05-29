@@ -24,7 +24,6 @@ public class UiLayoutProfile {
     private final float questionAreaWidthRatio;
     private final float questionAreaHeightRatio;
     private final float questionAreaBottomMarginRatio;
-    private final float inputHeightRatio;
     private final float characterWidthRatio;
     private final float characterHeightRatio;
     private final float characterBottomRatio;
@@ -51,7 +50,6 @@ public class UiLayoutProfile {
         float questionAreaWidthRatio,
         float questionAreaHeightRatio,
         float questionAreaBottomMarginRatio,
-        float inputHeightRatio,
         float characterWidthRatio,
         float characterHeightRatio,
         float characterBottomRatio,
@@ -77,7 +75,6 @@ public class UiLayoutProfile {
         this.questionAreaWidthRatio = questionAreaWidthRatio;
         this.questionAreaHeightRatio = questionAreaHeightRatio;
         this.questionAreaBottomMarginRatio = questionAreaBottomMarginRatio;
-        this.inputHeightRatio = inputHeightRatio;
         this.characterWidthRatio = characterWidthRatio;
         this.characterHeightRatio = characterHeightRatio;
         this.characterBottomRatio = characterBottomRatio;
@@ -153,10 +150,6 @@ public class UiLayoutProfile {
 
     public float getQuestionAreaBottomMarginRatio() {
         return questionAreaBottomMarginRatio;
-    }
-
-    public float getInputHeightRatio() {
-        return inputHeightRatio;
     }
 
     public float getCharacterWidthRatio() {

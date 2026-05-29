@@ -6,8 +6,6 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.ui.overlay.FadeTransition;
-import com.gdx.game.ui.screens.MenuScreen;
 import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.infrastructure.UiLayout;
 import com.gdx.game.infrastructure.UiLayoutProfile;
@@ -21,13 +19,11 @@ public class SettingsPopup extends AbstractPopup {
     private final Image soundBtn;
 
     private final DetectiveGame game;
-    private final FadeTransition transition;
     private SoundPopup soundPopup;
 
-    public SettingsPopup(Stage stage, DetectiveGame game, FadeTransition transition) {
+    public SettingsPopup(Stage stage, DetectiveGame game) {
         super(stage);
         this.game = game;
-        this.transition = transition;
 
         settTexture = new Texture(Assets.SETTINGS);
         settImage = new Image(settTexture);
@@ -46,12 +42,7 @@ public class SettingsPopup extends AbstractPopup {
     }
 
     private void handleExit() {
-        if (!transition.isTransitioning()) {
-            transition.startFadeOut(0.7f, () -> {
-                game.setScreen(new MenuScreen(game, transition));
-                transition.startFadeIn(0.7f);
-            });
-        }
+        game.getNavigator().showMenu();
     }
 
     private void showSound() {
@@ -96,10 +87,7 @@ public class SettingsPopup extends AbstractPopup {
     @Override
     public void show() {
         super.show();
-        stage.addActor(settImage);
-        stage.addActor(continueBtn);
-        stage.addActor(exitBtn);
-        stage.addActor(soundBtn);
+        addPopupActors(settImage, continueBtn, exitBtn, soundBtn);
     }
 
     @Override
@@ -109,10 +97,7 @@ public class SettingsPopup extends AbstractPopup {
         }
 
         super.remove();
-        settImage.remove();
-        continueBtn.remove();
-        exitBtn.remove();
-        soundBtn.remove();
+        removePopupActors(settImage, continueBtn, exitBtn, soundBtn);
     }
 
     public void dispose() {

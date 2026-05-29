@@ -4,18 +4,15 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.ui.overlay.FadeTransition;
 
 public class PopupFactory {
     private final Stage stage;
     private final DetectiveGame game;
-    private final FadeTransition transition;
 
 
-    public PopupFactory(Stage stage, DetectiveGame game, FadeTransition transition) {
+    public PopupFactory(Stage stage, DetectiveGame game) {
         this.stage = stage;
         this.game = game;
-        this.transition = transition;
         new Skin(Gdx.files.internal("ui/uiskin.json"));
     }
 
@@ -24,7 +21,7 @@ public class PopupFactory {
     }
 
     public SettingsPopup createSettingsPopup() {
-        return new SettingsPopup(stage, game, transition);
+        return new SettingsPopup(stage, game);
     }
 
     public StoryPopup createStoryPopup() {

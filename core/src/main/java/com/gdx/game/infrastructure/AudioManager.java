@@ -5,6 +5,7 @@ import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.ObjectMap;
 
 public class AudioManager {
     private static final String PREFS_NAME = "audio_settings";
@@ -14,6 +15,7 @@ public class AudioManager {
     private static final float MUSIC_VOLUME = 0.35f;
     private static final float BUTTON_VOLUME = 0.45f;
     private static final float TRANSITION_VOLUME = 0.55f;
+    private static final ObjectMap<String, String> AMBIENCE_BY_LOCATION = createAmbienceMap();
 
     private Sound buttonClick;
     private Sound homeTransition;
@@ -61,6 +63,13 @@ public class AudioManager {
         if (!musicEnabled) return;
 
         playCurrentAmbience();
+    }
+
+    public void playAmbienceForLocation(String buildingId) {
+        String ambiencePath = buildingId != null ? AMBIENCE_BY_LOCATION.get(buildingId) : null;
+        if (ambiencePath != null) {
+            playAmbience(ambiencePath);
+        }
     }
 
     public boolean isMusicEnabled() {
@@ -172,5 +181,12 @@ public class AudioManager {
         if (homeTransition != null) homeTransition.dispose();
         if (shopTransition != null) shopTransition.dispose();
         stopCurrentAmbience();
+    }
+
+    private static ObjectMap<String, String> createAmbienceMap() {
+        ObjectMap<String, String> ambienceByLocation = new ObjectMap<>();
+        ambienceByLocation.put("hospital", Assets.SOUND_HOSPITAL);
+        ambienceByLocation.put("cafe", Assets.SOUND_CAFE);
+        return ambienceByLocation;
     }
 }

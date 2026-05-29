@@ -9,7 +9,6 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.ui.component.popup.*;
-import com.gdx.game.ui.screens.MapScreen;
 import com.gdx.game.ui.component.timer.GameTimer;
 import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.infrastructure.UiLayout;
@@ -88,7 +87,7 @@ public class UIOverlayManager {
         uiStage.addActor(dossierBadge);
         uiStage.addActor(toggleBadge);
 
-        popupFactory = new PopupFactory(uiStage, game, game.getTransition());
+        popupFactory = new PopupFactory(uiStage, game);
         timer = new GameTimer(uiStage, Assets.TOTAL_TIME);
     }
 
@@ -105,14 +104,7 @@ public class UIOverlayManager {
     private void backToMap() {
         if (!inInterior) return;
 
-        if (game.getAudioManager() != null) {
-            game.getAudioManager().playLocationTransition(currentInteriorBuildingId);
-        }
-
-        game.getTransition().startFadeOut(0.7f, () -> {
-            game.setScreen(new MapScreen(game, game.getTransition()));
-            game.getTransition().startFadeIn(0.7f);
-        });
+        game.getNavigator().returnToMapFromInterior(currentInteriorBuildingId);
     }
 
     private void showNotes() {
@@ -161,7 +153,7 @@ public class UIOverlayManager {
         settingsPopup.show();
     }
 
-    private void showEpilogue() {
+    public void showEpilogue() {
         if (epiloguePopup == null) {
             epiloguePopup = popupFactory.createEpiloguePopup();
         }
@@ -188,16 +180,12 @@ public class UIOverlayManager {
         }).start();
     }
 
-    public void showEpiloguePublic() {
-        showEpilogue();
-    }
-
-    public void showTheEndPublic() {
+    public void showTheEnd() {
         if (theEndPopup == null) theEndPopup = popupFactory.createTheEndPopup();
         theEndPopup.show();
     }
 
-    private void showPrologue() {
+    public void showPrologue() {
         Preferences prefs = Gdx.app.getPreferences("game_data");
         boolean isFirstRun = prefs.getBoolean("isFirstRun", true);
         if (isFirstRun) {
@@ -207,10 +195,6 @@ public class UIOverlayManager {
             timer.reset();
             prefs.flush();
         }
-    }
-
-    public void showProloguePublic() {
-        showPrologue();
     }
 
     public void render(float delta) {
@@ -335,17 +319,23 @@ public class UIOverlayManager {
 
         timer.setPositions(targetHeight, profile);
 
-        if (notePopup != null) notePopup.resize(width, height);
-        if (dossierPopup != null) dossierPopup.resize(width, height);
-        if (settingsPopup != null) settingsPopup.resize(width, height);
-        if (accusationPopup != null) accusationPopup.resize(width, height);
-        if (chatHistoryPopup != null) chatHistoryPopup.resize(width, height);
-        if (epiloguePopup != null) epiloguePopup.resize(width, height);
-        if (timeOverPopup != null) timeOverPopup.resize(width, height);
-        if (storyPopup != null) storyPopup.resize(width, height);
-        if (theEndPopup != null) theEndPopup.resize(width, height);
+        resizePopup(notePopup, width, height);
+        resizePopup(dossierPopup, width, height);
+        resizePopup(settingsPopup, width, height);
+        resizePopup(accusationPopup, width, height);
+        resizePopup(chatHistoryPopup, width, height);
+        resizePopup(epiloguePopup, width, height);
+        resizePopup(timeOverPopup, width, height);
+        resizePopup(storyPopup, width, height);
+        resizePopup(theEndPopup, width, height);
 
         updateBadgeVisibility();
+    }
+
+    private void resizePopup(AbstractPopup popup, int width, int height) {
+        if (popup != null) {
+            popup.resize(width, height);
+        }
     }
 
     private void layoutInteriorButtons(UiLayoutProfile profile, float worldWidth, float worldHeight) {
@@ -380,28 +370,41 @@ public class UIOverlayManager {
         arrowDownTexture.dispose();
         arrowUpTexture.dispose();
 
-        if (notePopup != null) notePopup.dispose();
-        if (dossierPopup != null) dossierPopup.dispose();
-        if (settingsPopup != null) settingsPopup.dispose();
-        if (accusationPopup != null) accusationPopup.dispose();
-        if (chatHistoryPopup != null) chatHistoryPopup.dispose();
-        if (timeOverPopup != null) timeOverPopup.dispose();
-        if (settingsPopup != null) settingsPopup.dispose();
-        if (theEndPopup != null) theEndPopup.dispose();
+        disposePopup(notePopup);
+        disposePopup(dossierPopup);
+        disposePopup(settingsPopup);
+        disposePopup(accusationPopup);
+        disposePopup(chatHistoryPopup);
+        disposePopup(epiloguePopup);
+        disposePopup(timeOverPopup);
+        disposePopup(storyPopup);
+        disposePopup(theEndPopup);
 
         timer.saveTime();
     }
 
     public void hideAllPopups() {
-        if (settingsPopup != null) settingsPopup.remove();
-        if (notePopup != null) notePopup.remove();
-        if (dossierPopup != null) dossierPopup.remove();
-        if (accusationPopup != null) accusationPopup.remove();
-        if (chatHistoryPopup != null) chatHistoryPopup.remove();
-        if (epiloguePopup != null) epiloguePopup.remove();
-        if (timeOverPopup != null) timeOverPopup.remove();
-        if (storyPopup != null) storyPopup.remove();
-        if (theEndPopup != null) theEndPopup.remove();
+        removePopup(settingsPopup);
+        removePopup(notePopup);
+        removePopup(dossierPopup);
+        removePopup(accusationPopup);
+        removePopup(chatHistoryPopup);
+        removePopup(epiloguePopup);
+        removePopup(timeOverPopup);
+        removePopup(storyPopup);
+        removePopup(theEndPopup);
+    }
+
+    private void removePopup(AbstractPopup popup) {
+        if (popup != null) {
+            popup.remove();
+        }
+    }
+
+    private void disposePopup(AbstractPopup popup) {
+        if (popup != null) {
+            popup.dispose();
+        }
     }
 
     public void resetTimer() {
@@ -429,13 +432,13 @@ public class UIOverlayManager {
         toggleButton.setDrawable(new Image(arrowDownTexture).getDrawable());
 
         if (notePopup != null) {
-            notePopup.remove();
-            notePopup.dispose();
+            removePopup(notePopup);
+            disposePopup(notePopup);
             notePopup = null;
         }
 
         if (chatHistoryPopup != null) {
-            chatHistoryPopup.remove();
+            removePopup(chatHistoryPopup);
             chatHistoryPopup = null;
         }
 

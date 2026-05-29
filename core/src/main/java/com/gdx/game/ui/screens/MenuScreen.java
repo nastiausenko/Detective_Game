@@ -8,34 +8,31 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.gdx.game.DetectiveGame;
-import com.gdx.game.GameData;
-import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.BackgroundFactory;
+import com.gdx.game.infrastructure.GameContext;
 import com.gdx.game.infrastructure.UiLayout;
 import com.gdx.game.infrastructure.UiLayoutProfile;
-import com.gdx.game.ui.overlay.FadeTransition;
+import com.gdx.game.ui.rendering.ScaledBackground;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class MenuScreen implements Screen {
-    private final DetectiveGame game;
-    private final FadeTransition transition;
+    private final GameContext game;
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
     private final Stage stage;
-    private final Texture backgroundTexture;
-    private final Texture startTexture;
+    private final ScaledBackground background;
+    private final Image dimOverlay;
     private final Image startBtn;
     private final Image exitBtn;
     private final Image newGameBtn;
     private final Image gameTitleImage;
+    private final Texture startTexture;
     private final Texture gameTitleTexture;
-    private float drawWidth, drawHeight;
 
-    public MenuScreen(DetectiveGame game, FadeTransition transition) {
+    public MenuScreen(GameContext game) {
         this.game = game;
-        this.transition = transition;
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -43,7 +40,13 @@ public class MenuScreen implements Screen {
 
         stage = new Stage(new ScreenViewport(), game.batch);
 
-        backgroundTexture = new Texture(Assets.MENU_BACKGROUND);
+        background = new ScaledBackground(Assets.MAP_BACKGROUND, true, true);
+        dimOverlay = BackgroundFactory.createDimBackground(
+            stage.getViewport().getWorldWidth(),
+            stage.getViewport().getWorldHeight(),
+            0.58f
+        );
+        stage.addActor(dimOverlay);
 
         startTexture = new Texture(Assets.START_BUTTON);
         gameTitleTexture = new Texture(Assets.GAME_TITLE);
@@ -63,47 +66,15 @@ public class MenuScreen implements Screen {
     private Image createStartButton() {
         return game.getButtonFactory().createButton(
             Assets.START_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
-            () -> {
-                if (!transition.isTransitioning()) {
-                    transition.startFadeOut(0.7f, () -> {
-                        if (game.overlay.getTimer().isTimeOver()) {
-                          handleNewGame();
-                        } else {
-                            game.setScreen(new MapScreen(game, transition));
-                            transition.startFadeIn(0.7f);
-                        }
-                    });
-                }
-            }
+            () -> game.getNavigator().resumeOrStartGame()
         );
     }
 
     private Image createNewGameButton() {
         return game.getButtonFactory().createButton(
             Assets.NEW_GAME_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
-            () -> {
-                if (!transition.isTransitioning()) {
-                    transition.startFadeOut(0.7f, this::handleNewGame);
-                }
-            }
+            () -> game.getNavigator().startNewGame()
         );
-    }
-
-    private void handleNewGame() {
-        GameData.clearAll();
-        game.getNpcDialogueService().resetAllNpcState();
-        game.getNpcLocationService().reset();
-        game.getCrimeSceneService().reset();
-        game.overlay.resetForNewGame();
-
-        InvestigationState inv = game.getInvestigationState();
-        if (inv != null) {
-            inv.accusationDone = false;
-            inv.accusedNpcId = null;
-        }
-
-        game.setScreen(new MapScreen(game, transition));
-        transition.startFadeIn(0.7f);
     }
 
     private Image createExitButton() {
@@ -127,9 +98,7 @@ public class MenuScreen implements Screen {
 
         camera.update();
         game.batch.setProjectionMatrix(camera.combined);
-        game.batch.begin();
-        game.batch.draw(backgroundTexture, 0, 0, drawWidth, drawHeight);
-        game.batch.end();
+        background.render(game.batch);
 
         stage.act(delta);
         stage.draw();
@@ -142,17 +111,10 @@ public class MenuScreen implements Screen {
         viewport.update(width, height, true);
         stage.getViewport().update(width, height, true);
 
-        float[] size = ScreenUtilsHelper.calculateDrawSize(
-            backgroundTexture.getWidth(),
-            backgroundTexture.getHeight(),
-            viewport.getWorldWidth(),
-            viewport.getWorldHeight()
-        );
+        background.resizeToCover(viewport.getWorldWidth(), viewport.getWorldHeight());
+        dimOverlay.setSize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
 
-        drawWidth = size[0];
-        drawHeight = size[1];
-
-        camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
+        camera.position.set(background.getDrawWidth() / 2f, background.getDrawHeight() / 2f, 0);
         camera.update();
 
         float targetHeight = height * profile.getMenuButtonHeightRatio();
@@ -202,8 +164,7 @@ public class MenuScreen implements Screen {
     public void dispose() {
         stage.dispose();
         startTexture.dispose();
-        backgroundTexture.dispose();
+        background.dispose();
         gameTitleTexture.dispose();
-        transition.dispose();
     }
 }

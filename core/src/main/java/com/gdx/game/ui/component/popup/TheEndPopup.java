@@ -1,19 +1,14 @@
 package com.gdx.game.ui.component.popup;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
-import com.gdx.game.GameData;
-import com.gdx.game.domain.investigation.InvestigationState;
-import com.gdx.game.ui.screens.MapScreen;
-import com.gdx.game.ui.screens.MenuScreen;
 import com.gdx.game.infrastructure.Assets;
-import com.gdx.game.infrastructure.FontScaler;
+import com.gdx.game.infrastructure.UiStyles;
 
 public class TheEndPopup extends AbstractPopup {
 
@@ -30,12 +25,7 @@ public class TheEndPopup extends AbstractPopup {
         backgroundTexture = new Texture(Assets.TIME_OVER_POPUP);
         backgroundImage = new Image(backgroundTexture);
 
-        Label.LabelStyle style = new Label.LabelStyle();
-        style.font = skin.getFont("default-font");
-        style.fontColor = new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f);
-
-        FontScaler.applyScale(style.font);
-
+        Label.LabelStyle style = UiStyles.label(skin, UiStyles.parchmentText());
         messageLabel = new Label("Почати нову гру?", style);
         messageLabel.setAlignment(Align.center);
         messageLabel.setWrap(true);
@@ -44,23 +34,7 @@ public class TheEndPopup extends AbstractPopup {
             Assets.YES_BUTTON, 60, 60,
             () -> {
                 remove();
-
-                GameData.clearAll();
-                game.getNpcDialogueService().resetAllNpcState();
-                game.getNpcLocationService().reset();
-                game.getCrimeSceneService().reset();
-                game.overlay.resetForNewGame();
-
-                InvestigationState inv = game.getInvestigationState();
-                if (inv != null) {
-                    inv.accusationDone = false;
-                    inv.accusedNpcId = null;
-                }
-
-                game.getTransition().startFadeOut(0.7f, () -> {
-                    game.setScreen(new MapScreen(game, game.getTransition()));
-                    game.getTransition().startFadeIn(0.7f);
-                });
+                game.getNavigator().startNewGame();
             }
         );
 
@@ -68,11 +42,7 @@ public class TheEndPopup extends AbstractPopup {
             Assets.NO_BUTTON, 60, 60,
             () -> {
                 remove();
-
-                game.getTransition().startFadeOut(0.7f, () -> {
-                    game.setScreen(new MenuScreen(game, game.getTransition()));
-                    game.getTransition().startFadeIn(0.7f);
-                });
+                game.getNavigator().showMenu();
             }
         );
 
@@ -81,55 +51,20 @@ public class TheEndPopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        resizeCentered(backgroundImage, backgroundTexture, screenWidth, screenHeight);
-
-        float height = backgroundImage.getHeight();
-        float width = backgroundImage.getWidth();
-
-        messageLabel.setWidth(backgroundImage.getWidth() * 0.7f);
-        messageLabel.setPosition(
-            backgroundImage.getX() + width * 0.15f,
-            backgroundImage.getY() + height * 0.52f
-        );
-
-        FontScaler.applyScale(skin.getFont("default-font"));
-
-        float btnWidth = width * 0.2f;
-        float btnHeight = height * 0.2f;
-        float paddingBottom = height * 0.2f;
-
-        yesButton.setSize(btnWidth, btnHeight);
-        noButton.setSize(btnWidth, btnHeight);
-
-        yesButton.setPosition(
-            backgroundImage.getX() + width/2 - btnWidth * 1.2f,
-            backgroundImage.getY() + paddingBottom
-        );
-
-        noButton.setPosition(
-            yesButton.getX() + btnWidth * 1.4f,
-            backgroundImage.getY() + paddingBottom
-        );
+        ConfirmPopupLayout.resize(this, backgroundImage, backgroundTexture, messageLabel, yesButton, noButton,
+            screenWidth, screenHeight);
     }
 
     @Override
     public void show() {
         super.show();
-        stage.addActor(backgroundImage);
-        stage.addActor(messageLabel);
-        stage.addActor(yesButton);
-        stage.addActor(noButton);
-
-        resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
+        ConfirmPopupLayout.show(this, stage, backgroundImage, messageLabel, yesButton, noButton);
     }
 
     @Override
     public void remove() {
         super.remove();
-        backgroundImage.remove();
-        messageLabel.remove();
-        yesButton.remove();
-        noButton.remove();
+        ConfirmPopupLayout.remove(this, backgroundImage, messageLabel, yesButton, noButton);
     }
 
     public void dispose() {

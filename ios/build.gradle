@@ -8,6 +8,11 @@ buildscript {
 }
 apply plugin: 'robovm'
 
+import org.robovm.compiler.config.Arch
+import org.robovm.compiler.config.Environment
+import org.robovm.compiler.config.OS
+import org.robovm.compiler.target.ios.DeviceType
+
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 ext {
@@ -18,6 +23,97 @@ launchIPhoneSimulator.dependsOn build
 launchIPadSimulator.dependsOn build
 launchIOSDevice.dependsOn build
 createIPA.dependsOn build
+
+def execOutput = { List<String> command ->
+  def output = new ByteArrayOutputStream()
+  exec {
+    commandLine command
+    standardOutput = output
+    errorOutput = output
+    ignoreExitValue = true
+  }
+  output.toString('UTF-8').trim()
+}
+
+def execRequired = { List<String> command ->
+  exec {
+    commandLine command
+  }
+}
+
+def findSimulator = { boolean bootedOnly, String devicePrefix ->
+  def output = execOutput(['xcrun', 'simctl', 'list', 'devices', 'available'])
+  def states = bootedOnly ? ['Booted'] : ['Booted', 'Shutdown']
+
+  for (String line : output.readLines()) {
+    def match = line =~ /^\s*([^()]+)\s+\(([A-F0-9-]+)\)\s+\(([^)]+)\)\s*$/
+    if (!match.matches()) continue
+
+    def name = match[0][1].trim()
+    def udid = match[0][2].trim()
+    def state = match[0][3].trim()
+    if (name.startsWith(devicePrefix) && states.contains(state)) {
+      return udid
+    }
+  }
+
+  return null
+}
+
+def launchBuiltSimulatorApp = { String devicePrefix ->
+  def simulatorId = findSimulator(true, devicePrefix)
+  if (simulatorId == null) {
+    simulatorId = findSimulator(false, devicePrefix)
+    if (simulatorId == null) {
+      throw new GradleException("No available ${devicePrefix} simulator was found.")
+    }
+    execRequired(['xcrun', 'simctl', 'boot', simulatorId])
+  }
+
+  execRequired(['xcrun', 'simctl', 'bootstatus', simulatorId, '-b'])
+
+  def developerDir = execOutput(['/usr/bin/xcode-select', '-p'])
+  def simulatorApp = new File(developerDir, 'Applications/Simulator.app')
+  execRequired(['open', simulatorApp.absolutePath, '--args', '-CurrentDeviceUDID', simulatorId])
+
+  def bundleDir = layout.buildDirectory.dir('robovm').get().asFile
+  def appDir = layout.buildDirectory.dir('robovm.tmp/IOSLauncher.app').get().asFile
+  delete appDir
+  copy {
+    from bundleDir
+    into appDir
+  }
+
+  def bundleId = execOutput(['/usr/libexec/PlistBuddy', '-c', 'Print:CFBundleIdentifier', new File(appDir, 'Info.plist').absolutePath])
+  if (bundleId.isEmpty()) {
+    throw new GradleException("Could not read CFBundleIdentifier from ${appDir}/Info.plist.")
+  }
+
+  execRequired(['xcrun', 'simctl', 'install', simulatorId, appDir.absolutePath])
+  execRequired(['xcrun', 'simctl', 'launch', '--console', simulatorId, bundleId])
+}
+
+def buildSimulatorApp = { task ->
+  def simulatorArch = new Arch(DeviceType.DEFAULT_HOST_ARCH, Environment.Simulator)
+  def compiler = task.build(OS.ios, simulatorArch, 'ios')
+  compiler.install()
+}
+
+launchIPhoneSimulator {
+  actions.clear()
+  doLast {
+    buildSimulatorApp(delegate)
+    launchBuiltSimulatorApp('iPhone')
+  }
+}
+
+launchIPadSimulator {
+  actions.clear()
+  doLast {
+    buildSimulatorApp(delegate)
+    launchBuiltSimulatorApp('iPad')
+  }
+}
 
 eclipse.project {
   name = appName + "-ios"

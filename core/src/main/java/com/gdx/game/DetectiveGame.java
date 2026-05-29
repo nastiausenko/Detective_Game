@@ -8,10 +8,13 @@ import com.gdx.game.domain.character.DossierDatabase;
 import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.domain.world.CrimeSceneService;
 import com.gdx.game.domain.world.LoreDatabase;
+import com.gdx.game.ai.FactRevealService;
 import com.gdx.game.ai.LlmClient;
 import com.gdx.game.ai.NpcDialogueService;
 import com.gdx.game.infrastructure.AudioManager;
+import com.gdx.game.infrastructure.GameContext;
 import com.gdx.game.ui.overlay.FadeTransition;
+import com.gdx.game.ui.navigation.ScreenNavigator;
 import com.gdx.game.ui.screens.MenuScreen;
 import com.gdx.game.infrastructure.UIButtonFactory;
 import com.gdx.game.ai.EpilogueService;
@@ -25,6 +28,8 @@ public class DetectiveGame extends Game {
 
     private UIButtonFactory buttonFactory;
     private FadeTransition transition;
+    private ScreenNavigator navigator;
+    private GameContext gameContext;
 
     private DossierDatabase dossierDb;
     private LoreDatabase loreDb;
@@ -34,6 +39,7 @@ public class DetectiveGame extends Game {
     private EpilogueService epilogueService;
     private NpcLocationService npcLocationService;
     private CrimeSceneService crimeSceneService;
+    private FactRevealService factRevealService;
 
     private final String openAiKey;
     private final String groqKey;
@@ -71,9 +77,26 @@ public class DetectiveGame extends Game {
         epilogueService = new EpilogueService(llmClient, loreDb, dossierDb, npcDialogueService);
         npcLocationService = new NpcLocationService();
         crimeSceneService = new CrimeSceneService(loreDb, npcDialogueService);
+        factRevealService = new FactRevealService(npcDialogueService, dossierDb, crimeSceneService);
         overlay = new UIOverlayManager(this);
+        navigator = new ScreenNavigator(this, transition);
+        gameContext = new GameContext(
+            batch,
+            overlay,
+            buttonFactory,
+            audioManager,
+            dossierDb,
+            npcDialogueService,
+            investigationState,
+            epilogueService,
+            npcLocationService,
+            crimeSceneService,
+            factRevealService,
+            navigator
+        );
+        navigator.setContext(gameContext);
 
-        setScreen(new MenuScreen(this, transition));
+        setScreen(new MenuScreen(gameContext));
     }
 
     @Override
@@ -97,6 +120,14 @@ public class DetectiveGame extends Game {
 
     public FadeTransition getTransition() {
         return transition;
+    }
+
+    public ScreenNavigator getNavigator() {
+        return navigator;
+    }
+
+    public GameContext getContext() {
+        return gameContext;
     }
 
     public DossierDatabase getDossierDb() {
@@ -125,5 +156,9 @@ public class DetectiveGame extends Game {
 
     public CrimeSceneService getCrimeSceneService() {
         return crimeSceneService;
+    }
+
+    public FactRevealService getFactRevealService() {
+        return factRevealService;
     }
 }

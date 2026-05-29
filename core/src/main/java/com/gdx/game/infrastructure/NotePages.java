@@ -2,7 +2,6 @@ package com.gdx.game.infrastructure;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -77,13 +76,7 @@ public class NotePages {
     }
 
     private TextField.TextFieldStyle createTextStyle() {
-        TextField.TextFieldStyle style = new TextField.TextFieldStyle();
-        style.font = skin.getFont("default-font");
-        style.fontColor = Color.BLACK;
-        style.cursor = skin.newDrawable("cursor", Color.BLACK);
-        style.background = null;
-        style.selection = skin.newDrawable("white", new Color(0.3f, 0.5f, 1f, 0.5f));
-        return style;
+        return UiStyles.transparentTextField(skin);
     }
 
     private void createNewPage() {

@@ -288,14 +288,16 @@ public class SoundPopup extends AbstractPopup {
     @Override
     public void show() {
         super.show();
-        stage.addActor(popupImage);
-        stage.addActor(musicToggle);
-        stage.addActor(soundEffectsToggle);
-        stage.addActor(volumeSliderCover);
-        stage.addActor(volumeSliderTrack);
-        stage.addActor(volumeSliderFill);
-        stage.addActor(volumeSliderKnob);
-        stage.addActor(closeBtn);
+        addPopupActors(
+            popupImage,
+            musicToggle,
+            soundEffectsToggle,
+            volumeSliderCover,
+            volumeSliderTrack,
+            volumeSliderFill,
+            volumeSliderKnob,
+            closeBtn
+        );
 
         updateToggleState();
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
@@ -304,14 +306,16 @@ public class SoundPopup extends AbstractPopup {
     @Override
     public void remove() {
         super.remove();
-        popupImage.remove();
-        musicToggle.remove();
-        soundEffectsToggle.remove();
-        volumeSliderCover.remove();
-        volumeSliderTrack.remove();
-        volumeSliderFill.remove();
-        volumeSliderKnob.remove();
-        closeBtn.remove();
+        removePopupActors(
+            popupImage,
+            musicToggle,
+            soundEffectsToggle,
+            volumeSliderCover,
+            volumeSliderTrack,
+            volumeSliderFill,
+            volumeSliderKnob,
+            closeBtn
+        );
     }
 
     public void dispose() {

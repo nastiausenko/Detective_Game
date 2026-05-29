@@ -1,7 +1,6 @@
 package com.gdx.game.ui.component.popup;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -21,6 +20,7 @@ import com.gdx.game.infrastructure.Assets;
 import com.gdx.game.infrastructure.FontScaler;
 import com.gdx.game.infrastructure.UiLayout;
 import com.gdx.game.infrastructure.UiLayoutProfile;
+import com.gdx.game.infrastructure.UiStyles;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class AccusationPopup extends AbstractPopup {
@@ -64,9 +64,7 @@ public class AccusationPopup extends AbstractPopup {
         accuseButton = game.getButtonFactory().createButton(Assets.ACCUSE, 60, 60, this::accuse);
         closeButton = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
 
-        labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default-font");
-        labelStyle.fontColor = new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f);
+        labelStyle = UiStyles.label(skin, UiStyles.parchmentText());
 
         portraits = new Image[characterNames.length];
         names = new Label[characterNames.length];
@@ -160,15 +158,13 @@ public class AccusationPopup extends AbstractPopup {
             portrait.setScale(1f);
         }
 
-        stage.addActor(accusationBackground);
+        addPopupActors(accusationBackground);
 
         for (int i = 0; i < portraits.length; i++) {
-            stage.addActor(portraits[i]);
-            stage.addActor(names[i]);
+            addPopupActors(portraits[i], names[i]);
         }
 
-        stage.addActor(accuseButton);
-        stage.addActor(closeButton);
+        addPopupActors(accuseButton, closeButton);
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
 
         updateAccuseButtonState();
@@ -178,11 +174,10 @@ public class AccusationPopup extends AbstractPopup {
     @Override
     public void remove() {
         super.remove();
-        accusationBackground.remove();
-        for (Image portrait : portraits) portrait.remove();
-        for (Label name : names) name.remove();
-        accuseButton.remove();
-        closeButton.remove();
+        removePopupActors(accusationBackground);
+        for (Image portrait : portraits) removePopupActors(portrait);
+        for (Label name : names) removePopupActors(name);
+        removePopupActors(accuseButton, closeButton);
     }
 
     public void dispose() {
@@ -247,7 +242,7 @@ public class AccusationPopup extends AbstractPopup {
         }
 
         remove();
-        game.overlay.showEpiloguePublic();
+        game.overlay.showEpilogue();
     }
 
     private void updateCloseButtonState() {

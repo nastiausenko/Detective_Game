@@ -1,17 +1,16 @@
 package com.gdx.game.ui.component.popup;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
 import com.gdx.game.DetectiveGame;
 import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.infrastructure.UiStyles;
+import com.gdx.game.ui.component.TypewriterText;
 import com.gdx.game.utils.ScreenUtilsHelper;
 
 public class StoryPopup extends AbstractPopup {
@@ -37,37 +36,28 @@ public class StoryPopup extends AbstractPopup {
             "Тут кожне запитання має ціну. І кожна відповідь може наблизити тебе або до правди, або до чужої версії реальності."
     };
 
-    private final StringBuilder sb = new StringBuilder();
-    private float charTimer = 0f;
-    private final float charDelay = 0.04f;
-    private int charIndex = 0;
     private int currentPage = 0;
-    private boolean finishedPage = false;
 
-    private final DetectiveGame game;
     private final GlyphLayout layout;
+    private final TypewriterText typewriterText;
 
     public StoryPopup(Stage stage, DetectiveGame game) {
         super(stage);
-        this.game = game;
         layout = new GlyphLayout();
 
         storyTexture = new Texture(Assets.PROLOGUE);
         storyImage = new Image(storyTexture);
 
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default-font");
-        labelStyle.fontColor = new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f);
-
-        storyLabel = new Label("", labelStyle);
+        storyLabel = new Label("", UiStyles.label(skin, UiStyles.parchmentText()));
         storyLabel.setWrap(true);
         storyLabel.setAlignment(Align.center);
+        typewriterText = new TypewriterText(storyLabel);
 
         continueButton = game.getButtonFactory().createButton(
             Assets.CONTINUE_BUTTON, 60, 60,
             () -> {
-                if (!finishedPage) {
-                    finishCurrentPageText();
+                if (!typewriterText.isFinished()) {
+                    typewriterText.finish();
                 } else if (currentPage < pages.length - 1) {
                     nextPage();
                 } else {
@@ -82,30 +72,7 @@ public class StoryPopup extends AbstractPopup {
     }
 
     public void update(float delta) {
-        if (finishedPage) return;
-
-        charTimer += delta;
-        String fullText = getCurrentPageText();
-
-        while (charTimer >= charDelay && charIndex < fullText.length()) {
-            sb.append(fullText.charAt(charIndex));
-            charIndex++;
-            storyLabel.setText(sb.toString());
-            charTimer -= charDelay;
-        }
-
-        if (charIndex >= fullText.length()) {
-            finishedPage = true;
-        }
-    }
-
-    private void finishCurrentPageText() {
-        String fullText = getCurrentPageText();
-        sb.setLength(0);
-        sb.append(fullText);
-        storyLabel.setText(fullText);
-        finishedPage = true;
-        charIndex = fullText.length();
+        typewriterText.update(delta);
     }
 
     private void nextPage() {
@@ -115,11 +82,7 @@ public class StoryPopup extends AbstractPopup {
             return;
         }
 
-        sb.setLength(0);
-        storyLabel.setText("");
-        charIndex = 0;
-        charTimer = 0f;
-        finishedPage = false;
+        typewriterText.start(getCurrentPageText());
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
@@ -127,25 +90,9 @@ public class StoryPopup extends AbstractPopup {
     private void rescaleFontToFit() {
         if (storyImage.getWidth() == 0 || storyImage.getHeight() == 0) return;
 
-        Label.LabelStyle style = storyLabel.getStyle();
-        BitmapFont font = style.font;
-
         float labelWidth = storyImage.getWidth() * 0.7f;
         float availableHeight = storyImage.getHeight() * 0.35f;
-
-        String fullText = getCurrentPageText();
-
-        font.getData().setScale(1f);
-
-        layout.setText(font, fullText, style.fontColor, labelWidth, Align.center, true);
-        float prefHeight = layout.height;
-        if (prefHeight <= 0f) prefHeight = font.getCapHeight();
-
-        float scale = availableHeight / prefHeight;
-        scale = MathUtils.clamp(scale, 0.6f, 1.4f);
-
-        font.getData().setScale(scale);
-        storyLabel.invalidateHierarchy();
+        PopupTextScaler.scaleToFitCentered(storyLabel, layout, getCurrentPageText(), labelWidth, availableHeight);
     }
 
     public void resize(float screenWidth, float screenHeight) {
@@ -168,15 +115,9 @@ public class StoryPopup extends AbstractPopup {
         super.show();
 
         currentPage = 0;
-        sb.setLength(0);
-        storyLabel.setText("");
-        charIndex = 0;
-        charTimer = 0f;
-        finishedPage = false;
+        typewriterText.start(getCurrentPageText());
 
-        stage.addActor(storyImage);
-        stage.addActor(storyLabel);
-        stage.addActor(continueButton);
+        addPopupActors(storyImage, storyLabel, continueButton);
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
@@ -184,8 +125,6 @@ public class StoryPopup extends AbstractPopup {
     @Override
     public void remove() {
         super.remove();
-        storyImage.remove();
-        storyLabel.remove();
-        continueButton.remove();
+        removePopupActors(storyImage, storyLabel, continueButton);
     }
 }

@@ -1,6 +1,5 @@
 package com.gdx.game.ui.screens;
 
-import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
@@ -15,15 +14,14 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.world.BuildingData;
+import com.gdx.game.infrastructure.GameContext;
 import com.gdx.game.ui.component.chars.BuildingLoader;
 import com.gdx.game.ui.component.chars.CharacterIcon;
 import com.gdx.game.ui.component.chars.CharacterLoader;
 import com.gdx.game.infrastructure.Assets;
-import com.gdx.game.ui.overlay.FadeTransition;
+import com.gdx.game.ui.rendering.ScaledBackground;
 import com.gdx.game.utils.MapInputController;
-import com.gdx.game.utils.TiledTextureHelper;
 
 import java.util.List;
 import java.util.Map;
@@ -32,24 +30,22 @@ import java.util.Objects;
 public class MapScreen implements Screen {
     private static final boolean DEBUG_BUILDING_RECTS = false;
     private static final String CRIME_SCENE_BUILDING_ID = "professor_house";
-    private static final float FOUNTAIN_FRAME_DURATION = 0.14f;
-    private static final float MAX_NIGHT_ALPHA = 0.52f;
+    private static final float MAP_ANIMATION_FRAME_DURATION = 0.14f;
+    private static final float MAX_NIGHT_ALPHA = 0.58f;
     private static final float MAX_LIGHT_ALPHA = 0.82f;
     private static final int DAWN_START_MINUTE = 5 * 60;
     private static final int DAY_START_MINUTE = 7 * 60;
     private static final int DUSK_START_MINUTE = 17 * 60;
     private static final int NIGHT_START_MINUTE = 20 * 60;
 
-    private final DetectiveGame game;
-    private final FadeTransition transition;
-    private final TiledTextureHelper tiledHelper;
+    private final GameContext game;
+    private final ScaledBackground mapBackground;
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
     private final Stage mapStage;
     private final ShapeRenderer shapeRenderer;
 
-    private final Texture mapTexture;
     private final Texture lightOverlayTexture;
     private final Texture crimeSceneBadgeTexture;
     private final Texture[] fountainTextures;
@@ -70,18 +66,26 @@ public class MapScreen implements Screen {
 
     private boolean firstShow = true;
 
-    public MapScreen(DetectiveGame game, FadeTransition transition) {
+    public MapScreen(GameContext game) {
         this.game = game;
-        this.transition = transition;
 
-        mapTexture = new Texture(Assets.MAP_BACKGROUND);
+        mapBackground = new ScaledBackground(Assets.MAP_BACKGROUND, true, true);
         lightOverlayTexture = new Texture(Assets.MAP_LIGHT_OVERLAY);
         crimeSceneBadgeTexture = new Texture(Assets.BADGE);
-        tiledHelper = new TiledTextureHelper(mapTexture, 256);
-        fountainTextures = loadFountainTextures();
-        fountainAnimation = createFountainAnimation(fountainTextures);
-        lakeTextures = loadLakeTextures();
-        lakeAnimation = createLakeAnimation(lakeTextures);
+        fountainTextures = loadTextures(
+            Assets.FOUNTAIN_FRAME_1,
+            Assets.FOUNTAIN_FRAME_2,
+            Assets.FOUNTAIN_FRAME_3,
+            Assets.FOUNTAIN_FRAME_4,
+            Assets.FOUNTAIN_FRAME_5
+        );
+        fountainAnimation = createPingPongAnimation(fountainTextures);
+        lakeTextures = loadTextures(
+            Assets.LAKE_FRAME_1,
+            Assets.LAKE_FRAME_2,
+            Assets.LAKE_FRAME_3
+        );
+        lakeAnimation = createPingPongAnimation(lakeTextures);
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -125,27 +129,19 @@ public class MapScreen implements Screen {
         mapStage.addActor(crimeSceneIcon);
         mapStage.addActor(crimeSceneBadge);
 
-       game.overlay.showProloguePublic();
+        game.overlay.showPrologue();
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     @Override
     public void render(float delta) {
-        boolean isIOS = Gdx.app.getType() == Application.ApplicationType.iOS;
-
         inputController.handleKeyboard(delta);
         syncIconsWithNpcLocations();
         camera.update();
 
         game.batch.setProjectionMatrix(camera.combined);
-        if (isIOS) {
-            tiledHelper.renderTiled(game.batch, drawWidth, drawHeight);
-        } else {
-            game.batch.begin();
-            game.batch.draw(mapTexture, 0, 0, drawWidth, drawHeight);
-            game.batch.end();
-        }
+        mapBackground.render(game.batch);
 
         drawFountainAnimation(delta);
         drawLakeAnimation(delta);
@@ -174,12 +170,9 @@ public class MapScreen implements Screen {
         viewport.update(width, height);
         game.overlay.resize(width, height);
 
-        float scaleX = viewport.getWorldWidth() / mapTexture.getWidth();
-        float scaleY = viewport.getWorldHeight() / mapTexture.getHeight();
-        float baseScale = Math.max(1f, Math.max(scaleX, scaleY));
-
-        drawWidth = mapTexture.getWidth() * baseScale;
-        drawHeight = mapTexture.getHeight() * baseScale;
+        mapBackground.resizeToCover(viewport.getWorldWidth(), viewport.getWorldHeight());
+        drawWidth = mapBackground.getDrawWidth();
+        drawHeight = mapBackground.getDrawHeight();
 
         if (firstResize) {
             camera.position.set(drawWidth / 2f, drawHeight / 2f, 0);
@@ -199,7 +192,7 @@ public class MapScreen implements Screen {
 
     @Override
     public void dispose() {
-        mapTexture.dispose();
+        mapBackground.dispose();
         lightOverlayTexture.dispose();
         crimeSceneBadgeTexture.dispose();
         for (Texture texture : fountainTextures) {
@@ -210,7 +203,6 @@ public class MapScreen implements Screen {
         }
         mapStage.dispose();
         shapeRenderer.dispose();
-        if (transition != null) transition.dispose();
     }
 
     @Override public void pause() {}
@@ -264,35 +256,17 @@ public class MapScreen implements Screen {
 
     private float getMapScale() {
         return Math.max(1f, Math.max(
-            viewport.getWorldWidth() / mapTexture.getWidth(),
-            viewport.getWorldHeight() / mapTexture.getHeight()
+            viewport.getWorldWidth() / mapBackground.getTextureWidth(),
+            viewport.getWorldHeight() / mapBackground.getTextureHeight()
         ));
     }
 
-    private Texture[] loadFountainTextures() {
-        return new Texture[]{
-            new Texture(Assets.FOUNTAIN_FRAME_1),
-            new Texture(Assets.FOUNTAIN_FRAME_2),
-            new Texture(Assets.FOUNTAIN_FRAME_3),
-            new Texture(Assets.FOUNTAIN_FRAME_4),
-            new Texture(Assets.FOUNTAIN_FRAME_5)
-        };
-    }
-
-    private Texture[] loadLakeTextures() {
-        return new Texture[]{
-            new Texture(Assets.LAKE_FRAME_1),
-            new Texture(Assets.LAKE_FRAME_2),
-            new Texture(Assets.LAKE_FRAME_3)
-        };
-    }
-
-    private Animation<TextureRegion> createFountainAnimation(Texture[] textures) {
-        return createPingPongAnimation(textures);
-    }
-
-    private Animation<TextureRegion> createLakeAnimation(Texture[] textures) {
-        return createPingPongAnimation(textures);
+    private Texture[] loadTextures(String... paths) {
+        Texture[] textures = new Texture[paths.length];
+        for (int i = 0; i < paths.length; i++) {
+            textures[i] = new Texture(paths[i]);
+        }
+        return textures;
     }
 
     private Animation<TextureRegion> createPingPongAnimation(Texture[] textures) {
@@ -301,7 +275,7 @@ public class MapScreen implements Screen {
             frames[i] = new TextureRegion(textures[i]);
         }
 
-        Animation<TextureRegion> animation = new Animation<>(FOUNTAIN_FRAME_DURATION, frames);
+        Animation<TextureRegion> animation = new Animation<>(MAP_ANIMATION_FRAME_DURATION, frames);
         animation.setPlayMode(Animation.PlayMode.LOOP_PINGPONG);
         return animation;
     }
@@ -373,7 +347,7 @@ public class MapScreen implements Screen {
 
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0.02f, 0.035f, 0.12f, alpha);
+        shapeRenderer.setColor(0f, 0f, 0f, alpha);
         shapeRenderer.rect(0, 0, drawWidth, drawHeight);
         shapeRenderer.end();
 

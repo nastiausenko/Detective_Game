@@ -183,11 +183,7 @@ public class DossierPopup extends AbstractPopup {
     @Override
     public void show() {
         super.show();
-        stage.addActor(pageImage);
-        stage.addActor(textTable);
-        stage.addActor(btnPrev);
-        stage.addActor(btnNext);
-        stage.addActor(closeBtn);
+        addPopupActors(pageImage, textTable, btnPrev, btnNext, closeBtn);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
         updateContent();
@@ -275,11 +271,7 @@ public class DossierPopup extends AbstractPopup {
     @Override
     public void remove() {
         super.remove();
-        pageImage.remove();
-        textTable.remove();
-        btnPrev.remove();
-        btnNext.remove();
-        closeBtn.remove();
+        removePopupActors(pageImage, textTable, btnPrev, btnNext, closeBtn);
     }
 
     public void dispose() {

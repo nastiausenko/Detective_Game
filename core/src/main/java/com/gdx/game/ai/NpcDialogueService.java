@@ -4,23 +4,32 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.IntArray;
+import com.badlogic.gdx.utils.JsonReader;
+import com.badlogic.gdx.utils.JsonValue;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.gdx.game.domain.investigation.DialogueHistory;
 import com.gdx.game.domain.character.DossierData;
 import com.gdx.game.domain.character.DossierDatabase;
 import com.gdx.game.domain.character.NpcState;
+import com.gdx.game.domain.world.LocationDescriptions;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class NpcDialogueService {
+    public interface AsyncCallback<T> {
+        void onComplete(T result, Throwable error);
+    }
+
+    public interface AsyncTask<T> {
+        T run() throws Exception;
+    }
+
     private static final int MAX_HISTORY_PAIRS = 6;
     private static final int MAX_HISTORY_CHARS = 1200;
     private static final int FACT_RETRIEVAL_TOP_K = 2;
@@ -174,7 +183,7 @@ public class NpcDialogueService {
         if (currentBuildingId != null && !currentBuildingId.isEmpty()) {
             sb.append("LOCATION_CONTEXT:\n")
                 .append("- current_building_id: ").append(currentBuildingId).append("\n")
-                .append("- current_location_uk: ").append(describeLocation(currentBuildingId)).append("\n")
+                .append("- current_location_uk: ").append(LocationDescriptions.describe(currentBuildingId)).append("\n")
                 .append("Treat this as your physical location right now. ")
                 .append("If the detective asks where you are, why you are here, or what is around you, ")
                 .append("answer consistently with this location. Do not claim to be in another building ")
@@ -212,6 +221,7 @@ public class NpcDialogueService {
 
             sb.append("FACTS_SECRET (do NOT state plainly unless the detective clearly presses you ")
                     .append("or you feel morally forced to confess; you may hint, dodge or partially admit):\n");
+            sb.append("For greetings, small talk, or generic prompts, do not introduce secret topics yourself.\n");
             for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
                 if (!state.hiddenRevealed[i]) {
                     sb.append("- ").append(dossier.getHiddenFactText(i)).append("\n");
@@ -224,64 +234,135 @@ public class NpcDialogueService {
         return sb.toString();
     }
 
-    private String describeLocation(String buildingId) {
-        if (buildingId == null || buildingId.isEmpty()) return "невідома локація";
+    public FactRevealDecision shouldRevealFactFromExchange(
+        String question,
+        String answer,
+        DossierData.HiddenFactData hiddenFact
+    ) throws IOException {
+        if (hiddenFact == null || hiddenFact.text == null || hiddenFact.text.trim().isEmpty()) {
+            return FactRevealDecision.no("empty hidden fact");
+        }
 
-        switch (buildingId) {
-            case "cafe":
-                return "кав'ярня Blume";
-            case "shop":
-                return "міський магазин";
-            case "hospital":
-                return "лікарня Розенфельда";
-            case "med_school":
-                return "медична школа";
-            case "town_hall":
-                return "ратуша";
-            case "doctor_house":
-                return "будинок Мари";
-            case "professor_house":
-                return "будинок Вальтера";
-            case "sister_house":
-                return "будинок Клари";
-            case "cashier_house":
-                return "будинок Елени";
-            case "officer_house":
-                return "будинок Ернста";
-            case "student_house":
-                return "будинок Ліама";
-            default:
-                return buildingId;
+        String system = "You are a strict fact-reveal classifier for a detective game.\n" +
+            "Decide whether an NPC answer should unlock a hidden dossier fact.\n" +
+            "You receive the hidden FACT, the detective QUESTION, the NPC ANSWER, and optional REQUIRED_EVIDENCE rules.\n" +
+            "Rules:\n" +
+            "- Return reveal=true only when the NPC ANSWER explicitly says or clearly paraphrases the FACT's key idea.\n" +
+            "- The QUESTION may provide context only if the ANSWER clearly confirms, adopts, or admits it.\n" +
+            "- The QUESTION alone must never unlock a fact.\n" +
+            "- If the ANSWER merely invites more questions, changes topic, hints vaguely, greets, or says generic small talk, return false.\n" +
+            "- REQUIRED_EVIDENCE_ANY means at least one item must be semantically present in the admitted evidence.\n" +
+            "- REQUIRED_EVIDENCE_ALL_GROUPS means every group must be semantically satisfied by at least one item from that group.\n" +
+            "- Evidence items are Ukrainian stems or phrase hints; match by meaning, inflection, synonym, and clear paraphrase, not by exact text.\n" +
+            "- If the ANSWER denies, refuses, or is ambiguous, do not use the QUESTION as evidence.\n" +
+            "- Example false: QUESTION='привіт', ANSWER='Питайте про Вальтера чи ту ніч' for a fact about seeing Walter after midnight.\n" +
+            "- If you are not sure, return false.\n" +
+            "Reply with JSON only, no markdown: " +
+            "{\"reveal\":false,\"evidenceSatisfied\":false,\"reason\":\"short reason\",\"matchedEvidence\":\"short evidence summary\"}";
+
+        String user = "FACT: \"" + safeText(hiddenFact.text) + "\"\n"
+            + "QUESTION: \"" + safeText(question) + "\"\n"
+            + "ANSWER: \"" + safeText(answer) + "\"\n"
+            + "REQUIRED_EVIDENCE_ANY: " + formatEvidenceAny(hiddenFact.requiredEvidenceAny) + "\n"
+            + "REQUIRED_EVIDENCE_ALL_GROUPS: " + formatEvidenceGroups(hiddenFact.requiredEvidenceAllGroups) + "\n"
+            + "Decide whether to unlock the fact.";
+
+        String result = llmClient.ask(system, user);
+        return parseFactRevealDecision(result, hasEvidenceRequirements(hiddenFact));
+    }
+
+    private FactRevealDecision parseFactRevealDecision(String result, boolean hasEvidenceRequirements) {
+        if (result == null || result.trim().isEmpty()) {
+            return FactRevealDecision.no("empty classifier response");
+        }
+
+        String json = extractJsonObject(result);
+        if (json.isEmpty()) {
+            return FactRevealDecision.no("classifier returned no json");
+        }
+
+        try {
+            JsonValue root = new JsonReader().parse(json);
+            boolean reveal = root.getBoolean("reveal", false);
+            boolean evidenceSatisfied = root.getBoolean("evidenceSatisfied", !hasEvidenceRequirements);
+            String reason = root.getString("reason", "");
+            String matchedEvidence = root.getString("matchedEvidence", "");
+            return new FactRevealDecision(reveal && evidenceSatisfied, evidenceSatisfied, reason, matchedEvidence);
+        } catch (Exception ex) {
+            Gdx.app.log("FACT_DEBUG", "Failed to parse fact reveal classifier JSON: " + result);
+            return FactRevealDecision.no("invalid classifier json");
         }
     }
 
-    public boolean shouldRevealFactFromExchange(String question, String answer, String hiddenFact) throws IOException {
-        String system = "You are a STRICT binary classifier for a detective game. " +
-                        "You receive a FACT, a detective QUESTION and an NPC ANSWER. " +
-                        "Answer YES only if the NPC ANSWER explicitly mentions or clearly paraphrases " +
-                        "the exact KEY IDEA of the FACT.\n" +
-                        "- The QUESTION may define the topic and resolve pronouns, but it cannot reveal the fact by itself.\n" +
-                        "- Semantic similarity, same location, same time of day, or a shared broad topic is not enough.\n" +
-                        "- If the FACT contains a specific person, group, object, place, cause, or consequence, " +
-                        "the ANSWER must reveal that specific detail or a clear paraphrase of it.\n" +
-                        "- For example, an answer about hospital nights is NOT enough for a fact about children " +
-                        "unless the answer also reveals children or a child-related detail.\n" +
-                        "- For example, 'experiments existed' is NOT enough for a fact about pain sensitivity.\n" +
-                        "- If the detective asks about a specific relationship and the ANSWER admits it existed, answer YES.\n" +
-                        "- If the answer talks only about time, place, mood, work, or generic things, answer NO.\n" +
-                        "- If you are NOT SURE, answer NO.\n" +
-                        "Reply with a single word: YES or NO.";
+    private String extractJsonObject(String text) {
+        int start = text.indexOf('{');
+        int end = text.lastIndexOf('}');
+        if (start < 0 || end <= start) return "";
+        return text.substring(start, end + 1);
+    }
 
-        String user = "FACT: \"" + hiddenFact + "\"\n"
-                + "Q: \"" + question + "\"\n"
-                + "A: \"" + answer + "\"\n"
-                + "Output YES or NO.";
+    private boolean hasEvidenceRequirements(DossierData.HiddenFactData hiddenFact) {
+        return hiddenFact != null && (
+            (hiddenFact.requiredEvidenceAny != null && !hiddenFact.requiredEvidenceAny.isEmpty())
+                || (hiddenFact.requiredEvidenceAllGroups != null && !hiddenFact.requiredEvidenceAllGroups.isEmpty())
+        );
+    }
 
-        String result = llmClient.ask(system, user);
-        if (result == null) return false;
+    private String formatEvidenceAny(List<String> values) {
+        if (values == null || values.isEmpty()) return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < values.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append("\"").append(safeText(values.get(i))).append("\"");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 
-        result = result.trim().toUpperCase(Locale.ROOT);
-        return result.startsWith("YES");
+    private String formatEvidenceGroups(List<List<String>> groups) {
+        if (groups == null || groups.isEmpty()) return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < groups.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(formatEvidenceAny(groups.get(i)));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private String safeText(String text) {
+        if (text == null) return "";
+        return text.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    public static class FactRevealDecision {
+        public final boolean reveal;
+        public final boolean evidenceSatisfied;
+        public final String reason;
+        public final String matchedEvidence;
+
+        FactRevealDecision(boolean reveal, boolean evidenceSatisfied, String reason, String matchedEvidence) {
+            this.reveal = reveal;
+            this.evidenceSatisfied = evidenceSatisfied;
+            this.reason = reason != null ? reason : "";
+            this.matchedEvidence = matchedEvidence != null ? matchedEvidence : "";
+        }
+
+        static FactRevealDecision no(String reason) {
+            return new FactRevealDecision(false, false, reason, "");
+        }
+
+        String debugSuffix() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(" evidence=").append(evidenceSatisfied);
+            if (!matchedEvidence.isEmpty()) {
+                sb.append(" matched=\"").append(matchedEvidence).append("\"");
+            }
+            if (!reason.isEmpty()) {
+                sb.append(" reason=\"").append(reason).append("\"");
+            }
+            return sb.toString();
+        }
     }
 
     public IntArray findRelevantHiddenFacts(
@@ -397,18 +478,29 @@ public class NpcDialogueService {
         return askNpcSync(npcId, question, null);
     }
 
-    public CompletableFuture<String> askNpcAsync(String npcId, String question, String currentBuildingId) {
-        return CompletableFuture.supplyAsync(() -> {
+    public void askNpcAsync(
+        String npcId,
+        String question,
+        String currentBuildingId,
+        AsyncCallback<String> callback
+    ) {
+        npcQuestionExecutor.submit(() -> {
             try {
-                return askNpcSync(npcId, question, currentBuildingId);
-            } catch (Exception e) {
-                throw new CompletionException(e);
+                callback.onComplete(askNpcSync(npcId, question, currentBuildingId), null);
+            } catch (Throwable error) {
+                callback.onComplete(null, error);
             }
-        }, npcQuestionExecutor);
+        });
     }
 
-    public CompletableFuture<Void> runFactRevealCheckAsync(Runnable task) {
-        return CompletableFuture.runAsync(task, factRevealExecutor);
+    public <T> void runFactRevealCheckAsync(AsyncTask<T> task, AsyncCallback<T> callback) {
+        factRevealExecutor.submit(() -> {
+            try {
+                callback.onComplete(task.run(), null);
+            } catch (Throwable error) {
+                callback.onComplete(null, error);
+            }
+        });
     }
 
     public String askNpcSync(String npcId, String question, String currentBuildingId) throws IOException {

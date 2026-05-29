@@ -9,10 +9,8 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.gdx.game.DetectiveGame;
 import com.gdx.game.domain.world.BuildingData;
-import com.gdx.game.ui.overlay.FadeTransition;
-import com.gdx.game.ui.screens.CharacterInteriorScreen;
+import com.gdx.game.infrastructure.GameContext;
 
 public class CharacterIcon extends Image {
     private static final float MIN_MOVEMENT_DURATION = 0.75f;
@@ -36,12 +34,12 @@ public class CharacterIcon extends Image {
     private float targetX;
     private float targetY;
 
-    public CharacterIcon(DetectiveGame game, String id, String iconPath, String fullBodyPath, String buildingId) {
+    public CharacterIcon(GameContext game, String id, String iconPath, String fullBodyPath, String buildingId) {
         this(game, id, iconPath, fullBodyPath, buildingId, true);
     }
 
     public CharacterIcon(
-        DetectiveGame game,
+        GameContext game,
         String id,
         String iconPath,
         String fullBodyPath,
@@ -87,26 +85,13 @@ public class CharacterIcon extends Image {
                         return true;
                     }
 
-                    FadeTransition transition = game.getTransition();
-                    if (!transition.isTransitioning()) {
-                        if (game.getAudioManager() != null) {
-                            game.getAudioManager().stopAmbience();
-                            game.getAudioManager().playLocationTransition(CharacterIcon.this.buildingId);
-                        }
-
-                        transition.startFadeOut(0.7f, () -> {
-                            String interiorNpcId = CharacterIcon.this.fullBodyPath != null ? id : null;
-                            CharacterInteriorScreen interiorScreen = new CharacterInteriorScreen(
-                                game,
-                                backgroundPath,
-                                interiorNpcId,
-                                CharacterIcon.this.fullBodyPath,
-                                CharacterIcon.this.buildingId
-                            );
-                            game.setScreen(interiorScreen);
-                            transition.startFadeIn(0.7f);
-                        });
-                    }
+                    String interiorNpcId = CharacterIcon.this.fullBodyPath != null ? id : null;
+                    game.getNavigator().enterInterior(
+                        backgroundPath,
+                        interiorNpcId,
+                        CharacterIcon.this.fullBodyPath,
+                        CharacterIcon.this.buildingId
+                    );
                 }
                 return true;
             }

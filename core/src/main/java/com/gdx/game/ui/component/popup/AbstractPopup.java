@@ -2,6 +2,7 @@ package com.gdx.game.ui.component.popup;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -57,7 +58,30 @@ public abstract class AbstractPopup {
         background.remove();
     }
 
+    protected void addPopupActors(Actor... actors) {
+        for (Actor actor : actors) {
+            if (actor != null) {
+                stage.addActor(actor);
+            }
+        }
+    }
+
+    protected void removePopupActors(Actor... actors) {
+        for (Actor actor : actors) {
+            if (actor != null) {
+                actor.remove();
+            }
+        }
+    }
+
     public boolean isVisible() {
         return background.hasParent();
+    }
+
+    public void resize(float screenWidth, float screenHeight) {
+        background.setSize(screenWidth, screenHeight);
+    }
+
+    public void dispose() {
     }
 }
