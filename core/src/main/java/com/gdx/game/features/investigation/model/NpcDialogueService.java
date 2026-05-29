@@ -31,30 +31,23 @@ public class NpcDialogueService {
         T run() throws Exception;
     }
 
-    private static final int MAX_HISTORY_PAIRS = 6;
-    private static final int MAX_HISTORY_CHARS = 1200;
+    private static final int MAX_HISTORY_PAIRS = 4;
+    private static final int MAX_HISTORY_CHARS = 700;
+    private static final int NPC_REPLY_MAX_TOKENS = 220;
+    private static final int FACT_REVEAL_MAX_TOKENS = 160;
     private static final int FACT_RETRIEVAL_TOP_K = 2;
     private static final float FACT_RETRIEVAL_MIN_SIMILARITY = 0.28f;
     private static final float FACT_RETRIEVAL_FALLBACK_SIMILARITY = 0.20f;
     private static final float SESSION_BREAK_SECONDS = 180f;
+    private static final float RAPID_QUESTION_SECONDS = 5f;
+    private static final float CALM_PAUSE_SECONDS = 60f;
     private static final String NPC_PREFS_NAME = "npc_state";
     private static final String GLOBAL_RULES =
-            "You are an NPC in a detective game.\n" +
-                    "Setting: town Rosenfeld, quiet European town, moral thriller tone.\n" +
-                    "Canon murder (do NOT contradict):\n" +
-                    "- Victim: Dr. Adrian Walter, found dead at night in the private office of his own house.\n" +
-                    "- Initial public knowledge: the death happened in Walter's home office, but detailed crime scene clues " +
-                    "should be treated as investigation discoveries, not common gossip.\n" +
-                    "- Official story: exhaustion, guilt, or possible suicide; the town avoids the idea of murder.\n" +
-                    "- Real killer in this canonical story: Liam Becker (Walter's student). " +
-                    "NPCs may suspect others or be wrong, but must NOT claim with certainty that someone else is the true killer " +
-                    "or that Walter is alive.\n" +
-                    "Treat canon as a consistency guard; reveal details only when your identity and facts make it plausible. " +
-                    "You may improvise feelings, wording and small memories, but keep these canon facts consistent. " +
-                    "Do not invent time travel, other murders or resurrections.\n" +
-                    "Always answer in Ukrainian, 1–3 short sentences, in first person (\"я\", \"мені\", \"мене\"). " +
-                    "Do NOT introduce yourself by name or job unless the detective directly asks. " +
-                    "Start your answer right away.\n";
+        "NPC in Rosenfeld detective story. Canon: Walter is dead, found in his home office, not hospital; public version exhaustion/guilt/suicide; real killer Liam Becker. " +
+            "Never say Walter lives or another person is certainly the killer.\n" +
+            "Reply in natural Ukrainian, 1-2 short spoken sentences, first person. No headings/lists/labels/AI talk. " +
+            "Answer only the question; do not volunteer name, role, location, alibi, backstory, or case facts. " +
+            "For greetings/small talk: brief human reply only. Use only known/provided named people; invent no names.\n";
 
     private final LlmClient llmClient;
     private final DossierDatabase dossierDb;
@@ -153,7 +146,30 @@ public class NpcDialogueService {
         return "LIE_RISK=" + risk + "/5 (" + label + ").";
     }
 
-    private String buildSystemPrompt(String npcId, String currentBuildingId) {
+    private void appendKnownPeopleContext(StringBuilder sb) {
+        if (dossierDb == null || dossierDb.characters == null || dossierDb.characters.isEmpty()) {
+            return;
+        }
+
+        sb.append("KNOWN: ");
+
+        boolean first = true;
+        for (ObjectMap.Entry<String, DossierData> e : dossierDb.characters) {
+            DossierData data = e.value;
+            if (data == null || data.name == null || data.name.trim().isEmpty()) continue;
+
+            if (!first) sb.append("; ");
+            first = false;
+
+            sb.append(data.name);
+            if (data.role != null && !data.role.trim().isEmpty()) {
+                sb.append("(").append(data.role).append(")");
+            }
+        }
+        sb.append(". You know them; ignore/reject other names from chat.\n");
+    }
+
+    private String buildSystemPrompt(String npcId, String currentBuildingId, String question) {
         DossierData dossier = dossierDb != null ? dossierDb.characters.get(npcId) : null;
         NpcState state = getOrCreateState(npcId);
 
@@ -162,37 +178,39 @@ public class NpcDialogueService {
         sb.append(GLOBAL_RULES).append("\n");
 
         if (dossier != null) {
-            sb.append("NPC_IDENTITY:\n")
-                    .append("name: ").append(dossier.name).append("\n")
-                    .append("age: ").append(dossier.age).append("\n")
-                    .append("role: ").append(dossier.role).append("\n");
+            sb.append("YOU: ")
+                .append(dossier.name)
+                .append(", ")
+                .append(dossier.age)
+                .append(", ")
+                .append(dossier.role)
+                .append(".\n");
 
             if (dossier.personality != null && !dossier.personality.isEmpty()) {
-                sb.append("personality: ").append(dossier.personality).append("\n");
+                sb.append("TRAIT: ").append(dossier.personality).append("\n");
             }
 
             sb.append(buildLieRiskBehavior(dossier.lieRisk)).append("\n");
         } else {
-            sb.append("NPC_IDENTITY:\n- name: ").append(npcId).append(" (keep consistent).\n");
+            sb.append("YOU: ").append(npcId).append(".\n");
         }
 
-        sb.append("NPC_STATE: trust=").append(String.format(Locale.ROOT, "%.2f", state.trust))
+        appendKnownPeopleContext(sb);
+
+        sb.append("STATE: trust=").append(String.format(Locale.ROOT, "%.2f", state.trust))
                 .append(", fear=").append(String.format(Locale.ROOT, "%.2f", state.fear))
-                .append(" (0..1). If trust>0.7 and fear<0.4, be more open and honest. ")
-                .append("If fear>0.7, avoid direct answers or distort truth, especially about dangerous topics.\n");
+                .append(". High trust=open; high fear=dodge/distort danger.\n");
 
         if (currentBuildingId != null && !currentBuildingId.isEmpty()) {
-            sb.append("LOCATION_CONTEXT:\n")
-                .append("- current_building_id: ").append(currentBuildingId).append("\n")
-                .append("- current_location_uk: ").append(LocationDescriptions.describe(currentBuildingId)).append("\n")
-                .append("Treat this as your physical location right now. ")
-                .append("If the detective asks where you are, why you are here, or what is around you, ")
-                .append("answer consistently with this location. Do not claim to be in another building ")
-                .append("unless you are describing a past event.\n");
+            sb.append("NOW: ")
+                .append(currentBuildingId)
+                .append(" / ")
+                .append(LocationDescriptions.describe(currentBuildingId))
+                .append(". Use only for here/now questions, never for greetings or past-time questions.\n");
         }
 
         if (dossier != null && dossier.publicFacts != null && !dossier.publicFacts.isEmpty()) {
-            sb.append("FACTS_PUBLIC (you may mention freely when relevant):\n");
+            sb.append("PUBLIC:\n");
             for (String f : dossier.publicFacts) {
                 sb.append("- ").append(f).append("\n");
             }
@@ -212,7 +230,7 @@ public class NpcDialogueService {
             }
 
             if (hasRevealed) {
-                sb.append("FACTS_REVEALED (already clearly admitted, you cannot deny them):\n");
+                sb.append("ADMITTED:\n");
                 for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
                     if (state.hiddenRevealed[i]) {
                         sb.append("- ").append(dossier.getHiddenFactText(i)).append("\n");
@@ -220,17 +238,13 @@ public class NpcDialogueService {
                 }
             }
 
-            sb.append("FACTS_SECRET (do NOT state plainly unless the detective clearly presses you ")
-                    .append("or you feel morally forced to confess; you may hint, dodge or partially admit):\n");
-            sb.append("For greetings, small talk, or generic prompts, do not introduce secret topics yourself.\n");
-            for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
-                if (!state.hiddenRevealed[i]) {
-                    sb.append("- ").append(dossier.getHiddenFactText(i)).append("\n");
-                }
-            }
+            appendRelevantHiddenFacts(sb, dossier, state, question);
+
+            sb.append("SECRETS: exist, but reveal only on exact topic/evidence. Broad questions use PUBLIC/TRAIT/STATE/ADMITTED only.\n");
         }
 
-        sb.append("Style: keep answers grounded in these facts, avoid long monologues, no meta-talk about being an AI.\n");
+        sb.append("JSON only {\"a\":\"answer\",\"rapport\":0,\"pressure\":0,\"hostility\":0}. ")
+            .append("Rate current question: rapport -1..1, pressure/hostility 0..1. Ground a in facts.\n");
 
         return sb.toString();
     }
@@ -244,31 +258,30 @@ public class NpcDialogueService {
             return FactRevealDecision.no("empty hidden fact");
         }
 
-        String system = "You are a strict fact-reveal classifier for a detective game.\n" +
-            "Decide whether an NPC answer should unlock a hidden dossier fact.\n" +
-            "You receive the hidden FACT, the detective QUESTION, the NPC ANSWER, and optional REQUIRED_EVIDENCE rules.\n" +
-            "Rules:\n" +
-            "- Return reveal=true only when the NPC ANSWER explicitly says or clearly paraphrases the FACT's key idea.\n" +
-            "- The QUESTION may provide context only if the ANSWER clearly confirms, adopts, or admits it.\n" +
-            "- The QUESTION alone must never unlock a fact.\n" +
-            "- If the ANSWER merely invites more questions, changes topic, hints vaguely, greets, or says generic small talk, return false.\n" +
-            "- REQUIRED_EVIDENCE_ANY means at least one item must be semantically present in the admitted evidence.\n" +
-            "- REQUIRED_EVIDENCE_ALL_GROUPS means every group must be semantically satisfied by at least one item from that group.\n" +
-            "- Evidence items are Ukrainian stems or phrase hints; match by meaning, inflection, synonym, and clear paraphrase, not by exact text.\n" +
-            "- If the ANSWER denies, refuses, or is ambiguous, do not use the QUESTION as evidence.\n" +
-            "- Example false: QUESTION='привіт', ANSWER='Питайте про Вальтера чи ту ніч' for a fact about seeing Walter after midnight.\n" +
-            "- If you are not sure, return false.\n" +
-            "Reply with JSON only, no markdown: " +
+        if (hasEvidenceRequirements(hiddenFact) && !isRequiredEvidencePresentInAnswer(answer, hiddenFact)) {
+            return new FactRevealDecision(
+                false,
+                false,
+                "required evidence markers are missing from NPC answer",
+                ""
+            );
+        }
+
+        String system = "Strict dossier unlock classifier. Output JSON only.\n" +
+            "reveal=true only when NPC ANSWER explicitly says or clearly paraphrases FACT. " +
+            "QUESTION alone never counts; use it only when ANSWER confirms/adopts it. " +
+            "False for denial, refusal, ambiguity, vague hint, greeting, topic change, or generic small talk. " +
+            "Evidence rules: ANY needs one semantic match; ALL_GROUPS needs one semantic match per group. " +
+            "Match meaning, inflection, synonym, paraphrase. Unsure=false.\n" +
             "{\"reveal\":false,\"evidenceSatisfied\":false,\"reason\":\"short reason\",\"matchedEvidence\":\"short evidence summary\"}";
 
         String user = "FACT: \"" + safeText(hiddenFact.text) + "\"\n"
             + "QUESTION: \"" + safeText(question) + "\"\n"
             + "ANSWER: \"" + safeText(answer) + "\"\n"
-            + "REQUIRED_EVIDENCE_ANY: " + formatEvidenceAny(hiddenFact.requiredEvidenceAny) + "\n"
-            + "REQUIRED_EVIDENCE_ALL_GROUPS: " + formatEvidenceGroups(hiddenFact.requiredEvidenceAllGroups) + "\n"
-            + "Decide whether to unlock the fact.";
+            + "EVIDENCE_ANY: " + formatEvidenceAny(hiddenFact.requiredEvidenceAny) + "\n"
+            + "EVIDENCE_ALL_GROUPS: " + formatEvidenceGroups(hiddenFact.requiredEvidenceAllGroups);
 
-        String result = llmClient.ask(system, user);
+        String result = llmClient.ask(system, user, FACT_REVEAL_MAX_TOKENS, LlmClient.ModelTier.FAST);
         return parseFactRevealDecision(result, hasEvidenceRequirements(hiddenFact));
     }
 
@@ -307,6 +320,117 @@ public class NpcDialogueService {
             (hiddenFact.requiredEvidenceAny != null && !hiddenFact.requiredEvidenceAny.isEmpty())
                 || (hiddenFact.requiredEvidenceAllGroups != null && !hiddenFact.requiredEvidenceAllGroups.isEmpty())
         );
+    }
+
+    private void appendRelevantHiddenFacts(
+        StringBuilder sb,
+        DossierData dossier,
+        NpcState state,
+        String question
+    ) {
+        if (dossier == null || dossier.hiddenFacts == null || dossier.hiddenFacts.isEmpty()) return;
+
+        int appended = 0;
+        for (int i = 0; i < dossier.hiddenFacts.size() && appended < FACT_RETRIEVAL_TOP_K; i++) {
+            if (state.hiddenRevealed != null && i < state.hiddenRevealed.length && state.hiddenRevealed[i]) {
+                continue;
+            }
+
+            DossierData.HiddenFactData hiddenFact = dossier.getHiddenFact(i);
+            if (!isHiddenFactRelevantToQuestion(question, hiddenFact)) {
+                continue;
+            }
+
+            if (appended == 0) {
+                sb.append("RELEVANT_SECRET: ");
+            } else {
+                sb.append(" / ");
+            }
+            sb.append(dossier.getHiddenFactText(i));
+            appended++;
+        }
+
+        if (appended > 0) {
+            sb.append("\n");
+        }
+    }
+
+    private boolean isHiddenFactRelevantToQuestion(String question, DossierData.HiddenFactData hiddenFact) {
+        String questionText = normalizeEvidenceText(question);
+        if (questionText.isEmpty() || hiddenFact == null) return false;
+
+        if (hiddenFact.requiredEvidenceAny != null && !hiddenFact.requiredEvidenceAny.isEmpty()) {
+            return containsAnyEvidence(questionText, hiddenFact.requiredEvidenceAny);
+        }
+
+        if (hiddenFact.requiredEvidenceAllGroups == null || hiddenFact.requiredEvidenceAllGroups.isEmpty()) {
+            return false;
+        }
+
+        int matchedGroups = 0;
+        for (List<String> group : hiddenFact.requiredEvidenceAllGroups) {
+            if (group == null || group.isEmpty()) continue;
+            if (containsAnyEvidence(questionText, group)) {
+                matchedGroups++;
+            }
+        }
+
+        return matchedGroups >= Math.min(2, hiddenFact.requiredEvidenceAllGroups.size());
+    }
+
+    private boolean isRequiredEvidencePresentInAnswer(String answer, DossierData.HiddenFactData hiddenFact) {
+        String answerText = normalizeEvidenceText(answer);
+
+        if (answerText.isEmpty()) {
+            return false;
+        }
+
+        if (hiddenFact.requiredEvidenceAny != null && !hiddenFact.requiredEvidenceAny.isEmpty()
+            && !containsAnyEvidence(answerText, hiddenFact.requiredEvidenceAny)) {
+            return false;
+        }
+
+        if (hiddenFact.requiredEvidenceAllGroups != null && !hiddenFact.requiredEvidenceAllGroups.isEmpty()) {
+            for (List<String> group : hiddenFact.requiredEvidenceAllGroups) {
+                if (group == null || group.isEmpty()) continue;
+                if (!containsAnyEvidence(answerText, group)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private boolean containsAnyEvidence(String answerText, List<String> evidence) {
+        if (answerText == null || answerText.isEmpty() || evidence == null) return false;
+
+        for (String item : evidence) {
+            String marker = normalizeEvidenceText(item);
+            if (marker.isEmpty()) continue;
+            if (answerText.contains(marker)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private String normalizeEvidenceText(String text) {
+        if (text == null) return "";
+
+        return text
+            .toLowerCase(Locale.ROOT)
+            .replace('ґ', 'г')
+            .replace('є', 'е')
+            .replace('ї', 'і')
+            .replace('й', 'и')
+            .replace('’', '\'')
+            .replace('ʼ', '\'')
+            .replace('`', '\'')
+            .replaceAll("[^а-яa-z0-9і'\\s]", " ")
+            .replaceAll("\\s+", " ")
+            .trim();
     }
 
     private String formatEvidenceAny(List<String> values) {
@@ -508,16 +632,18 @@ public class NpcDialogueService {
         NpcState state = getOrCreateState(npcId);
         state.questionsAsked += 1;
 
-        String systemPrompt = buildSystemPrompt(npcId, currentBuildingId);
+        String systemPrompt = buildSystemPrompt(npcId, currentBuildingId, question);
         String userMessage  = buildUserMessageWithHistory(npcId, question);
 
-        String answer = llmClient.ask(systemPrompt, userMessage);
+        NpcReply reply = parseNpcReply(
+            llmClient.ask(systemPrompt, userMessage, NPC_REPLY_MAX_TOKENS, LlmClient.ModelTier.SMART)
+        );
 
-        updateStateAfterExchange(state, question);
+        updateStateAfterExchange(state, reply.tone);
 
         saveStateToPrefs(npcId, state);
 
-        return answer;
+        return reply.answer;
     }
 
     public void dispose() {
@@ -528,9 +654,11 @@ public class NpcDialogueService {
     private String buildExchangeEmbeddingText(String question, String answer) {
         String q = question != null ? question.trim() : "";
         String a = answer != null ? answer.trim() : "";
-        if (q.isEmpty() && a.isEmpty()) return "";
 
-        return "Питання детектива: " + q + "\nВідповідь персонажа: " + a;
+        if (a.isEmpty()) return "";
+
+        return "Відповідь персонажа, яка може розкрити прихований факт: " + a +
+            "\nПитання лише як контекст, не як доказ: " + q;
     }
 
     private String buildFactEmbeddingText(DossierData data, String hiddenFact) {
@@ -575,117 +703,168 @@ public class NpcDialogueService {
         }
     }
 
-    private void updateStateAfterExchange(NpcState state, String question) {
-            if (question == null) question = "";
+    private static class NpcReply {
+        final String answer;
+        final ToneMetrics tone;
 
-            String qLower = question.toLowerCase(Locale.ROOT);
+        NpcReply(String answer, ToneMetrics tone) {
+            this.answer = answer != null ? answer : "";
+            this.tone = tone;
+        }
+    }
 
-            float nowSec = TimeUtils.millis() / 1000f;
-            float dt = (state.lastQuestionTime > 0f)
-                ? (nowSec - state.lastQuestionTime)
-                : 9999f;
-            state.lastQuestionTime = nowSec;
+    private static class ToneMetrics {
+        final float rapport;
+        final float pressure;
+        final float hostility;
 
-            if (dt > SESSION_BREAK_SECONDS) {
-                state.questionsAsked = 1;
-            }
-
-            if (dt < 5f) {
-                adjustTrustFear(state, -0.03f, 0.06f);
-            } else if (dt < 20f) {
-                adjustTrustFear(state, 0.0f, 0.0f);
-            } else if (dt > 60f) {
-                adjustTrustFear(state, 0.02f, -0.03f);
-            }
-
-            if (state.questionsAsked > 8 && state.questionsAsked <= 15) {
-                adjustTrustFear(state, -0.01f, 0.02f);
-            } else if (state.questionsAsked > 15) {
-                adjustTrustFear(state, -0.02f, 0.04f);
-            }
-
-            if (containsAny(qLower, RUDE_WORDS)) {
-                adjustTrustFear(state, -0.10f, 0.12f);
-            }
-
-            if (containsAny(qLower, POLITE_WORDS)) {
-                adjustTrustFear(state, 0.06f, -0.04f);
-            }
-
-            if (containsAny(qLower, ACCUSATION_WORDS)) {
-                adjustTrustFear(state, -0.04f, 0.08f);
-            }
-
-            float jitterTrust = MathUtils.random(-0.01f, 0.01f);
-            float jitterFear  = MathUtils.random(-0.01f, 0.01f);
-            adjustTrustFear(state, jitterTrust, jitterFear);
-
-            Gdx.app.log("NPC_STATE", " trust=" + state.trust + " fear=" + state.fear);
+        ToneMetrics(float rapport, float pressure, float hostility) {
+            this.rapport = rapport;
+            this.pressure = pressure;
+            this.hostility = hostility;
         }
 
-        private void adjustTrustFear(NpcState state, float dTrust, float dFear) {
-            state.trust = clamp01(state.trust + dTrust);
-            state.fear  = clamp01(state.fear  + dFear);
+        static ToneMetrics neutral() {
+            return new ToneMetrics(0f, 0f, 0f);
+        }
+    }
+
+    private NpcReply parseNpcReply(String result) {
+        if (result == null || result.trim().isEmpty()) {
+            return new NpcReply("", ToneMetrics.neutral());
         }
 
-        private float clamp01(float v) {
-            if (v < 0f) return 0f;
-            return Math.min(v, 1f);
-        }
-
-        private boolean containsAny(String textLower, String[] patterns) {
-            if (textLower == null || textLower.isEmpty() || patterns == null) return false;
-            for (String p : patterns) {
-                if (p == null || p.isEmpty()) continue;
-                if (textLower.contains(p)) return true;
-            }
-            return false;
-        }
-
-        private static final String[] RUDE_WORDS = {
-            "дур", "тупа", "тупий", "брехун", "брешеш", "заткнись", "ненормальна"
-        };
-
-        private static final String[] POLITE_WORDS = {
-            "дякую", "спасибі", "будь ласка", "перепрошую", "вибач",
-            "дякую тобі", "дякую вам"
-        };
-
-        private static final String[] ACCUSATION_WORDS = {
-            "ти винна", "ти винен", "це ти зробила", "це ти зробив",
-            "ти вбила", "ти вбив", "ти щось приховуєш", "збрехала", "збрехав"
-        };
-
-        private String buildUserMessageWithHistory(String npcId, String question) {
-            String history = DialogueHistory.loadRecentForLlm(
-                npcId,
-                MAX_HISTORY_PAIRS,
-                MAX_HISTORY_CHARS
-            );
-
-            StringBuilder sb = new StringBuilder();
-
-            if (!history.isEmpty()) {
-                sb.append("A brief fragment from the previous chat between the detective and you:\n");
-                sb.append(history).append("\n\n");
-            }
-
-            sb.append("Current question: ").append(question);
-
-            return sb.toString();
-        }
-
-        public int getTotalRevealedFacts() {
-            int total = 0;
-            for (ObjectMap.Entry<String, NpcState> e : npcStates) {
-                boolean[] arr = e.value.hiddenRevealed;
-                if (arr == null) continue;
-                for (boolean b : arr) {
-                    if (b) total++;
+        String json = extractJsonObject(result);
+        if (!json.isEmpty()) {
+            try {
+                JsonValue root = new JsonReader().parse(json);
+                String answer = root.getString("a", "").trim();
+                if (answer.isEmpty()) {
+                    answer = root.getString("answer", "").trim();
                 }
+                ToneMetrics tone = new ToneMetrics(
+                    root.getFloat("rapport", 0f),
+                    root.getFloat("pressure", 0f),
+                    root.getFloat("hostility", 0f)
+                );
+                return new NpcReply(answer.isEmpty() ? result.trim() : answer, tone);
+            } catch (Exception ex) {
+                Gdx.app.log("LLM", "Failed to parse NPC JSON reply: " + result);
             }
-            return total;
         }
+
+        return new NpcReply(result.trim(), ToneMetrics.neutral());
+    }
+
+    private void updateStateAfterExchange(NpcState state, ToneMetrics tone) {
+        ToneMetrics normalizedTone = normalizeTone(tone);
+        float nowSec = TimeUtils.millis() / 1000f;
+        float dt = (state.lastQuestionTime > 0f)
+            ? (nowSec - state.lastQuestionTime)
+            : 9999f;
+        state.lastQuestionTime = nowSec;
+
+        if (dt > SESSION_BREAK_SECONDS) {
+            state.questionsAsked = 1;
+        }
+
+        applyPacingImpact(state, dt, normalizedTone);
+
+        if (dt > CALM_PAUSE_SECONDS) {
+            adjustTrustFear(state, 0.02f, -0.03f);
+        }
+
+        if (state.questionsAsked > 8 && state.questionsAsked <= 15) {
+            adjustTrustFear(state, -0.004f, 0.008f);
+        } else if (state.questionsAsked > 15) {
+            adjustTrustFear(state, -0.008f, 0.015f);
+        }
+
+        applyToneImpact(state, normalizedTone);
+
+        float jitterTrust = MathUtils.random(-0.003f, 0.003f);
+        float jitterFear  = MathUtils.random(-0.003f, 0.003f);
+        adjustTrustFear(state, jitterTrust, jitterFear);
+
+        Gdx.app.log("NPC_STATE", " trust=" + state.trust + " fear=" + state.fear);
+    }
+
+    private ToneMetrics normalizeTone(ToneMetrics tone) {
+        if (tone == null) {
+            return ToneMetrics.neutral();
+        }
+
+        return new ToneMetrics(
+            MathUtils.clamp(tone.rapport, -1f, 1f),
+            MathUtils.clamp(tone.pressure, 0f, 1f),
+            MathUtils.clamp(tone.hostility, 0f, 1f)
+        );
+    }
+
+    private void applyPacingImpact(NpcState state, float dt, ToneMetrics tone) {
+        if (dt >= RAPID_QUESTION_SECONDS) return;
+
+        float stress = MathUtils.clamp(tone.pressure + tone.hostility * 1.5f, 0f, 1f);
+        if (stress <= 0.15f) {
+            return;
+        }
+
+        adjustTrustFear(state, -0.01f * stress, 0.025f * stress);
+    }
+
+    private void applyToneImpact(NpcState state, ToneMetrics tone) {
+        if (tone == null) return;
+
+        float rapport = tone.rapport;
+        float pressure = tone.pressure;
+        float hostility = tone.hostility;
+
+        float dTrust = rapport * 0.04f - pressure * 0.025f - hostility * 0.08f;
+        float dFear = -Math.max(rapport, 0f) * 0.025f + pressure * 0.05f + hostility * 0.09f;
+
+        adjustTrustFear(state, dTrust, dFear);
+    }
+
+    private void adjustTrustFear(NpcState state, float dTrust, float dFear) {
+        state.trust = clamp01(state.trust + dTrust);
+        state.fear  = clamp01(state.fear  + dFear);
+    }
+
+    private float clamp01(float v) {
+        if (v < 0f) return 0f;
+        return Math.min(v, 1f);
+    }
+
+    private String buildUserMessageWithHistory(String npcId, String question) {
+        String history = DialogueHistory.loadRecentForLlm(
+            npcId,
+            MAX_HISTORY_PAIRS,
+            MAX_HISTORY_CHARS
+        );
+
+        StringBuilder sb = new StringBuilder();
+
+        if (!history.isEmpty()) {
+            sb.append("H:\n");
+            sb.append(history).append("\n\n");
+        }
+
+        sb.append("Q: ").append(question);
+
+        return sb.toString();
+    }
+
+    public int getTotalRevealedFacts() {
+        int total = 0;
+        for (ObjectMap.Entry<String, NpcState> e : npcStates) {
+            boolean[] arr = e.value.hiddenRevealed;
+            if (arr == null) continue;
+            for (boolean b : arr) {
+                if (b) total++;
+            }
+        }
+        return total;
+    }
 
     public void resetAllNpcState() {
         npcStates.clear();

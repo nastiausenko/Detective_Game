@@ -12,6 +12,7 @@ import com.gdx.game.shared.api.LlmClient;
 import java.io.IOException;
 
 public class EpilogueService {
+    private static final int EPILOGUE_MAX_TOKENS = 900;
 
     private final LlmClient llmClient;
     private final LoreDatabase loreDb;
@@ -36,7 +37,12 @@ public class EpilogueService {
         String systemPrompt = buildSystemPrompt();
         String userMessage  = buildUserMessage(accusedId, correct);
 
-        return llmClient.ask(systemPrompt, userMessage);
+        return llmClient.ask(
+            systemPrompt,
+            userMessage,
+            EPILOGUE_MAX_TOKENS,
+            LlmClient.ModelTier.SMART
+        );
     }
 
     private String buildSystemPrompt() {

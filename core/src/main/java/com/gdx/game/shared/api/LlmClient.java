@@ -11,15 +11,22 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class LlmClient {
+    public enum ModelTier {
+        FAST,
+        SMART
+    }
 
     private static final String OPENAI_URL = "https://api.openai.com/v1/chat/completions";
     private static final String OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
     private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-    private static final String OPENAI_MODEL = "gpt-5-mini";
+    private static final String OPENAI_FAST_MODEL = "gpt-5-mini";
+    private static final String OPENAI_SMART_MODEL = "gpt-5";
     private static final String OPENAI_EMBEDDING_MODEL = "text-embedding-3-small";
     private static final int OPENAI_EMBEDDING_DIMENSIONS = 512;
     private static final String GROQ_MODEL = "openai/gpt-oss-120b";
+    private static final int DEFAULT_MAX_TOKENS = 512;
+    private static final int MAX_COMPLETION_TOKENS = 1024;
 
     private final String openAiKey;
     private final String groqKey;
@@ -30,14 +37,22 @@ public class LlmClient {
     }
 
     public String ask(String systemPrompt, String userMessage) throws IOException {
+        return ask(systemPrompt, userMessage, DEFAULT_MAX_TOKENS, ModelTier.FAST);
+    }
+
+    public String ask(String systemPrompt, String userMessage, int maxTokens) throws IOException {
+        return ask(systemPrompt, userMessage, maxTokens, ModelTier.FAST);
+    }
+
+    public String ask(String systemPrompt, String userMessage, int maxTokens, ModelTier modelTier) throws IOException {
         try {
-            return askOpenAi(systemPrompt, userMessage);
+            return askOpenAi(systemPrompt, userMessage, maxTokens, modelTier);
         } catch (IOException e) {
             Gdx.app.error("LLM", "OpenAI failed, falling back to Groq", e);
             Gdx.app.log("LLM", "Using Groq fallback model: " + GROQ_MODEL);
 
             try {
-                return askGroq(systemPrompt, userMessage);
+                return askGroq(systemPrompt, userMessage, maxTokens);
             } catch (IOException groqErr) {
                 Gdx.app.error("LLM", "Groq fallback also failed", groqErr);
                 throw groqErr;
@@ -55,23 +70,33 @@ public class LlmClient {
         return extractEmbeddingsFromResponse(responseJson, inputs.size());
     }
 
-    private String askOpenAi(String systemPrompt, String userMessage) throws IOException {
-        String body = buildOpenAiBody(systemPrompt, userMessage);
+    private String askOpenAi(
+        String systemPrompt,
+        String userMessage,
+        int maxTokens,
+        ModelTier modelTier
+    ) throws IOException {
+        String body = buildOpenAiBody(systemPrompt, userMessage, maxTokens, modelTier);
         String responseJson = postJson(OPENAI_URL, openAiKey, body);
         return extractAnswerFromResponse(responseJson);
     }
 
-    private String askGroq(String systemPrompt, String userMessage) throws IOException {
-        String body = buildGroqBody(systemPrompt, userMessage);
+    private String askGroq(String systemPrompt, String userMessage, int maxTokens) throws IOException {
+        String body = buildGroqBody(systemPrompt, userMessage, maxTokens);
         String responseJson = postJson(GROQ_URL, groqKey, body);
         return extractAnswerFromResponse(responseJson);
     }
 
-    private String buildOpenAiBody(String systemPrompt, String userMessage) {
+    private String buildOpenAiBody(
+        String systemPrompt,
+        String userMessage,
+        int maxTokens,
+        ModelTier modelTier
+    ) {
         return "{\n" +
-            "  \"model\": " + jsonEscape(LlmClient.OPENAI_MODEL) + ",\n" +
+            "  \"model\": " + jsonEscape(resolveOpenAiModel(modelTier)) + ",\n" +
             "  \"temperature\": 1,\n" +
-            "  \"max_completion_tokens\": 512,\n" +
+            "  \"max_completion_tokens\": " + sanitizeMaxTokens(maxTokens) + ",\n" +
             "  \"reasoning_effort\": \"minimal\",\n" +
             "  \"messages\": [\n" +
             "    {\"role\": \"system\", \"content\": " + jsonEscape(systemPrompt) + "},\n" +
@@ -80,16 +105,25 @@ public class LlmClient {
             "}";
     }
 
-    private String buildGroqBody(String systemPrompt, String userMessage) {
+    private String buildGroqBody(String systemPrompt, String userMessage, int maxTokens) {
         return "{\n" +
             "  \"model\": " + jsonEscape(LlmClient.GROQ_MODEL) + ",\n" +
             "  \"temperature\": 1,\n" +
-            "  \"max_tokens\": 512,\n" +
+            "  \"max_tokens\": " + sanitizeMaxTokens(maxTokens) + ",\n" +
             "  \"messages\": [\n" +
             "    {\"role\": \"system\", \"content\": " + jsonEscape(systemPrompt) + "},\n" +
             "    {\"role\": \"user\", \"content\": " + jsonEscape(userMessage) + "}\n" +
             "  ]\n" +
             "}";
+    }
+
+    private int sanitizeMaxTokens(int maxTokens) {
+        if (maxTokens < 32) return 32;
+        return Math.min(maxTokens, MAX_COMPLETION_TOKENS);
+    }
+
+    private String resolveOpenAiModel(ModelTier modelTier) {
+        return modelTier == ModelTier.SMART ? OPENAI_SMART_MODEL : OPENAI_FAST_MODEL;
     }
 
     private String buildOpenAiEmbeddingsBody(List<String> inputs) {
