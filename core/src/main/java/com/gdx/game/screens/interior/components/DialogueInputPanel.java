@@ -30,9 +30,7 @@ public class DialogueInputPanel {
     private static final float INPUT_VERTICAL_PADDING_FONT_RATIO = 0.65f;
     private static final float LAST_QUESTION_FRAME_BOTTOM_FROM_TOP = 12f;
 
-    private final Stage stage;
     private final Skin skin;
-    private final GameContext game;
     private final Texture backgroundTexture;
     private final Image backgroundImage;
     private final Image sendButton;
@@ -48,9 +46,7 @@ public class DialogueInputPanel {
     private UiLayoutProfile lastLayoutProfile;
 
     public DialogueInputPanel(Stage stage, Skin skin, GameContext game, SubmitListener submitListener) {
-        this.stage = stage;
         this.skin = skin;
-        this.game = game;
 
         backgroundTexture = new Texture(Assets.QUESTION_AREA);
         backgroundImage = new Image(createBackgroundDrawable());

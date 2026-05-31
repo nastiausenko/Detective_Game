@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
@@ -17,6 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -59,8 +61,11 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private final AnswerBubble answerBubble;
     private final NpcStatsHud statsHud;
     private final NpcConversationController conversationController;
+    private final boolean accusationMode;
+    private final Array<String> accusationLines = new Array<>();
 
     private Texture hintIconTexture;
+    private Texture cluePopupTexture;
     private Image cluePopupBackground;
     private Label cluePopupLabel;
     private final Array<CrimeSceneHintMarker> crimeSceneHintMarkers = new Array<>();
@@ -70,13 +75,29 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private float drawWidth, drawHeight;
 
     private boolean screenActive = false;
+    private boolean accusationStarted = false;
+    private boolean accusationLoaded = false;
+    private boolean accusationAdvancing = false;
+    private int accusationLineIndex = 0;
 
     public CharacterInteriorScreen(GameContext game, String backgroundPath, String characterId, String fullBody,
                                    String buildingId) {
+        this(game, backgroundPath, characterId, fullBody, buildingId, false);
+    }
+
+    public CharacterInteriorScreen(
+        GameContext game,
+        String backgroundPath,
+        String characterId,
+        String fullBody,
+        String buildingId,
+        boolean accusationMode
+    ) {
         this.game = game;
         this.background = new ScaledBackground(backgroundPath, true, false);
         this.characterId = characterId;
         this.buildingId = buildingId;
+        this.accusationMode = accusationMode;
         this.characterTexture = fullBody != null && !fullBody.isEmpty()
             ? new Texture(fullBody)
             : null;
@@ -121,8 +142,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     @Override
     public void show() {
         screenActive = true;
-        conversationController.setActive(true);
-        game.overlay.setVisible(true);
+        conversationController.setActive(!accusationMode);
+        game.overlay.setVisible(!accusationMode);
         game.overlay.setInInterior(true);
         game.overlay.setCurrentNpcId(hasInteractiveNpc() ? characterId : null);
         game.overlay.setCurrentInteriorBuildingId(buildingId);
@@ -135,6 +156,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             answerBubble.setVisible(false);
             statsHud.setVisible(false);
             characterImage.setVisible(false);
+        } else if (accusationMode) {
+            inputPanel.setVisible(false);
+            statsHud.setVisible(false);
+            answerBubble.showText("...");
         }
 
         if (isCrimeSceneScreen()) {
@@ -146,6 +171,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
+        if (accusationMode) {
+            startAccusationConfrontation();
+        }
+
         Gdx.input.setInputProcessor(new InputMultiplexer(
             game.overlay.getStage(),
             dialogueStage,
@@ -155,8 +184,9 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
     private void setupCrimeSceneHints() {
         hintIconTexture = new Texture(Assets.HINT_ICON);
+        cluePopupTexture = new Texture(Assets.STATISTICS);
 
-        cluePopupBackground = new Image(inputPanel.createBackgroundDrawable());
+        cluePopupBackground = new Image(new NinePatchDrawable(new NinePatch(cluePopupTexture, 32, 32, 32, 32)));
         cluePopupBackground.setVisible(false);
         dialogueStage.addActor(cluePopupBackground);
 
@@ -267,6 +297,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         updateNpcStateHud();
         updateCrimeSceneHintLayout(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        answerBubble.update(delta);
 
         dialogueStage.act(delta);
         dialogueStage.draw();
@@ -334,7 +365,13 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     }
 
     @Override public boolean touchDown(float x, float y, int pointer, int button) { return false; }
-    @Override public boolean tap(float x, float y, int count, int button) { return false; }
+    @Override public boolean tap(float x, float y, int count, int button) {
+        if (accusationMode) {
+            advanceAccusationLine();
+            return true;
+        }
+        return false;
+    }
     @Override public boolean longPress(float x, float y) { return false; }
     @Override public boolean fling(float velocityX, float velocityY, int button) { return false; }
     @Override public boolean panStop(float x, float y, int pointer, int button) { return false; }
@@ -364,15 +401,20 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         if (hintIconTexture != null) {
             hintIconTexture.dispose();
         }
+        if (cluePopupTexture != null) {
+            cluePopupTexture.dispose();
+        }
         inputPanel.dispose();
         answerBubble.dispose();
         statsHud.dispose();
     }
 
     private void submitQuestion(String question) {
+        if (accusationMode) return;
+
         inputPanel.showQuestion(question);
         inputPanel.setWaiting(true);
-        answerBubble.showText("...");
+        answerBubble.showThinking();
         answerBubble.layout(characterImage, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         conversationController.ask(question, new NpcConversationController.Listener() {
@@ -390,6 +432,81 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
                 game.overlay.onNewFactsDiscovered(count);
             }
         });
+    }
+
+    private void startAccusationConfrontation() {
+        if (accusationStarted) return;
+        accusationStarted = true;
+
+        new Thread(() -> {
+            String text;
+            try {
+                text = game.getEpilogueService().generateAccusationConfrontation(game.getInvestigationState());
+            } catch (Exception e) {
+                e.printStackTrace();
+                text = "Я сказав усе, що міг.|||Тепер робіть із цим що хочете.";
+            }
+
+            Array<String> lines = parseAccusationLines(text);
+            Gdx.app.postRunnable(() -> {
+                if (!screenActive) return;
+
+                accusationLines.clear();
+                accusationLines.addAll(lines);
+                accusationLoaded = true;
+                accusationLineIndex = 0;
+                showCurrentAccusationLine();
+            });
+        }, "accusation-confrontation-worker").start();
+    }
+
+    private Array<String> parseAccusationLines(String text) {
+        Array<String> lines = new Array<>();
+        if (text == null) {
+            lines.add("Я не знаю, що ще вам сказати.");
+            return lines;
+        }
+
+        String normalized = text.replace("\r", "").trim();
+        String[] parts = normalized.contains("|||")
+            ? normalized.split("\\|\\|\\|")
+            : normalized.split("\n+");
+
+        for (String part : parts) {
+            String line = part != null ? part.trim() : "";
+            if (!line.isEmpty()) {
+                lines.add(line);
+            }
+            if (lines.size >= 4) {
+                break;
+            }
+        }
+
+        if (lines.size == 0) {
+            lines.add("Я не знаю, що ще вам сказати.");
+        }
+
+        return lines;
+    }
+
+    private void showCurrentAccusationLine() {
+        if (accusationLines.size == 0) return;
+        String line = accusationLines.get(MathUtils.clamp(accusationLineIndex, 0, accusationLines.size - 1));
+        answerBubble.showText(line);
+        answerBubble.layout(characterImage, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    private void advanceAccusationLine() {
+        if (!accusationLoaded || accusationAdvancing) return;
+
+        accusationLineIndex++;
+        if (accusationLineIndex < accusationLines.size) {
+            showCurrentAccusationLine();
+            return;
+        }
+
+        accusationAdvancing = true;
+        game.getNavigator().returnToMapThenShowEpilogue();
     }
 
     private void updateCrimeSceneHintLayout(int screenWidth, int screenHeight) {

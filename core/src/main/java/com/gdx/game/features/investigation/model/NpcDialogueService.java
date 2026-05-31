@@ -34,11 +34,10 @@ public class NpcDialogueService {
     private static final int MAX_HISTORY_PAIRS = 4;
     private static final int MAX_HISTORY_CHARS = 700;
     private static final int NPC_REPLY_MAX_TOKENS = 220;
-    private static final int FACT_REVEAL_MAX_TOKENS = 160;
-    private static final int FACT_RETRIEVAL_TOP_K = 2;
+    private static final int FACT_REVEAL_MAX_TOKENS = 220;
+    private static final int FACT_RETRIEVAL_TOP_K = 3;
     private static final float FACT_RETRIEVAL_MIN_SIMILARITY = 0.28f;
     private static final float FACT_RETRIEVAL_FALLBACK_SIMILARITY = 0.20f;
-    private static final float SECRET_PROMPT_MIN_SIMILARITY = 0.32f;
     private static final float SESSION_BREAK_SECONDS = 180f;
     private static final float RAPID_QUESTION_SECONDS = 5f;
     private static final float CALM_PAUSE_SECONDS = 60f;
@@ -240,16 +239,13 @@ public class NpcDialogueService {
                 }
             }
 
-            int relevantSecretCount = appendRelevantHiddenFacts(sb, dossier, state, npcId, question);
-            if (relevantSecretCount > 0) {
-                sb.append("DIRECT_SECRET_RULE: RELEVANT_SECRET_TRUE facts are true and known by you. ")
-                    .append("If Q asks directly or asks about the same person/place/time/event, do not deny, move to another day, or contradict person/place/time. ")
-                    .append("If Q asks whether you saw anyone at a secret place/time, name the person from the secret instead of saying no one. ")
-                    .append("Give a brief guarded admission or partial truth containing the core fact. ")
-                    .append("Low trust/fear may make you reluctant, but not say 'no' to a true secret.\n");
-            }
+            appendHiddenTruths(sb, dossier, state);
 
-            sb.append("SECRETS: reveal only on exact topic/evidence. Broad questions use PUBLIC/TRAIT/STATE/ADMITTED only.\n");
+            sb.append("SECRET_RULE: SECRET_TRUE facts are true and known by you. ")
+                .append("If Q asks directly or asks about the same person/place/time/event, do not deny, move to another day, or contradict person/place/time. ")
+                .append("If Q asks whether you saw anyone at a secret place/time, name the person from the secret instead of saying no one. ")
+                .append("Give a brief guarded admission or partial truth containing the core fact. ")
+                .append("Broad questions use PUBLIC/TRAIT/STATE/ADMITTED; low trust/fear may make you reluctant, but not say 'no' to a true secret.\n");
         }
 
         sb.append("JSON only {\"a\":\"answer\",\"rapport\":0,\"pressure\":0,\"hostility\":0}. ")
@@ -267,15 +263,28 @@ public class NpcDialogueService {
             return FactRevealDecision.no("empty hidden fact");
         }
 
+        String missingEntity = findMissingRequiredEntity(hiddenFact.text, question, answer);
+        if (!missingEntity.isEmpty()) {
+            return FactRevealDecision.no("required named entity missing from answer: " + missingEntity);
+        }
+
+        String missingConcept = findMissingCriticalConcept(hiddenFact.text, question, answer);
+        if (!missingConcept.isEmpty()) {
+            return FactRevealDecision.no("required concept missing from answer: " + missingConcept);
+        }
+
         String system = "Strict textual-entailment dossier unlock classifier. Output JSON only.\n" +
-            "reveal=true only if NPC ANSWER entails the whole FACT core claim: essential subject(s), relation/action/attribute, object, and stated time/place if any. " +
+            "Split FACT into core: subject(s), predicate/relation/action/attribute, object/result, time/place if present. " +
+            "reveal=true only if NPC ANSWER entails every required core part. " +
             "A shared name, topic, location, suspicion, or vague association is never enough. QUESTION alone never counts; use it only when ANSWER confirms/adopts it. " +
             "False for denial, contradiction, moving the fact to another time/place/person, refusal, ambiguity, vague hint, greeting, topic change, or generic small talk. " +
+            "Presence/sighting/suspicious behavior does not support identity/experiment/patient/project facts unless the ANSWER says that relation. " +
             "Match meaning across language, inflection, synonym, and paraphrase, but require the same core claim. Unsure=false.\n" +
-            "Examples: FACT 'Ліам був його найуспішнішим експериментом' + ANSWER 'бачила Ліама вночі' => false (only names Liam). " +
-            "Same FACT + ANSWER 'Вальтер називав Ліама доказом успіху дослідів' => true. " +
-            "FACT 'Бачила Ліама біля будинку Вальтера після опівночі' + ANSWER 'вночі біля дому бачила Ліама' => true.\n" +
-            "{\"reveal\":false,\"evidenceSatisfied\":false,\"reason\":\"short reason\",\"matchedEvidence\":\"short evidence summary\"}";
+            "Examples: FACT 'Ліам був його найуспішнішим експериментом' + ANSWER 'бачила Ліама вночі' => predicateSupported=false, reveal=false. " +
+            "Same FACT + ANSWER 'Вальтер називав Ліама доказом успіху дослідів' => predicateSupported=true, reveal=true. " +
+            "FACT 'приховував нічні візити Вальтера й гостей' + ANSWER 'сторожу лікарню по ночах, щоб зайві не шастали' => predicateSupported=false, reveal=false. " +
+            "FACT 'Бачила Ліама біля будинку Вальтера після опівночі' + ANSWER 'вночі біля дому бачила Ліама' => reveal=true.\n" +
+            "{\"reveal\":false,\"subjectSupported\":false,\"predicateSupported\":false,\"objectSupported\":false,\"timePlaceSupported\":true,\"evidenceSatisfied\":false,\"reason\":\"short reason\",\"matchedEvidence\":\"short evidence summary\"}";
 
         String user = "FACT: \"" + safeText(hiddenFact.text) + "\"\n"
             + "QUESTION: \"" + safeText(question) + "\"\n"
@@ -299,9 +308,23 @@ public class NpcDialogueService {
             JsonValue root = new JsonReader().parse(json);
             boolean reveal = root.getBoolean("reveal", false);
             boolean evidenceSatisfied = root.getBoolean("evidenceSatisfied", reveal);
+            boolean subjectSupported = root.getBoolean("subjectSupported", reveal);
+            boolean predicateSupported = root.getBoolean("predicateSupported", false);
+            boolean objectSupported = root.getBoolean("objectSupported", reveal);
+            boolean timePlaceSupported = root.getBoolean("timePlaceSupported", true);
             String reason = root.getString("reason", "");
             String matchedEvidence = root.getString("matchedEvidence", "");
-            return new FactRevealDecision(reveal && evidenceSatisfied, evidenceSatisfied, reason, matchedEvidence);
+            boolean coreSupported = subjectSupported && predicateSupported && objectSupported && timePlaceSupported;
+            boolean finalReveal = (reveal || evidenceSatisfied) && coreSupported;
+            if ((reveal || evidenceSatisfied) && !coreSupported && reason.isEmpty()) {
+                reason = "core claim is not fully supported by answer";
+            }
+            return new FactRevealDecision(
+                finalReveal,
+                evidenceSatisfied && coreSupported,
+                reason,
+                matchedEvidence
+            );
         } catch (Exception ex) {
             Gdx.app.log("FACT_DEBUG", "Failed to parse fact reveal classifier JSON: " + result);
             return FactRevealDecision.no("invalid classifier json");
@@ -322,102 +345,28 @@ public class NpcDialogueService {
         );
     }
 
-    private int appendRelevantHiddenFacts(
+    private void appendHiddenTruths(
         StringBuilder sb,
         DossierData dossier,
-        NpcState state,
-        String npcId,
-        String question
+        NpcState state
     ) {
-        if (dossier == null || dossier.hiddenFacts == null || dossier.hiddenFacts.isEmpty()) return 0;
+        if (dossier == null || dossier.hiddenFacts == null || dossier.hiddenFacts.isEmpty()) return;
 
-        String retrievalText = buildSecretPromptRetrievalText(npcId, question);
-        if (retrievalText.isEmpty()) return 0;
-
-        try {
-            ArrayList<String> inputs = new ArrayList<>();
-            ArrayList<String> missingCacheKeys = new ArrayList<>();
-            inputs.add(retrievalText);
-
-            for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
-                if (state.hiddenRevealed != null && i < state.hiddenRevealed.length && state.hiddenRevealed[i]) {
-                    continue;
-                }
-
-                String hiddenFact = dossier.getHiddenFactText(i);
-                if (hiddenFact.isEmpty()) continue;
-
-                String cacheKey = buildFactEmbeddingCacheKey(npcId, i, hiddenFact);
-                if (!factEmbeddingCache.containsKey(cacheKey)) {
-                    missingCacheKeys.add(cacheKey);
-                    inputs.add(buildFactEmbeddingText(dossier, hiddenFact));
-                }
+        boolean wroteHeader = false;
+        for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
+            if (state.hiddenRevealed != null && i < state.hiddenRevealed.length && state.hiddenRevealed[i]) {
+                continue;
             }
 
-            float[][] embeddings = llmClient.createEmbeddings(inputs);
-            float[] questionEmbedding = embeddings[0];
+            String hiddenFact = dossier.getHiddenFactText(i);
+            if (hiddenFact.isEmpty()) continue;
 
-            for (int i = 0; i < missingCacheKeys.size(); i++) {
-                factEmbeddingCache.put(missingCacheKeys.get(i), embeddings[i + 1]);
+            if (!wroteHeader) {
+                sb.append("SECRET_TRUE:\n");
+                wroteHeader = true;
             }
-
-            ArrayList<FactCandidate> ranked = new ArrayList<>();
-            for (int i = 0; i < dossier.hiddenFacts.size(); i++) {
-                if (state.hiddenRevealed != null && i < state.hiddenRevealed.length && state.hiddenRevealed[i]) {
-                    continue;
-                }
-
-                String hiddenFact = dossier.getHiddenFactText(i);
-                if (hiddenFact.isEmpty()) continue;
-
-                float[] factEmbedding = factEmbeddingCache.get(buildFactEmbeddingCacheKey(npcId, i, hiddenFact));
-                if (factEmbedding == null) continue;
-
-                ranked.add(new FactCandidate(i, cosineSimilarity(questionEmbedding, factEmbedding)));
-            }
-
-            ranked.sort((a, b) -> Float.compare(b.similarity, a.similarity));
-
-            int appended = 0;
-            for (FactCandidate candidate : ranked) {
-                if (appended >= FACT_RETRIEVAL_TOP_K) break;
-                if (candidate.similarity < SECRET_PROMPT_MIN_SIMILARITY) break;
-
-                Gdx.app.log("FACT_DEBUG",
-                    "SECRET_PROMPT_CANDIDATE (npc=" + npcId + ") fact #" + candidate.index + " -> "
-                        + String.format(Locale.ROOT, "%.3f", candidate.similarity));
-
-                if (appended == 0) {
-                    sb.append("RELEVANT_SECRET_TRUE: ");
-                } else {
-                    sb.append(" / ");
-                }
-                sb.append(dossier.getHiddenFactText(candidate.index));
-                appended++;
-            }
-
-            if (appended > 0) {
-                sb.append("\n");
-            }
-
-            return appended;
-        } catch (Exception ex) {
-            Gdx.app.log("FACT_DEBUG", "Semantic secret prompt retrieval failed: " + ex.getMessage());
-            return 0;
+            sb.append("- ").append(hiddenFact).append("\n");
         }
-    }
-
-    private String buildSecretPromptRetrievalText(String npcId, String question) {
-        String q = question != null ? question.trim() : "";
-        if (q.isEmpty()) return "";
-
-        String history = DialogueHistory.loadRecentForLlm(npcId, 2, 350);
-        StringBuilder sb = new StringBuilder();
-        if (!history.isEmpty()) {
-            sb.append("Recent dialogue context:\n").append(history).append("\n");
-        }
-        sb.append("Current detective question: ").append(q);
-        return sb.toString();
     }
 
     private boolean containsAnyEvidence(String answerText, List<String> evidence) {
@@ -454,6 +403,128 @@ public class NpcDialogueService {
     private String safeText(String text) {
         if (text == null) return "";
         return text.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private String findMissingRequiredEntity(String fact, String question, String answer) {
+        if (dossierDb == null || dossierDb.characters == null || dossierDb.characters.isEmpty()) {
+            return "";
+        }
+
+        String factText = normalizeEvidenceText(fact);
+        String questionText = normalizeEvidenceText(question);
+        String answerText = normalizeEvidenceText(answer);
+        boolean answerAdoptsQuestion = answerAdoptsQuestion(questionText, answerText);
+
+        for (ObjectMap.Entry<String, DossierData> e : dossierDb.characters) {
+            DossierData data = e.value;
+            if (data == null || data.name == null) continue;
+
+            List<String> aliases = buildEntityAliases(data.name);
+            if (!containsAnyPlain(factText, aliases)) continue;
+
+            boolean answerHasEntity = containsAnyPlain(answerText, aliases);
+            boolean questionHasAdoptedEntity = answerAdoptsQuestion && containsAnyPlain(questionText, aliases);
+            if (!answerHasEntity && !questionHasAdoptedEntity) {
+                return data.name;
+            }
+        }
+
+        return "";
+    }
+
+    private List<String> buildEntityAliases(String name) {
+        ArrayList<String> aliases = new ArrayList<>();
+        String normalizedName = normalizeEvidenceText(name);
+        if (normalizedName.isEmpty()) return aliases;
+
+        aliases.add(normalizedName);
+        String[] parts = normalizedName.split(" ");
+        for (String part : parts) {
+            if (part.length() < 3) continue;
+            if ("доктор".equals(part) || "dr".equals(part)) continue;
+            aliases.add(part);
+        }
+        return aliases;
+    }
+
+    private boolean containsAnyPlain(String text, List<String> aliases) {
+        if (text == null || text.isEmpty() || aliases == null) return false;
+        for (String alias : aliases) {
+            if (alias == null || alias.isEmpty()) continue;
+            if (text.contains(alias)) return true;
+        }
+        return false;
+    }
+
+    private boolean answerAdoptsQuestion(String questionText, String answerText) {
+        if (questionText == null || questionText.isEmpty() || answerText == null || answerText.isEmpty()) {
+            return false;
+        }
+
+        return answerText.equals("так")
+            || answerText.startsWith("так ")
+            || answerText.startsWith("авжеж")
+            || answerText.startsWith("звісно")
+            || answerText.startsWith("саме так")
+            || answerText.startsWith("я це")
+            || answerText.startsWith("це ")
+            || questionText.startsWith("що за ")
+            || questionText.startsWith("які саме ")
+            || questionText.startsWith("розкажи про ")
+            || questionText.startsWith("що це за ");
+    }
+
+    private String findMissingCriticalConcept(String fact, String question, String answer) {
+        String factText = normalizeEvidenceText(fact);
+        String questionText = normalizeEvidenceText(question);
+        String answerText = normalizeEvidenceText(answer);
+        boolean answerAdoptsQuestion = answerAdoptsQuestion(questionText, answerText);
+
+        String[][] conceptGroups = {
+            {"експеримент", "експеримент", "дослід", "дослідж", "project", "experiment"},
+            {"діти/пацієнти", "дит", "діт", "пацієнт", "клінік", "child", "patient", "clinic"},
+            {"Ліам", "ліам", "liam"},
+            {"проєкт", "проєкт", "проект", "project"},
+            {"психологічні тести", "тест", "психолог", "fear", "guilt", "empathy", "страх", "провин", "емпат"},
+            {"записка", "записк", "лист", "note"},
+            {"скальпель", "скальпел", "інструмент", "scalpel"}
+        };
+
+        for (String[] group : conceptGroups) {
+            if (!containsConcept(factText, group)) continue;
+            if (containsConcept(answerText, group)) continue;
+            if (containsConcept(questionText, group) && answerProvidesSubstantiveDetail(answerText)) continue;
+            return group[0];
+        }
+
+        return "";
+    }
+
+    private boolean answerProvidesSubstantiveDetail(String answerText) {
+        if (answerText == null || answerText.isEmpty()) return false;
+
+        String[] words = answerText.split(" ");
+        if (words.length >= 6) return true;
+
+        return answerText.contains("це ")
+            || answerText.contains("там ")
+            || answerText.contains("запис")
+            || answerText.contains("результ")
+            || answerText.contains("метод")
+            || answerText.contains("протокол")
+            || answerText.contains("спостереж")
+            || answerText.contains("процедур");
+    }
+
+    private boolean containsConcept(String text, String[] conceptGroup) {
+        if (text == null || text.isEmpty() || conceptGroup == null) return false;
+
+        for (int i = 1; i < conceptGroup.length; i++) {
+            String marker = normalizeEvidenceText(conceptGroup[i]);
+            if (marker.isEmpty()) continue;
+            if (text.contains(marker)) return true;
+        }
+        return false;
     }
 
     public static class FactRevealDecision {

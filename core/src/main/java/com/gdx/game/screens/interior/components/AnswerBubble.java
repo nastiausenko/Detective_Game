@@ -14,12 +14,17 @@ import com.gdx.game.shared.config.UiLayoutProfile;
 import com.gdx.game.shared.ui.UiStyles;
 
 public class AnswerBubble {
+    private static final float THINKING_FRAME_SECONDS = 0.32f;
+
     private final Texture texture;
     private final Image background;
     private final Label label;
     private final GlyphLayout glyphLayout = new GlyphLayout();
 
     private String text = "";
+    private boolean thinking = false;
+    private float thinkingElapsed = 0f;
+    private int thinkingFrame = 0;
 
     public AnswerBubble(Stage stage, Skin skin) {
         texture = new Texture(Assets.ANSWER_AREA);
@@ -36,10 +41,38 @@ public class AnswerBubble {
     }
 
     public void showText(String text) {
+        thinking = false;
         this.text = text != null ? text : "";
         label.setText(this.text);
         label.setVisible(true);
         background.setVisible(true);
+    }
+
+    public void showThinking() {
+        thinking = true;
+        thinkingElapsed = 0f;
+        thinkingFrame = 0;
+        this.text = "...";
+        label.setText(".");
+        label.setVisible(true);
+        background.setVisible(true);
+    }
+
+    public void update(float delta) {
+        if (!thinking) return;
+
+        thinkingElapsed += delta;
+        if (thinkingElapsed < THINKING_FRAME_SECONDS) return;
+
+        thinkingElapsed = 0f;
+        if (thinkingFrame == 0) {
+            label.setText(".");
+        } else if (thinkingFrame == 1) {
+            label.setText("..");
+        } else {
+            label.setText("...");
+        }
+        thinkingFrame = (thinkingFrame + 1) % 3;
     }
 
     public void setVisible(boolean visible) {
@@ -71,7 +104,7 @@ public class AnswerBubble {
         float maxInnerHeight = maxBubbleHeight - paddingY * 2f - tailHeight;
 
         label.setWrap(true);
-        label.setAlignment(Align.center);
+        label.setAlignment(thinking ? Align.left : Align.center);
         label.setFontScale(profile.getBubbleFontScale());
         label.setWidth(innerWidth);
         label.setText(text);

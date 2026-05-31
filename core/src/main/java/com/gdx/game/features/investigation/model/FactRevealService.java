@@ -6,6 +6,10 @@ import com.gdx.game.model.DossierData;
 import com.gdx.game.model.DossierDatabase;
 
 public class FactRevealService {
+    public interface ProgressCallback {
+        void onFactRevealed(int count);
+    }
+
     private static final String DOCTOR_ID = "walter";
     private static final int EXCHANGE_LOG_MAX_CHARS = 280;
 
@@ -29,13 +33,28 @@ public class FactRevealService {
         String answer,
         NpcDialogueService.AsyncCallback<Integer> callback
     ) {
+        revealFactsAfterExchangeAsync(npcId, question, answer, null, callback);
+    }
+
+    public void revealFactsAfterExchangeAsync(
+        String npcId,
+        String question,
+        String answer,
+        ProgressCallback progressCallback,
+        NpcDialogueService.AsyncCallback<Integer> callback
+    ) {
         npcService.runFactRevealCheckAsync(
-            () -> revealFactsAfterExchange(npcId, question, answer),
+            () -> revealFactsAfterExchange(npcId, question, answer, progressCallback),
             callback
         );
     }
 
-    private int revealFactsAfterExchange(String npcId, String question, String answer) {
+    private int revealFactsAfterExchange(
+        String npcId,
+        String question,
+        String answer,
+        ProgressCallback progressCallback
+    ) {
         DossierData npcData = getDossier(npcId);
         DossierData doctorData = getDossier(DOCTOR_ID);
 
@@ -44,12 +63,8 @@ public class FactRevealService {
                 + compactForLog(question) + "\" A=\"" + compactForLog(answer) + "\"");
 
         int newlyRevealed = 0;
-        newlyRevealed += revealFactsForNpc(npcId, npcData, question, answer, "npc=" + npcId);
-        newlyRevealed += revealFactsForNpc(DOCTOR_ID, doctorData, question, answer, "DOCTOR");
-
-        if (newlyRevealed > 0 && crimeSceneService != null) {
-            crimeSceneService.syncUnlockedHints();
-        }
+        newlyRevealed += revealFactsForNpc(npcId, npcData, question, answer, "npc=" + npcId, progressCallback);
+        newlyRevealed += revealFactsForNpc(DOCTOR_ID, doctorData, question, answer, "DOCTOR", progressCallback);
 
         return newlyRevealed;
     }
@@ -65,13 +80,14 @@ public class FactRevealService {
         DossierData data,
         String question,
         String answer,
-        String debugPrefix
+        String debugPrefix,
+        ProgressCallback progressCallback
     ) {
         IntArray candidateIndexes = collectSemanticCandidateFacts(npcId, data, question, answer, debugPrefix);
         if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) return 0;
         if (candidateIndexes == null || candidateIndexes.size == 0) return 0;
 
-        IntArray toReveal = new IntArray();
+        int newlyRevealed = 0;
 
         for (int i = 0; i < candidateIndexes.size; i++) {
             int idx = candidateIndexes.get(i);
@@ -94,15 +110,21 @@ public class FactRevealService {
                     + decision.reveal + decision.debugSuffix());
 
             if (decision.reveal) {
-                toReveal.add(idx);
+                IntArray oneFact = new IntArray();
+                oneFact.add(idx);
+                npcService.markFactsRevealed(npcId, oneFact);
+                newlyRevealed++;
+
+                if (crimeSceneService != null) {
+                    crimeSceneService.syncUnlockedHints();
+                }
+                if (progressCallback != null) {
+                    progressCallback.onFactRevealed(1);
+                }
             }
         }
 
-        if (toReveal.size > 0) {
-            npcService.markFactsRevealed(npcId, toReveal);
-        }
-
-        return toReveal.size;
+        return newlyRevealed;
     }
 
     private IntArray collectSemanticCandidateFacts(

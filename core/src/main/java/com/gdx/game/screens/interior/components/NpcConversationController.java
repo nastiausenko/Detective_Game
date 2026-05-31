@@ -77,18 +77,17 @@ public class NpcConversationController {
 
     private void revealFacts(String question, String answer, Listener listener) {
         game.getFactRevealService().revealFactsAfterExchangeAsync(characterId, question, answer,
+            count -> {
+                if (count <= 0) return;
+                Gdx.app.postRunnable(() -> {
+                    if (active) {
+                        listener.onFactsDiscovered(count);
+                    }
+                });
+            },
             (newlyRevealed, error) -> {
                 if (error != null) {
                     error.printStackTrace();
-                    return;
-                }
-
-                if (newlyRevealed != null && newlyRevealed > 0) {
-                    Gdx.app.postRunnable(() -> {
-                        if (active) {
-                            listener.onFactsDiscovered(newlyRevealed);
-                        }
-                    });
                 }
             });
     }
