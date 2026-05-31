@@ -45,11 +45,11 @@ public class AccusationPopup extends AbstractPopup {
     };
 
     private final String[] npcIds = {
-        "doctor",
-        "officer",
-        "student",
-        "sister",
-        "cashier"
+        "mara",
+        "ernst",
+        "liam",
+        "clara",
+        "elena"
     };
 
     private int selectedIndex = -1;
@@ -242,7 +242,7 @@ public class AccusationPopup extends AbstractPopup {
         }
 
         remove();
-        game.overlay.showEpilogue();
+        game.getNavigator().enterAccusationConfrontation(accusedNpcId);
     }
 
     private void updateCloseButtonState() {

@@ -12,7 +12,9 @@ import com.gdx.game.shared.api.LlmClient;
 import java.io.IOException;
 
 public class EpilogueService {
-    private static final int EPILOGUE_MAX_TOKENS = 900;
+    private static final int EPILOGUE_MAX_TOKENS = 520;
+    private static final int CONFRONTATION_MAX_TOKENS = 280;
+    private static final int SUFFICIENT_KILLER_EVIDENCE = 2;
 
     private final LlmClient llmClient;
     private final LoreDatabase loreDb;
@@ -33,9 +35,10 @@ public class EpilogueService {
             : null;
 
         boolean correct = accusedId != null && accusedId.equals(realKillerId);
+        EvidenceSummary evidence = buildEvidenceSummary(realKillerId);
 
         String systemPrompt = buildSystemPrompt();
-        String userMessage  = buildUserMessage(accusedId, correct);
+        String userMessage  = buildUserMessage(accusedId, correct, evidence);
 
         return llmClient.ask(
             systemPrompt,
@@ -45,32 +48,43 @@ public class EpilogueService {
         );
     }
 
+    public String generateAccusationConfrontation(InvestigationState inv) throws IOException {
+        String accusedId = inv != null ? inv.accusedNpcId : null;
+        String realKillerId = (loreDb != null && loreDb.murder != null)
+            ? loreDb.murder.killerId
+            : null;
+        boolean correct = accusedId != null && accusedId.equals(realKillerId);
+        EvidenceSummary evidence = buildEvidenceSummary(realKillerId);
+
+        String system =
+            "Write the accused character's direct response to the final accusation in Ukrainian. " +
+                "Return 2-4 short first-person speech bubbles separated only by |||. " +
+                "No narration, no labels, no new facts. Use only FINAL, DISCOVERED, KEY_DIALOGUE. " +
+                "Wrong accusation: deny and react personally, without naming/implying true killer. " +
+                "Correct weak evidence: controlled denial or partial crack, no confession. " +
+                "Correct enough evidence: a clear confrontation response; confession only if supported by KEY_DIALOGUE/DISCOVERED.";
+
+        String user = buildConfrontationUserMessage(accusedId, correct, evidence);
+        return llmClient.ask(system, user, CONFRONTATION_MAX_TOKENS, LlmClient.ModelTier.SMART);
+    }
+
     private String buildSystemPrompt() {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("You are the literary narrator of a psychological thriller.\n")
-            .append("Write the epilogue in Ukrainian, 3–5 paragraphs, each 2–4 short sentences.\n")
-            .append("Style: quiet European town, moral tension, no cheap horror or gore.\n")
-            .append("Do NOT mention game mechanics, player, NPCs, models, or ChatGPT — this is just a novel ending.\n\n")
-            .append("About the killer:\n")
-            .append("- You may know the true killer as internal information.\n")
-            .append("- If the accusation is WRONG, do NOT name the real killer, ")
-            .append("do NOT reveal their role, and do NOT give direct hints like \"it was actually someone else\".\n")
-            .append("- In that case, only convey a feeling that the real killer is still free, ")
-            .append("and the town lives with a half-truth.\n")
-            .append("- If the accusation is CORRECT, you may artistically describe the killer's inner logic, ")
-            .append("but still without talking about the game.\n\n")
-            .append("Very important:\n")
-            .append("- Use ONLY information that is explicitly present in PUBLIC FACTS, DISCOVERED SECRETS, ")
-            .append("and DIALOGUE EXCERPTS below.\n")
-            .append("- Do NOT mention secret experiments, hidden crimes or backstory details ")
-            .append("unless they appear in those sections.\n");
+        sb.append("Write a short Ukrainian ending, 3 compact paragraphs max.\n")
+            .append("No game/meta words. No hidden truth unless it is in DISCOVERED/KEY_DIALOGUE.\n")
+            .append("Show concrete consequences for: town, accused person, key affected people.\n")
+            .append("If wrong or no accusation: do not name/imply the real killer; show flawed justice/unfinished truth.\n")
+            .append("If correct but evidence is weak: accusation lands, but no confession or full public truth.\n")
+            .append("If correct and evidence is enough: write a clear accusation outcome; confession is optional only if KEY_DIALOGUE supports it.\n")
+            .append("Keep it direct, not lyrical or long.\n");
 
         return sb.toString();
     }
 
     private String buildUserMessage(String accusedId,
-                                    boolean correct) {
+                                    boolean correct,
+                                    EvidenceSummary evidence) {
 
         StringBuilder sb = new StringBuilder();
 
@@ -80,38 +94,159 @@ public class EpilogueService {
             sb.append("Tone: ").append(loreDb.setting.tone).append("\n\n");
         }
 
-        sb.append("DETECTIVE FINAL DECISION:\n");
-        sb.append("Accused npc id: ").append(accusedId != null ? accusedId : "none").append("\n");
-        sb.append("Accusation_correct: ").append(correct ? "YES" : "NO").append("\n\n");
+        sb.append("FINAL:\n");
+        sb.append("Accused: ").append(formatNpcName(accusedId)).append("\n");
+        sb.append("Accusation: ").append(buildAccusationOutcome(accusedId, correct, evidence)).append("\n");
+        if (correct) {
+            sb.append("Evidence for this accusation: ").append(evidence.killerEvidenceCount).append("\n");
+        }
+        sb.append("Confession rule: do not write a confession unless KEY_DIALOGUE explicitly contains one.\n\n");
 
-        sb.append("PUBLIC FACTS (these are safe, known things in the town):\n");
+        sb.append("PUBLIC:\n");
         sb.append(buildPublicFactsSummary());
         sb.append("\n");
 
-        sb.append("DISCOVERED SECRETS (these hidden facts were clearly uncovered by the detective):\n");
+        sb.append("DISCOVERED:\n");
         sb.append(buildDiscoveredFactsSummary());
         sb.append("\n");
 
+        if (correct && !evidence.killerEvidence.isEmpty()) {
+            sb.append("DIRECT EVIDENCE FOR THIS ACCUSATION:\n");
+            sb.append(evidence.killerEvidence).append("\n");
+        }
+
         if (accusedId != null) {
-            String accusedHistory = DialogueHistory.loadRecentForLlm(accusedId, 6, 900);
+            String accusedHistory = DialogueHistory.loadRecentForLlm(accusedId, 4, 650);
             if (!accusedHistory.isEmpty()) {
-                sb.append("KEY DIALOGUES WITH THE ACCUSED:\n");
+                sb.append("KEY_DIALOGUE:\n");
                 sb.append(accusedHistory).append("\n\n");
             }
         }
 
-        sb.append("TASK:\n");
-        sb.append("Using ONLY the information in CITY, PUBLIC FACTS, DISCOVERED SECRETS and KEY DIALOGUES, ")
-            .append("write the epilogue of Rosenfeld story.\n")
-            .append("Show how the town changes, what happens to the accused, ")
-            .append("and what trace Walter and his death leave behind.\n")
-            .append("If the accusation is YES (correct) — this is a story about the price of truth and ")
-            .append("confrontation with a 'new kind of human'.\n")
-            .append("If the accusation is NO (wrong) — this is a story about flawed justice, ")
-            .append("a town living with a half-truth, and the sense that the real killer is still out there.\n")
-            .append("Do NOT invent new secret experiments or crimes that are not explicitly listed above.\n");
+        sb.append("TASK: Write only from PUBLIC, DISCOVERED, KEY_DIALOGUE and FINAL. ")
+            .append("Do not add unrevealed secrets, unseen motives, new crimes, or new facts.\n");
 
         return sb.toString();
+    }
+
+    private String buildAccusationOutcome(String accusedId, boolean correct, EvidenceSummary evidence) {
+        if (accusedId == null) {
+            return "NO_ACCUSATION";
+        }
+        if (!correct) {
+            return "WRONG_ACCUSATION";
+        }
+        if (evidence.killerEvidenceCount >= SUFFICIENT_KILLER_EVIDENCE) {
+            return "CORRECT_WITH_ENOUGH_EVIDENCE";
+        }
+        return "CORRECT_BUT_WEAK_EVIDENCE";
+    }
+
+    private String buildConfrontationUserMessage(String accusedId, boolean correct, EvidenceSummary evidence) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("FINAL:\n");
+        sb.append("Accused: ").append(formatNpcName(accusedId)).append("\n");
+        sb.append("Accusation: ").append(buildAccusationOutcome(accusedId, correct, evidence)).append("\n");
+        if (correct) {
+            sb.append("Evidence for this accusation: ").append(evidence.killerEvidenceCount).append("\n");
+        }
+        sb.append("\nDISCOVERED:\n").append(buildDiscoveredFactsSummary()).append("\n");
+
+        if (correct && !evidence.killerEvidence.isEmpty()) {
+            sb.append("DIRECT EVIDENCE:\n").append(evidence.killerEvidence).append("\n");
+        }
+
+        if (accusedId != null) {
+            String accusedHistory = DialogueHistory.loadRecentForLlm(accusedId, 4, 650);
+            if (!accusedHistory.isEmpty()) {
+                sb.append("KEY_DIALOGUE:\n").append(accusedHistory).append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private String formatNpcName(String npcId) {
+        if (npcId == null) return "none";
+        if (dossierDb != null && dossierDb.characters != null) {
+            DossierData data = dossierDb.characters.get(npcId);
+            if (data != null && data.name != null && !data.name.isEmpty()) {
+                return data.name + " (" + npcId + ")";
+            }
+        }
+        return npcId;
+    }
+
+    private EvidenceSummary buildEvidenceSummary(String realKillerId) {
+        EvidenceSummary evidence = new EvidenceSummary();
+        if (realKillerId == null || dossierDb == null || dossierDb.characters == null) {
+            return evidence;
+        }
+
+        DossierData killerData = dossierDb.characters.get(realKillerId);
+        String killerName = killerData != null && killerData.name != null ? killerData.name : realKillerId;
+        String killerFirstName = firstWord(killerName);
+
+        StringBuilder direct = new StringBuilder();
+
+        for (ObjectMap.Entry<String, DossierData> e : dossierDb.characters) {
+            String npcId = e.key;
+            DossierData data = e.value;
+            if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) continue;
+
+            NpcState state = npcService.getStateForUi(npcId);
+            if (state == null || state.hiddenRevealed == null) continue;
+
+            for (int i = 0; i < state.hiddenRevealed.length && i < data.hiddenFacts.size(); i++) {
+                if (!state.hiddenRevealed[i]) continue;
+
+                String fact = data.getHiddenFactText(i);
+                if (!pointsToKiller(npcId, fact, realKillerId, killerName, killerFirstName)) continue;
+
+                evidence.killerEvidenceCount++;
+                direct.append("- ")
+                    .append(data.name != null ? data.name : npcId)
+                    .append(": ")
+                    .append(fact)
+                    .append("\n");
+            }
+        }
+
+        evidence.killerEvidence = direct.toString();
+        return evidence;
+    }
+
+    private boolean pointsToKiller(
+        String factOwnerId,
+        String fact,
+        String killerId,
+        String killerName,
+        String killerFirstName
+    ) {
+        if (killerId.equals(factOwnerId)) {
+            return true;
+        }
+
+        String text = (fact != null ? fact : "").toLowerCase();
+        return containsLower(text, killerId)
+            || containsLower(text, killerName)
+            || containsLower(text, killerFirstName);
+    }
+
+    private boolean containsLower(String textLower, String value) {
+        return value != null && !value.isEmpty() && textLower.contains(value.toLowerCase());
+    }
+
+    private String firstWord(String text) {
+        if (text == null) return "";
+        String trimmed = text.trim();
+        int space = trimmed.indexOf(' ');
+        return space >= 0 ? trimmed.substring(0, space) : trimmed;
+    }
+
+    private static class EvidenceSummary {
+        int killerEvidenceCount;
+        String killerEvidence = "";
     }
 
     private String buildPublicFactsSummary() {

@@ -1,6 +1,10 @@
 package com.gdx.game.app.navigation;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.utils.Json;
 import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.model.BuildingData;
+import com.gdx.game.model.CharacterData;
 import com.gdx.game.app.model.GameData;
 import com.gdx.game.model.InvestigationState;
 import com.gdx.game.app.model.GameContext;
@@ -89,9 +93,93 @@ public class ScreenNavigator {
         });
     }
 
+    public void enterAccusationConfrontation(String npcId) {
+        if (transition.isTransitioning()) return;
+
+        CharacterData character = findCharacter(npcId);
+        if (character == null) {
+            game.overlay.showEpilogue();
+            return;
+        }
+
+        String buildingId = game.getNpcLocationService() != null
+            ? game.getNpcLocationService().getCurrentBuildingId(npcId)
+            : null;
+        if (buildingId == null || buildingId.isEmpty()) {
+            buildingId = character.buildingId;
+        }
+
+        String backgroundPath = findInteriorBackground(buildingId);
+        if (backgroundPath == null || backgroundPath.isEmpty()) {
+            backgroundPath = findInteriorBackground(character.buildingId);
+        }
+
+        final String finalBuildingId = buildingId;
+        final String finalBackgroundPath = backgroundPath;
+
+        if (game.getAudioManager() != null) {
+            game.getAudioManager().stopAmbience();
+            game.getAudioManager().playLocationTransition(finalBuildingId);
+        }
+
+        transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
+            game.setScreen(new CharacterInteriorScreen(
+                context,
+                finalBackgroundPath,
+                character.id,
+                character.fullBody,
+                finalBuildingId,
+                true
+            ));
+            transition.startFadeIn(DEFAULT_FADE_SECONDS);
+        });
+    }
+
+    public void returnToMapThenShowEpilogue() {
+        if (transition.isTransitioning()) {
+            Gdx.app.postRunnable(this::returnToMapThenShowEpilogue);
+            return;
+        }
+
+        transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
+            showMapAfterFadeOut();
+            Gdx.app.postRunnable(() -> game.overlay.showEpilogue());
+        });
+    }
+
     private void showMapAfterFadeOut() {
         game.setScreen(new MapScreen(context));
         transition.startFadeIn(DEFAULT_FADE_SECONDS);
+    }
+
+    private CharacterData findCharacter(String npcId) {
+        if (npcId == null || npcId.isEmpty()) return null;
+
+        Json json = new Json();
+        CharacterData[] characters = json.fromJson(CharacterData[].class, Gdx.files.internal("characters.json"));
+        if (characters == null) return null;
+
+        for (CharacterData character : characters) {
+            if (character != null && npcId.equals(character.id)) {
+                return character;
+            }
+        }
+        return null;
+    }
+
+    private String findInteriorBackground(String buildingId) {
+        if (buildingId == null || buildingId.isEmpty()) return "";
+
+        Json json = new Json();
+        BuildingData[] buildings = json.fromJson(BuildingData[].class, Gdx.files.internal("buildings.json"));
+        if (buildings == null) return "";
+
+        for (BuildingData building : buildings) {
+            if (building != null && buildingId.equals(building.id)) {
+                return building.interiorBackground;
+            }
+        }
+        return "";
     }
 
     private void resetNewGameState() {
