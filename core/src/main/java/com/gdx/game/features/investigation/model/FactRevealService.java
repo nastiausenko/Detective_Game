@@ -7,6 +7,7 @@ import com.gdx.game.model.DossierDatabase;
 
 public class FactRevealService {
     private static final String DOCTOR_ID = "walter";
+    private static final int EXCHANGE_LOG_MAX_CHARS = 280;
 
     private final NpcDialogueService npcService;
     private final DossierDatabase dossierDb;
@@ -37,6 +38,10 @@ public class FactRevealService {
     private int revealFactsAfterExchange(String npcId, String question, String answer) {
         DossierData npcData = getDossier(npcId);
         DossierData doctorData = getDossier(DOCTOR_ID);
+
+        Gdx.app.log("FACT_DEBUG",
+            "EXCHANGE (npc=" + safeForLog(npcId) + ") Q=\""
+                + compactForLog(question) + "\" A=\"" + compactForLog(answer) + "\"");
 
         int newlyRevealed = 0;
         newlyRevealed += revealFactsForNpc(npcId, npcData, question, answer, "npc=" + npcId);
@@ -119,5 +124,26 @@ public class FactRevealService {
                 "Semantic retrieval failed; skipping fact check (" + debugPrefix + ")");
             return new IntArray();
         }
+    }
+
+    private String compactForLog(String text) {
+        if (text == null) return "";
+
+        String compact = text
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            .replace('\t', ' ')
+            .replaceAll("\\s+", " ")
+            .trim();
+
+        if (compact.length() <= EXCHANGE_LOG_MAX_CHARS) {
+            return safeForLog(compact);
+        }
+
+        return safeForLog(compact.substring(0, EXCHANGE_LOG_MAX_CHARS - 3) + "...");
+    }
+
+    private String safeForLog(String text) {
+        return text == null ? "" : text.replace("\"", "'");
     }
 }

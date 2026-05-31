@@ -366,7 +366,7 @@ public class MapScreen implements Screen {
         game.batch.end();
     }
 
-    //TODO temporary method for visualizing building coords
+    //method for debug
     private void drawBuildingDebugRects() {
         shapeRenderer.setProjectionMatrix(camera.combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);

@@ -143,7 +143,7 @@ public class NpcStatsHud {
     }
 
     private void layoutPanel() {
-        float padX = 25f;
+        float padX = 15f;
         float padY = 25f;
 
         float minX = Math.min(trustImage.getX(), Math.min(fearImage.getX(), moodImage.getX())) - padX;

@@ -64,11 +64,11 @@ public class ChatHistoryPopup extends AbstractPopup {
         bubbleLabelStyle.fontColor = Color.BLACK;
         bubbleLabelStyle.font.getData().setScale(0.5f);
 
-        Texture bubbleTex = new Texture(Assets.QUESTION_AREA);
-        int right = 40;
-        int left = 40;
-        int top = 0;
-        int bottom = 0;
+        Texture bubbleTex = new Texture(Assets.STATISTICS);
+        int right = 20;
+        int left = 20;
+        int top = 20;
+        int bottom = 20;
 
         NinePatch npcPatch = new NinePatch(bubbleTex, left, right, top, bottom);
         NinePatch playerPatch = new NinePatch(bubbleTex, left, right, top, bottom);

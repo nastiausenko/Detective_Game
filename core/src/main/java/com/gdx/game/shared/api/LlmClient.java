@@ -27,6 +27,9 @@ public class LlmClient {
     private static final String GROQ_MODEL = "openai/gpt-oss-120b";
     private static final int DEFAULT_MAX_TOKENS = 512;
     private static final int MAX_COMPLETION_TOKENS = 1024;
+    private static final int CONNECT_TIMEOUT_MS = 10000;
+    private static final int READ_TIMEOUT_MS = 30000;
+    private static final int GROQ_MIN_COMPLETION_TOKENS = 640;
 
     private final String openAiKey;
     private final String groqKey;
@@ -109,7 +112,7 @@ public class LlmClient {
         return "{\n" +
             "  \"model\": " + jsonEscape(LlmClient.GROQ_MODEL) + ",\n" +
             "  \"temperature\": 1,\n" +
-            "  \"max_tokens\": " + sanitizeMaxTokens(maxTokens) + ",\n" +
+            "  \"max_tokens\": " + sanitizeGroqMaxTokens(maxTokens) + ",\n" +
             "  \"messages\": [\n" +
             "    {\"role\": \"system\", \"content\": " + jsonEscape(systemPrompt) + "},\n" +
             "    {\"role\": \"user\", \"content\": " + jsonEscape(userMessage) + "}\n" +
@@ -120,6 +123,10 @@ public class LlmClient {
     private int sanitizeMaxTokens(int maxTokens) {
         if (maxTokens < 32) return 32;
         return Math.min(maxTokens, MAX_COMPLETION_TOKENS);
+    }
+
+    private int sanitizeGroqMaxTokens(int maxTokens) {
+        return Math.max(sanitizeMaxTokens(maxTokens), GROQ_MIN_COMPLETION_TOKENS);
     }
 
     private String resolveOpenAiModel(ModelTier modelTier) {
@@ -179,6 +186,8 @@ public class LlmClient {
 
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
+        conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        conn.setReadTimeout(READ_TIMEOUT_MS);
         conn.setRequestProperty("Content-Type", "application/json");
         conn.setRequestProperty("Authorization", "Bearer " + apiKey);
 
@@ -249,17 +258,18 @@ public class LlmClient {
         return embeddings;
     }
 
-    private String extractAnswerFromResponse(String json) {
+    private String extractAnswerFromResponse(String json) throws IOException {
         JsonValue root = new JsonReader().parse(json);
         JsonValue choices = root.get("choices");
 
         if (choices == null || !choices.isArray() || choices.size == 0) {
-            return "Помилка: модель не повернула жодної відповіді.";
+            throw new IOException("LLM response does not contain choices.");
         }
 
-        JsonValue message = choices.get(0).get("message");
+        JsonValue choice = choices.get(0);
+        JsonValue message = choice.get("message");
         if (message == null) {
-            return "Помилка: формат відповіді не містить message.";
+            throw new IOException("LLM response does not contain message.");
         }
 
         JsonValue contentNode = message.get("content");
@@ -300,6 +310,7 @@ public class LlmClient {
 
         Gdx.app.log("LLM_RAW", json);
 
-        return "Модель нічого не відповіла.";
+        String finishReason = choice.getString("finish_reason", "");
+        throw new IOException("LLM response contained no message content. finish_reason=" + finishReason);
     }
 }
