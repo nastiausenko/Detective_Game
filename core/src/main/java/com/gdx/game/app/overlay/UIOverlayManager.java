@@ -158,10 +158,14 @@ public class UIOverlayManager {
             epiloguePopup = popupFactory.createEpiloguePopup();
         }
 
-        epiloguePopup.setFullText("…");
+        final InvestigationState inv = game.getInvestigationState();
+        String cachedText = game.getEpilogueService().getCachedEpilogue(inv);
+        epiloguePopup.setFullText(cachedText != null ? cachedText : "…");
         epiloguePopup.show();
 
-        final InvestigationState inv = game.getInvestigationState();
+        if (cachedText != null) {
+            return;
+        }
 
         new Thread(() -> {
             String text;

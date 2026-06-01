@@ -34,6 +34,7 @@ public class NpcDialogueService {
     private static final int MAX_HISTORY_PAIRS = 4;
     private static final int MAX_HISTORY_CHARS = 700;
     private static final int NPC_REPLY_MAX_TOKENS = 220;
+    private static final int NPC_OPENAI_READ_TIMEOUT_MS = 12000;
     private static final int FACT_REVEAL_MAX_TOKENS = 220;
     private static final int FACT_RETRIEVAL_TOP_K = 3;
     private static final float FACT_RETRIEVAL_MIN_SIMILARITY = 0.28f;
@@ -598,7 +599,14 @@ public class NpcDialogueService {
             return candidates;
         }
 
-        float[][] embeddings = llmClient.createEmbeddings(inputs);
+        float[][] embeddings;
+        try {
+            embeddings = llmClient.createEmbeddings(inputs);
+        } catch (IOException ex) {
+            Gdx.app.log("FACT_DEBUG", "Embedding retrieval failed; using non-embedding candidate fallback for npc=" + npcId);
+            addEmbeddingFallbackCandidates(candidates, data, npcId);
+            return candidates;
+        }
         float[] exchangeEmbedding = embeddings[0];
 
         for (int i = 0; i < missingCacheKeys.size(); i++) {
@@ -643,6 +651,19 @@ public class NpcDialogueService {
         }
 
         return candidates;
+    }
+
+    private void addEmbeddingFallbackCandidates(IntArray candidates, DossierData data, String npcId) {
+        if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) return;
+
+        for (int i = 0; i < data.hiddenFacts.size(); i++) {
+            String hiddenFact = data.getHiddenFactText(i);
+            if (hiddenFact.isEmpty()) continue;
+            if (isFactRevealed(npcId, i)) continue;
+
+            Gdx.app.log("FACT_DEBUG", "EMBEDDING_FALLBACK_CANDIDATE (npc=" + npcId + ") fact #" + i);
+            addUniqueCandidate(candidates, i);
+        }
     }
 
     private void addEvidenceMatchedCandidates(
@@ -756,7 +777,13 @@ public class NpcDialogueService {
         String userMessage  = buildUserMessageWithHistory(npcId, question);
 
         NpcReply reply = parseNpcReply(
-            llmClient.ask(systemPrompt, userMessage, NPC_REPLY_MAX_TOKENS, LlmClient.ModelTier.SMART)
+            llmClient.ask(
+                systemPrompt,
+                userMessage,
+                NPC_REPLY_MAX_TOKENS,
+                LlmClient.ModelTier.SMART,
+                NPC_OPENAI_READ_TIMEOUT_MS
+            )
         );
 
         updateStateAfterExchange(state, reply.tone);

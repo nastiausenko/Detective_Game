@@ -15,6 +15,7 @@ import com.gdx.game.shared.ui.UiStyles;
 
 public class AnswerBubble {
     private static final float THINKING_FRAME_SECONDS = 0.32f;
+    private static final float TYPEWRITER_CHAR_SECONDS = 0.025f;
 
     private final Texture texture;
     private final Image background;
@@ -25,6 +26,9 @@ public class AnswerBubble {
     private boolean thinking = false;
     private float thinkingElapsed = 0f;
     private int thinkingFrame = 0;
+    private boolean typing = false;
+    private float typingElapsed = 0f;
+    private int typedChars = 0;
 
     public AnswerBubble(Stage stage, Skin skin) {
         texture = new Texture(Assets.ANSWER_AREA);
@@ -42,14 +46,27 @@ public class AnswerBubble {
 
     public void showText(String text) {
         thinking = false;
+        typing = false;
         this.text = text != null ? text : "";
         label.setText(this.text);
         label.setVisible(true);
         background.setVisible(true);
     }
 
+    public void showTypewriterText(String text) {
+        thinking = false;
+        typing = true;
+        typingElapsed = 0f;
+        typedChars = 0;
+        this.text = text != null ? text : "";
+        label.setText("");
+        label.setVisible(true);
+        background.setVisible(true);
+    }
+
     public void showThinking() {
         thinking = true;
+        typing = false;
         thinkingElapsed = 0f;
         thinkingFrame = 0;
         this.text = "...";
@@ -59,6 +76,11 @@ public class AnswerBubble {
     }
 
     public void update(float delta) {
+        if (typing) {
+            updateTypewriter(delta);
+            return;
+        }
+
         if (!thinking) return;
 
         thinkingElapsed += delta;
@@ -73,6 +95,36 @@ public class AnswerBubble {
             label.setText("...");
         }
         thinkingFrame = (thinkingFrame + 1) % 3;
+    }
+
+    private void updateTypewriter(float delta) {
+        if (text.isEmpty()) {
+            typing = false;
+            label.setText("");
+            return;
+        }
+
+        typingElapsed += delta;
+        while (typingElapsed >= TYPEWRITER_CHAR_SECONDS && typedChars < text.length()) {
+            typingElapsed -= TYPEWRITER_CHAR_SECONDS;
+            typedChars++;
+        }
+
+        label.setText(text.substring(0, typedChars));
+        if (typedChars >= text.length()) {
+            typing = false;
+        }
+    }
+
+    public boolean isTyping() {
+        return typing;
+    }
+
+    public void finishTyping() {
+        if (!typing) return;
+        typedChars = text.length();
+        typing = false;
+        label.setText(text);
     }
 
     public void setVisible(boolean visible) {
@@ -107,6 +159,7 @@ public class AnswerBubble {
         label.setAlignment(thinking ? Align.left : Align.center);
         label.setFontScale(profile.getBubbleFontScale());
         label.setWidth(innerWidth);
+        String visibleText = label.getText().toString();
         label.setText(text);
         label.layout();
         float textHeight = label.getPrefHeight();
@@ -118,6 +171,7 @@ public class AnswerBubble {
             label.layout();
             textHeight = label.getPrefHeight();
         }
+        label.setText(visibleText);
 
         float bubbleWidth = innerWidth + paddingX * 2f;
         float bubbleHeight = textHeight + paddingY * 2f + tailHeight;

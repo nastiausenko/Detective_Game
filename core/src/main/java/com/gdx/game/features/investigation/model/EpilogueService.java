@@ -1,6 +1,6 @@
 package com.gdx.game.features.investigation.model;
 
-import com.badlogic.gdx.utils.ObjectMap;
+import com.badlogic.gdx.utils.Array;
 import com.gdx.game.model.DossierData;
 import com.gdx.game.model.DossierDatabase;
 import com.gdx.game.model.DialogueHistory;
@@ -12,14 +12,19 @@ import com.gdx.game.shared.api.LlmClient;
 import java.io.IOException;
 
 public class EpilogueService {
-    private static final int EPILOGUE_MAX_TOKENS = 520;
-    private static final int CONFRONTATION_MAX_TOKENS = 280;
+    private static final int EPILOGUE_MAX_TOKENS = 900;
+    private static final int CONFRONTATION_MAX_TOKENS = 500;
     private static final int SUFFICIENT_KILLER_EVIDENCE = 2;
 
     private final LlmClient llmClient;
     private final LoreDatabase loreDb;
     private final DossierDatabase dossierDb;
     private final NpcDialogueService npcService;
+    private final Object epilogueCacheLock = new Object();
+    private String epilogueCacheKey;
+    private String epilogueCacheText;
+    private IOException epilogueCacheError;
+    private boolean epilogueGenerating;
 
     public EpilogueService(LlmClient llmClient, LoreDatabase loreDb, DossierDatabase dossierDb, NpcDialogueService npcService) {
         this.llmClient = llmClient;
@@ -29,6 +34,129 @@ public class EpilogueService {
     }
 
     public String generateEpilogue(InvestigationState inv) throws IOException {
+        String key = buildEpilogueCacheKey(inv);
+
+        synchronized (epilogueCacheLock) {
+            if (key.equals(epilogueCacheKey) && epilogueCacheText != null) {
+                return epilogueCacheText;
+            }
+
+            while (key.equals(epilogueCacheKey) && epilogueGenerating) {
+                try {
+                    epilogueCacheLock.wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted while waiting for epilogue generation", e);
+                }
+            }
+
+            if (key.equals(epilogueCacheKey) && epilogueCacheText != null) {
+                return epilogueCacheText;
+            }
+            if (key.equals(epilogueCacheKey) && epilogueCacheError != null) {
+                throw epilogueCacheError;
+            }
+        }
+
+        return generateAndCacheEpilogue(inv, key);
+    }
+
+    public void prewarmEpilogue(InvestigationState inv) {
+        String key = buildEpilogueCacheKey(inv);
+
+        synchronized (epilogueCacheLock) {
+            if (key.equals(epilogueCacheKey) && (epilogueGenerating || epilogueCacheText != null)) {
+                return;
+            }
+            epilogueCacheKey = key;
+            epilogueCacheText = null;
+            epilogueCacheError = null;
+            epilogueGenerating = true;
+        }
+
+        new Thread(() -> {
+            try {
+                String text = generateEpilogueUncached(inv);
+                synchronized (epilogueCacheLock) {
+                    if (key.equals(epilogueCacheKey)) {
+                        epilogueCacheText = text;
+                        epilogueCacheError = null;
+                    }
+                }
+            } catch (Exception e) {
+                synchronized (epilogueCacheLock) {
+                    if (key.equals(epilogueCacheKey)) {
+                        epilogueCacheError = e instanceof IOException
+                            ? (IOException)e
+                            : new IOException("Epilogue prewarm failed", e);
+                    }
+                }
+            } finally {
+                synchronized (epilogueCacheLock) {
+                    if (key.equals(epilogueCacheKey)) {
+                        epilogueGenerating = false;
+                    }
+                    epilogueCacheLock.notifyAll();
+                }
+            }
+        }, "epilogue-prewarm-worker").start();
+    }
+
+    public void clearCache() {
+        synchronized (epilogueCacheLock) {
+            epilogueCacheKey = null;
+            epilogueCacheText = null;
+            epilogueCacheError = null;
+            epilogueGenerating = false;
+            epilogueCacheLock.notifyAll();
+        }
+    }
+
+    public String getCachedEpilogue(InvestigationState inv) {
+        String key = buildEpilogueCacheKey(inv);
+        synchronized (epilogueCacheLock) {
+            if (key.equals(epilogueCacheKey)) {
+                return epilogueCacheText;
+            }
+        }
+        return null;
+    }
+
+    private String generateAndCacheEpilogue(InvestigationState inv, String key) throws IOException {
+        synchronized (epilogueCacheLock) {
+            epilogueCacheKey = key;
+            epilogueCacheText = null;
+            epilogueCacheError = null;
+            epilogueGenerating = true;
+        }
+
+        try {
+            String text = generateEpilogueUncached(inv);
+            synchronized (epilogueCacheLock) {
+                if (key.equals(epilogueCacheKey)) {
+                    epilogueCacheText = text;
+                    epilogueCacheError = null;
+                }
+                return text;
+            }
+        } catch (IOException e) {
+            synchronized (epilogueCacheLock) {
+                if (key.equals(epilogueCacheKey)) {
+                    epilogueCacheError = e;
+                }
+            }
+            throw e;
+        } finally {
+            synchronized (epilogueCacheLock) {
+                if (key.equals(epilogueCacheKey)) {
+                    epilogueGenerating = false;
+                }
+                epilogueCacheLock.notifyAll();
+            }
+        }
+    }
+
+    private String generateEpilogueUncached(InvestigationState inv) throws IOException {
         String accusedId = inv != null ? inv.accusedNpcId : null;
         String realKillerId = (loreDb != null && loreDb.murder != null)
             ? loreDb.murder.killerId
@@ -40,12 +168,22 @@ public class EpilogueService {
         String systemPrompt = buildSystemPrompt();
         String userMessage  = buildUserMessage(accusedId, correct, evidence);
 
-        return llmClient.ask(
-            systemPrompt,
-            userMessage,
-            EPILOGUE_MAX_TOKENS,
-            LlmClient.ModelTier.SMART
-        );
+        try {
+            return llmClient.ask(
+                systemPrompt,
+                userMessage,
+                EPILOGUE_MAX_TOKENS,
+                LlmClient.ModelTier.SMART
+            );
+        } catch (IOException e) {
+            return buildFallbackEpilogue(accusedId, correct, evidence);
+        }
+    }
+
+    private String buildEpilogueCacheKey(InvestigationState inv) {
+        String accusedId = inv != null && inv.accusedNpcId != null ? inv.accusedNpcId : "none";
+        int revealedCount = inv != null ? inv.revealedHiddenFacts : -1;
+        return accusedId + ":" + revealedCount + ":" + buildRevealedFactsFingerprint();
     }
 
     public String generateAccusationConfrontation(InvestigationState inv) throws IOException {
@@ -57,12 +195,15 @@ public class EpilogueService {
         EvidenceSummary evidence = buildEvidenceSummary(realKillerId);
 
         String system =
-            "Write the accused character's direct response to the final accusation in Ukrainian. " +
-                "Return 2-4 short first-person speech bubbles separated only by |||. " +
-                "No narration, no labels, no new facts. Use only FINAL, DISCOVERED, KEY_DIALOGUE. " +
-                "Wrong accusation: deny and react personally, without naming/implying true killer. " +
-                "Correct weak evidence: controlled denial or partial crack, no confession. " +
-                "Correct enough evidence: a clear confrontation response; confession only if supported by KEY_DIALOGUE/DISCOVERED.";
+            "Напиши пряму відповідь обвинуваченого українською.\n" +
+                "Формат: 2-3 короткі репліки від першої особи, по 1 реченню, розділені тільки |||.\n" +
+                "Стиль: проста жива українська мова. Так, ніби людина говорить уголос, а не читає перекладений роман.\n" +
+                "Без канцеляриту, без пафосу, без метафор, без дивних слів і без пояснювальної прози.\n" +
+                "Не пиши ярлики на кшталт «зізнання», «правда», «репліка». Не додавай нових фактів.\n" +
+                "Якщо обвинувачення хибне: запереч і відреагуй особисто, не натякай на справжнього вбивцю.\n" +
+                "Якщо вбивцю названо, але доказів мало: ухиляйся або говори сухо, без прямого зізнання.\n" +
+                "Якщо доказів достатньо: реакція може бути різкою; пряме зізнання тільки якщо це вже підтримано DISCOVERED або KEY_DIALOGUE.\n" +
+                "Не використовуй: «я усвідомлюю», «тягар правди», «мої вчинки», «доля», «тіні», «порожнеча».";
 
         String user = buildConfrontationUserMessage(accusedId, correct, evidence);
         return llmClient.ask(system, user, CONFRONTATION_MAX_TOKENS, LlmClient.ModelTier.SMART);
@@ -71,13 +212,18 @@ public class EpilogueService {
     private String buildSystemPrompt() {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("Write a short Ukrainian ending, 3 compact paragraphs max.\n")
-            .append("No game/meta words. No hidden truth unless it is in DISCOVERED/KEY_DIALOGUE.\n")
-            .append("Show concrete consequences for: town, accused person, key affected people.\n")
-            .append("If wrong or no accusation: do not name/imply the real killer; show flawed justice/unfinished truth.\n")
-            .append("If correct but evidence is weak: accusation lands, but no confession or full public truth.\n")
-            .append("If correct and evidence is enough: write a clear accusation outcome; confession is optional only if KEY_DIALOGUE supports it.\n")
-            .append("Keep it direct, not lyrical or long.\n");
+        sb.append("Напиши короткий фінальний епілог українською: 2 абзаци, разом 45-75 слів.\n")
+            .append("Стиль: проста природна українська, короткі речення. Не роби текст поетичним.\n")
+            .append("Пиши конкретно: кого відсторонили, кого виправдали, хто замовк, що перевірили, що залишилось під підозрою.\n")
+            .append("Не переказуй загальновідомі факти й не цитуй досьє. PUBLIC-факти не озвучуй як відкриття.\n")
+            .append("Пиши тільки наслідки: що сталося з обвинуваченим, містом і тими, кого зачепили розкриті факти.\n")
+            .append("Не відкривай секретів, яких немає в DISCOVERED або KEY_DIALOGUE.\n")
+            .append("Якщо обвинувачення хибне або відсутнє: не називай і не натякай на справжнього вбивцю; покажи неповну справедливість.\n")
+            .append("Якщо вбивцю названо, але доказів мало: підозра лишається, але публічного зізнання й повної правди немає.\n")
+            .append("Якщо доказів достатньо: дай чіткий наслідок обвинувачення; зізнання згадуй лише якщо KEY_DIALOGUE/DISCOVERED це дозволяє.\n")
+            .append("Заборонено: метафори, символічні образи, пасивні кальки, вигадані сцени, «тіні», «світло», «площа», «вікна», «тягар», «калюжа», «фарба».\n")
+            .append("Не використовуй фрази: «єдина нормальна людина», «загальновідомо», «як відомо», «це призвело до того, що».\n")
+            .append("Добрий тон: «Ернста відсторонили від служби. Архіви перевірили. Клара кілька днів не виходила з дому.»\n");
 
         return sb.toString();
     }
@@ -102,10 +248,6 @@ public class EpilogueService {
         }
         sb.append("Confession rule: do not write a confession unless KEY_DIALOGUE explicitly contains one.\n\n");
 
-        sb.append("PUBLIC:\n");
-        sb.append(buildPublicFactsSummary());
-        sb.append("\n");
-
         sb.append("DISCOVERED:\n");
         sb.append(buildDiscoveredFactsSummary());
         sb.append("\n");
@@ -116,15 +258,14 @@ public class EpilogueService {
         }
 
         if (accusedId != null) {
-            String accusedHistory = DialogueHistory.loadRecentForLlm(accusedId, 4, 650);
+            String accusedHistory = DialogueHistory.loadRecentForLlm(accusedId, 3, 450);
             if (!accusedHistory.isEmpty()) {
                 sb.append("KEY_DIALOGUE:\n");
                 sb.append(accusedHistory).append("\n\n");
             }
         }
 
-        sb.append("TASK: Write only from PUBLIC, DISCOVERED, KEY_DIALOGUE and FINAL. ")
-            .append("Do not add unrevealed secrets, unseen motives, new crimes, or new facts.\n");
+        sb.append("TASK: Напиши тільки епілог. Не списком. Не додавай нерозкритих таємниць, нових мотивів, нових злочинів чи нових фактів.\n");
 
         return sb.toString();
     }
@@ -157,11 +298,13 @@ public class EpilogueService {
         }
 
         if (accusedId != null) {
-            String accusedHistory = DialogueHistory.loadRecentForLlm(accusedId, 4, 650);
+            String accusedHistory = DialogueHistory.loadRecentForLlm(accusedId, 3, 450);
             if (!accusedHistory.isEmpty()) {
                 sb.append("KEY_DIALOGUE:\n").append(accusedHistory).append("\n");
             }
         }
+
+        sb.append("TASK: Поверни лише репліки, розділені |||. Без лапок навколо всього тексту.\n");
 
         return sb.toString();
     }
@@ -189,9 +332,10 @@ public class EpilogueService {
 
         StringBuilder direct = new StringBuilder();
 
-        for (ObjectMap.Entry<String, DossierData> e : dossierDb.characters) {
-            String npcId = e.key;
-            DossierData data = e.value;
+        Array<String> ids = dossierDb.characters.orderedKeys();
+        for (int idx = 0; idx < ids.size; idx++) {
+            String npcId = ids.get(idx);
+            DossierData data = dossierDb.characters.get(npcId);
             if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) continue;
 
             NpcState state = npcService.getStateForUi(npcId);
@@ -244,6 +388,46 @@ public class EpilogueService {
         return space >= 0 ? trimmed.substring(0, space) : trimmed;
     }
 
+    private String buildFallbackEpilogue(String accusedId, boolean correct, EvidenceSummary evidence) {
+        String accused = formatNpcDisplayName(accusedId);
+
+        if (accusedId == null) {
+            return "Справу закрили без обвинувачення. Частину документів передали на перевірку, але ніхто не взяв на себе провину.\n\n"
+                + "У Розенфельді стали обережнішими. Люди менше говорили про Вальтера, та недовіра залишилася.";
+        }
+
+        if (!correct) {
+            return accused + " тимчасово відсторонили, але обвинувачення не втрималося. Доказів проти " + accusativePronoun(accusedId) + " не вистачило.\n\n"
+                + "Місто не отримало чіткої відповіді. Перевірки тривали, а люди ще довго згадували цю справу пошепки.";
+        }
+
+        if (evidence != null && evidence.killerEvidenceCount >= SUFFICIENT_KILLER_EVIDENCE) {
+            return accused + " затримали, а зібрані матеріали передали суду. Після цього архіви й старі записи переглянули заново.\n\n"
+                + "Розенфельд не заспокоївся одразу. Та після обвинувачення люди нарешті побачили, що справу не замели.";
+        }
+
+        return accused + " залишився під підозрою, але доказів для вироку було замало. Публічного зізнання не сталося.\n\n"
+            + "Місто чекало нових перевірок. Ті, кого зачепили розкриті факти, стали обережнішими й менше говорили з чужими.";
+    }
+
+    private String formatNpcDisplayName(String npcId) {
+        if (npcId == null) return "Ніхто";
+        if (dossierDb != null && dossierDb.characters != null) {
+            DossierData data = dossierDb.characters.get(npcId);
+            if (data != null && data.name != null && !data.name.isEmpty()) {
+                return data.name;
+            }
+        }
+        return npcId;
+    }
+
+    private String accusativePronoun(String npcId) {
+        if ("clara".equals(npcId) || "elena".equals(npcId) || "mara".equals(npcId)) {
+            return "неї";
+        }
+        return "нього";
+    }
+
     private static class EvidenceSummary {
         int killerEvidenceCount;
         String killerEvidence = "";
@@ -256,9 +440,11 @@ public class EpilogueService {
 
         StringBuilder sb = new StringBuilder();
 
-        for (ObjectMap.Entry<String, DossierData> e : dossierDb.characters) {
-            String npcId = e.key;
-            DossierData data = e.value;
+        Array<String> ids = dossierDb.characters.orderedKeys();
+        for (int idx = 0; idx < ids.size; idx++) {
+            String npcId = ids.get(idx);
+            DossierData data = dossierDb.characters.get(npcId);
+            if (data == null) continue;
             if (data.publicFacts == null || data.publicFacts.isEmpty()) continue;
 
             sb.append((data.name != null ? data.name : npcId)).append(":\n");
@@ -281,9 +467,11 @@ public class EpilogueService {
 
         StringBuilder sb = new StringBuilder();
 
-        for (ObjectMap.Entry<String, DossierData> e : dossierDb.characters) {
-            String npcId = e.key;
-            DossierData data = e.value;
+        Array<String> ids = dossierDb.characters.orderedKeys();
+        for (int idx = 0; idx < ids.size; idx++) {
+            String npcId = ids.get(idx);
+            DossierData data = dossierDb.characters.get(npcId);
+            if (data == null) continue;
             if (data.hiddenFacts == null || data.hiddenFacts.isEmpty()) continue;
 
             NpcState state = npcService.getStateForUi(npcId);
@@ -311,6 +499,32 @@ public class EpilogueService {
             sb.append("No significant secrets were uncovered.\n");
         }
 
+        return sb.toString();
+    }
+
+    private String buildRevealedFactsFingerprint() {
+        if (dossierDb == null || dossierDb.characters == null) {
+            return "none";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        Array<String> ids = dossierDb.characters.orderedKeys();
+        for (int idx = 0; idx < ids.size; idx++) {
+            String npcId = ids.get(idx);
+            DossierData data = dossierDb.characters.get(npcId);
+            if (data == null || data.hiddenFacts == null || data.hiddenFacts.isEmpty()) continue;
+
+            NpcState state = npcService.getStateForUi(npcId);
+            if (state == null || state.hiddenRevealed == null) continue;
+
+            sb.append(npcId).append(":");
+            for (int i = 0; i < state.hiddenRevealed.length && i < data.hiddenFacts.size(); i++) {
+                if (state.hiddenRevealed[i]) {
+                    sb.append(i).append(",");
+                }
+            }
+            sb.append(";");
+        }
         return sb.toString();
     }
 }

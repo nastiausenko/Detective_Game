@@ -159,7 +159,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         } else if (accusationMode) {
             inputPanel.setVisible(false);
             statsHud.setVisible(false);
-            answerBubble.showText("...");
+            answerBubble.showThinking();
         }
 
         if (isCrimeSceneScreen()) {
@@ -438,6 +438,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         if (accusationStarted) return;
         accusationStarted = true;
 
+        game.getEpilogueService().prewarmEpilogue(game.getInvestigationState());
+
         new Thread(() -> {
             String text;
             try {
@@ -473,11 +475,11 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
             : normalized.split("\n+");
 
         for (String part : parts) {
-            String line = part != null ? part.trim() : "";
+            String line = cleanAccusationLine(part);
             if (!line.isEmpty()) {
                 lines.add(line);
             }
-            if (lines.size >= 4) {
+            if (lines.size >= 3) {
                 break;
             }
         }
@@ -489,15 +491,40 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         return lines;
     }
 
+    private String cleanAccusationLine(String raw) {
+        if (raw == null) return "";
+
+        String line = raw.trim();
+        line = line.replaceAll("(?i)^(репліка|зізнання|правда|відповідь)\\s*\\d*\\s*[:\\-—]\\s*", "");
+        line = line.replaceAll("^\\d+[.)]\\s*", "");
+        line = line.trim();
+
+        while (line.length() >= 2 && (
+            (line.startsWith("\"") && line.endsWith("\""))
+                || (line.startsWith("“") && line.endsWith("”"))
+                || (line.startsWith("«") && line.endsWith("»"))
+        )) {
+            line = line.substring(1, line.length() - 1).trim();
+        }
+
+        return line;
+    }
+
     private void showCurrentAccusationLine() {
         if (accusationLines.size == 0) return;
         String line = accusationLines.get(MathUtils.clamp(accusationLineIndex, 0, accusationLines.size - 1));
-        answerBubble.showText(line);
+        answerBubble.showTypewriterText(line);
         answerBubble.layout(characterImage, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     private void advanceAccusationLine() {
         if (!accusationLoaded || accusationAdvancing) return;
+
+        if (answerBubble.isTyping()) {
+            answerBubble.finishTyping();
+            answerBubble.layout(characterImage, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            return;
+        }
 
         accusationLineIndex++;
         if (accusationLineIndex < accusationLines.size) {

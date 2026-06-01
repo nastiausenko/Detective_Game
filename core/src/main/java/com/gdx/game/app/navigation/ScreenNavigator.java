@@ -33,7 +33,7 @@ public class ScreenNavigator {
         if (transition.isTransitioning()) return;
 
         transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
-            if (game.overlay.getTimer().isTimeOver()) {
+            if (shouldStartFreshGame()) {
                 resetNewGameState();
             }
             showMapAfterFadeOut();
@@ -187,6 +187,7 @@ public class ScreenNavigator {
         game.getNpcDialogueService().resetAllNpcState();
         game.getNpcLocationService().reset();
         game.getCrimeSceneService().reset();
+        game.getEpilogueService().clearCache();
         game.overlay.resetForNewGame();
 
         InvestigationState inv = game.getInvestigationState();
@@ -194,5 +195,11 @@ public class ScreenNavigator {
             inv.accusationDone = false;
             inv.accusedNpcId = null;
         }
+    }
+
+    private boolean shouldStartFreshGame() {
+        InvestigationState inv = game.getInvestigationState();
+        return game.overlay.getTimer().isTimeOver()
+            || (inv != null && inv.accusationDone);
     }
 }

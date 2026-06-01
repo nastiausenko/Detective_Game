@@ -6,6 +6,7 @@ import com.badlogic.gdx.utils.JsonValue;
 
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -26,10 +27,10 @@ public class LlmClient {
     private static final int OPENAI_EMBEDDING_DIMENSIONS = 512;
     private static final String GROQ_MODEL = "openai/gpt-oss-120b";
     private static final int DEFAULT_MAX_TOKENS = 512;
-    private static final int MAX_COMPLETION_TOKENS = 1024;
+    private static final int MAX_COMPLETION_TOKENS = 2048;
     private static final int CONNECT_TIMEOUT_MS = 10000;
     private static final int READ_TIMEOUT_MS = 30000;
-    private static final int GROQ_MIN_COMPLETION_TOKENS = 640;
+    private static final int GROQ_MIN_COMPLETION_TOKENS = 1536;
 
     private final String openAiKey;
     private final String groqKey;
@@ -48,10 +49,24 @@ public class LlmClient {
     }
 
     public String ask(String systemPrompt, String userMessage, int maxTokens, ModelTier modelTier) throws IOException {
+        return ask(systemPrompt, userMessage, maxTokens, modelTier, READ_TIMEOUT_MS);
+    }
+
+    public String ask(
+        String systemPrompt,
+        String userMessage,
+        int maxTokens,
+        ModelTier modelTier,
+        int openAiReadTimeoutMs
+    ) throws IOException {
         try {
-            return askOpenAi(systemPrompt, userMessage, maxTokens, modelTier);
+            return askOpenAi(systemPrompt, userMessage, maxTokens, modelTier, openAiReadTimeoutMs);
         } catch (IOException e) {
-            Gdx.app.error("LLM", "OpenAI failed, falling back to Groq", e);
+            if (isTimeout(e)) {
+                Gdx.app.log("LLM", "OpenAI timed out; falling back to Groq.");
+            } else {
+                Gdx.app.error("LLM", "OpenAI failed, falling back to Groq", e);
+            }
             Gdx.app.log("LLM", "Using Groq fallback model: " + GROQ_MODEL);
 
             try {
@@ -77,16 +92,17 @@ public class LlmClient {
         String systemPrompt,
         String userMessage,
         int maxTokens,
-        ModelTier modelTier
+        ModelTier modelTier,
+        int readTimeoutMs
     ) throws IOException {
         String body = buildOpenAiBody(systemPrompt, userMessage, maxTokens, modelTier);
-        String responseJson = postJson(OPENAI_URL, openAiKey, body);
+        String responseJson = postJson(OPENAI_URL, openAiKey, body, readTimeoutMs);
         return extractAnswerFromResponse(responseJson);
     }
 
     private String askGroq(String systemPrompt, String userMessage, int maxTokens) throws IOException {
         String body = buildGroqBody(systemPrompt, userMessage, maxTokens);
-        String responseJson = postJson(GROQ_URL, groqKey, body);
+        String responseJson = postJson(GROQ_URL, groqKey, body, READ_TIMEOUT_MS);
         return extractAnswerFromResponse(responseJson);
     }
 
@@ -164,7 +180,11 @@ public class LlmClient {
     }
 
     private String postJson(String url, String apiKey, String body) throws IOException {
-        HttpURLConnection conn = getHttpURLConnection(url, apiKey, body);
+        return postJson(url, apiKey, body, READ_TIMEOUT_MS);
+    }
+
+    private String postJson(String url, String apiKey, String body, int readTimeoutMs) throws IOException {
+        HttpURLConnection conn = getHttpURLConnection(url, apiKey, body, readTimeoutMs);
 
         int code = conn.getResponseCode();
         InputStream is = (code >= 200 && code < 300)
@@ -180,14 +200,19 @@ public class LlmClient {
         return response;
     }
 
-    private HttpURLConnection getHttpURLConnection(String urlString, String apiKey, String body) throws IOException {
+    private HttpURLConnection getHttpURLConnection(
+        String urlString,
+        String apiKey,
+        String body,
+        int readTimeoutMs
+    ) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
         conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
-        conn.setReadTimeout(READ_TIMEOUT_MS);
+        conn.setReadTimeout(Math.max(1000, readTimeoutMs));
         conn.setRequestProperty("Content-Type", "application/json");
         conn.setRequestProperty("Authorization", "Bearer " + apiKey);
 
@@ -199,6 +224,17 @@ public class LlmClient {
             os.write(out);
         }
         return conn;
+    }
+
+    private boolean isTimeout(Throwable e) {
+        Throwable current = e;
+        while (current != null) {
+            if (current instanceof SocketTimeoutException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private String readAll(InputStream is) throws IOException {
