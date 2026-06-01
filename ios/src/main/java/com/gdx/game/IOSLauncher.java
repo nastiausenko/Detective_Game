@@ -2,7 +2,7 @@ package com.gdx.game;
 
 import com.badlogic.gdx.backends.iosrobovm.IOSApplication;
 import com.badlogic.gdx.backends.iosrobovm.IOSApplicationConfiguration;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.game.DetectiveGame;
 import org.robovm.apple.foundation.NSAutoreleasePool;
 import org.robovm.apple.uikit.UIApplication;
 
