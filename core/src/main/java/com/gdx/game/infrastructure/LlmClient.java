@@ -1,4 +1,4 @@
-package com.gdx.game.service.dialogue;
+package com.gdx.game.infrastructure;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.JsonReader;

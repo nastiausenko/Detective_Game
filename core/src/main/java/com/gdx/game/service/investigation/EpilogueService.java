@@ -7,7 +7,7 @@ import com.gdx.game.domain.investigation.DialogueHistory;
 import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.domain.world.LoreDatabase;
 import com.gdx.game.domain.character.NpcState;
-import com.gdx.game.service.dialogue.LlmClient;
+import com.gdx.game.infrastructure.LlmClient;
 import com.gdx.game.service.dialogue.NpcDialogueService;
 
 import java.io.IOException;

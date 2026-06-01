@@ -13,7 +13,7 @@ import com.gdx.game.domain.character.DossierData;
 import com.gdx.game.domain.character.DossierDatabase;
 import com.gdx.game.domain.character.NpcState;
 import com.gdx.game.domain.world.LocationDescriptions;
-import com.gdx.game.service.dialogue.LlmClient;
+import com.gdx.game.infrastructure.LlmClient;
 
 import java.io.IOException;
 import java.util.ArrayList;
