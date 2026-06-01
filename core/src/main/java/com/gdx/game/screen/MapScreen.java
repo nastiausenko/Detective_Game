@@ -103,8 +103,8 @@ public class MapScreen implements Screen {
             flow,
             "crime_scene",
             Assets.CRIME_SCENE_ICON,
-            null,
-            CRIME_SCENE_BUILDING_ID
+            CRIME_SCENE_BUILDING_ID,
+            false
         );
         crimeSceneBadge = new Image(crimeSceneBadgeTexture);
         crimeSceneBadge.setVisible(false);

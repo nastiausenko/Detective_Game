@@ -1,7 +1,6 @@
 package com.gdx.game.infrastructure;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.gdx.game.infrastructure.AudioManager;
 import com.gdx.game.ui.component.UIButtonFactory;
 import com.gdx.game.service.investigation.EpilogueService;
 import com.gdx.game.service.dialogue.FactRevealService;
@@ -11,6 +10,7 @@ import com.gdx.game.domain.investigation.InvestigationState;
 import com.gdx.game.domain.world.LoreDatabase;
 import com.gdx.game.service.investigation.CrimeSceneService;
 import com.gdx.game.service.world.NpcLocationService;
+import com.gdx.game.service.world.WorldLookupService;
 
 public class GameContext {
     public final SpriteBatch batch;
@@ -22,6 +22,7 @@ public class GameContext {
     public final InvestigationState investigationState;
     public final EpilogueService epilogueService;
     public final NpcLocationService npcLocationService;
+    public final WorldLookupService worldLookupService;
     public final CrimeSceneService crimeSceneService;
     public final FactRevealService factRevealService;
 
@@ -35,6 +36,7 @@ public class GameContext {
         InvestigationState investigationState,
         EpilogueService epilogueService,
         NpcLocationService npcLocationService,
+        WorldLookupService worldLookupService,
         CrimeSceneService crimeSceneService,
         FactRevealService factRevealService
     ) {
@@ -47,6 +49,7 @@ public class GameContext {
         this.investigationState = investigationState;
         this.epilogueService = epilogueService;
         this.npcLocationService = npcLocationService;
+        this.worldLookupService = worldLookupService;
         this.crimeSceneService = crimeSceneService;
         this.factRevealService = factRevealService;
     }

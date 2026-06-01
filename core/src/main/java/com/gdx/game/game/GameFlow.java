@@ -26,7 +26,7 @@ public interface GameFlow {
     void startNewGame();
     void showMenu();
     void returnToMapFromInterior(String buildingId);
-    void enterInterior(String backgroundPath, String npcId, String fullBodyPath, String buildingId);
+    void enterInterior(String npcId, String buildingId);
     void enterAccusationConfrontation(String npcId);
     void returnToMapThenShowEpilogue();
 }

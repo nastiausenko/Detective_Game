@@ -2,8 +2,6 @@ package com.gdx.game.game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.utils.Json;
-import com.gdx.game.domain.world.BuildingData;
 import com.gdx.game.domain.character.CharacterData;
 import com.gdx.game.service.save.GameData;
 import com.gdx.game.domain.investigation.InvestigationState;
@@ -65,13 +63,7 @@ public class ScreenNavigator {
         transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> showMapAfterFadeOut(flow));
     }
 
-    public void enterInterior(
-        String backgroundPath,
-        String npcId,
-        String fullBodyPath,
-        String buildingId,
-        GameFlow flow
-    ) {
+    public void enterInterior(String npcId, String buildingId, GameFlow flow) {
         if (transition.isTransitioning()) return;
 
         if (context.audioManager != null) {
@@ -83,9 +75,7 @@ public class ScreenNavigator {
             game.setScreen(new CharacterInteriorScreen(
                 context,
                 flow,
-                backgroundPath,
                 npcId,
-                fullBodyPath,
                 buildingId
             ));
             transition.startFadeIn(DEFAULT_FADE_SECONDS);
@@ -95,7 +85,7 @@ public class ScreenNavigator {
     public void enterAccusationConfrontation(String npcId, GameFlow flow) {
         if (transition.isTransitioning()) return;
 
-        CharacterData character = findCharacter(npcId);
+        CharacterData character = context.worldLookupService.getCharacter(npcId);
         if (character == null) {
             flow.showEpilogue();
             return;
@@ -108,13 +98,11 @@ public class ScreenNavigator {
             buildingId = character.buildingId;
         }
 
-        String backgroundPath = findInteriorBackground(buildingId);
-        if (backgroundPath == null || backgroundPath.isEmpty()) {
-            backgroundPath = findInteriorBackground(character.buildingId);
+        if (!context.worldLookupService.hasInteriorBackground(buildingId)) {
+            buildingId = character.buildingId;
         }
 
         final String finalBuildingId = buildingId;
-        final String finalBackgroundPath = backgroundPath;
 
         if (context.audioManager != null) {
             context.audioManager.stopAmbience();
@@ -125,9 +113,7 @@ public class ScreenNavigator {
             game.setScreen(new CharacterInteriorScreen(
                 context,
                 flow,
-                finalBackgroundPath,
                 character.id,
-                character.fullBody,
                 finalBuildingId,
                 true
             ));
@@ -150,36 +136,6 @@ public class ScreenNavigator {
     private void showMapAfterFadeOut(GameFlow flow) {
         game.setScreen(new MapScreen(context, flow));
         transition.startFadeIn(DEFAULT_FADE_SECONDS);
-    }
-
-    private CharacterData findCharacter(String npcId) {
-        if (npcId == null || npcId.isEmpty()) return null;
-
-        Json json = new Json();
-        CharacterData[] characters = json.fromJson(CharacterData[].class, Gdx.files.internal("characters.json"));
-        if (characters == null) return null;
-
-        for (CharacterData character : characters) {
-            if (character != null && npcId.equals(character.id)) {
-                return character;
-            }
-        }
-        return null;
-    }
-
-    private String findInteriorBackground(String buildingId) {
-        if (buildingId == null || buildingId.isEmpty()) return "";
-
-        Json json = new Json();
-        BuildingData[] buildings = json.fromJson(BuildingData[].class, Gdx.files.internal("buildings.json"));
-        if (buildings == null) return "";
-
-        for (BuildingData building : buildings) {
-            if (building != null && buildingId.equals(building.id)) {
-                return building.interiorBackground;
-            }
-        }
-        return "";
     }
 
     private void resetNewGameState(GameFlow flow) {

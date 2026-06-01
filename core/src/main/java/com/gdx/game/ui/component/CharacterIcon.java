@@ -20,7 +20,7 @@ public class CharacterIcon extends Image {
 
     private final String id;
     private final GameFlow flow;
-    private final String fullBodyPath;
+    private final boolean hasNpc;
     private final boolean opensInterior;
     private String buildingId;
     private BuildingData linkedBuilding;
@@ -36,8 +36,8 @@ public class CharacterIcon extends Image {
     private float targetX;
     private float targetY;
 
-    public CharacterIcon(GameContext game, GameFlow flow, String id, String iconPath, String fullBodyPath, String buildingId) {
-        this(game, flow, id, iconPath, fullBodyPath, buildingId, true);
+    public CharacterIcon(GameContext game, GameFlow flow, String id, String iconPath, String buildingId, boolean hasNpc) {
+        this(game, flow, id, iconPath, buildingId, hasNpc, true);
     }
 
     public CharacterIcon(
@@ -45,14 +45,14 @@ public class CharacterIcon extends Image {
         GameFlow flow,
         String id,
         String iconPath,
-        String fullBodyPath,
         String buildingId,
+        boolean hasNpc,
         boolean opensInterior
     ) {
         super(new Texture(iconPath));
         this.id = id;
         this.flow = flow;
-        this.fullBodyPath = fullBodyPath;
+        this.hasNpc = hasNpc;
         this.buildingId = buildingId;
         this.opensInterior = opensInterior;
 
@@ -82,20 +82,14 @@ public class CharacterIcon extends Image {
                 }
 
                 if (linkedBuilding != null) {
-                    String backgroundPath = resolveInteriorBackground();
-                    if (backgroundPath == null) {
+                    if (resolveInteriorBackground() == null) {
                         Gdx.app.error("CharacterIcon", "Missing interior background for npc=" + id
                             + ", building=" + CharacterIcon.this.buildingId);
                         return true;
                     }
 
-                    String interiorNpcId = CharacterIcon.this.fullBodyPath != null ? id : null;
-                    CharacterIcon.this.flow.enterInterior(
-                        backgroundPath,
-                        interiorNpcId,
-                        CharacterIcon.this.fullBodyPath,
-                        CharacterIcon.this.buildingId
-                    );
+                    String interiorNpcId = CharacterIcon.this.hasNpc ? id : null;
+                    CharacterIcon.this.flow.enterInterior(interiorNpcId, CharacterIcon.this.buildingId);
                 }
                 return true;
             }

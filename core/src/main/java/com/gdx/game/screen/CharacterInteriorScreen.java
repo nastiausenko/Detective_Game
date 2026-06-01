@@ -82,22 +82,25 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private boolean accusationAdvancing = false;
     private int accusationLineIndex = 0;
 
-    public CharacterInteriorScreen(GameContext game, GameFlow flow, String backgroundPath, String characterId, String fullBody,
-                                   String buildingId) {
-        this(game, flow, backgroundPath, characterId, fullBody, buildingId, false);
+    public CharacterInteriorScreen(GameContext game, GameFlow flow, String characterId, String buildingId) {
+        this(game, flow, characterId, buildingId, false);
     }
 
     public CharacterInteriorScreen(
         GameContext game,
         GameFlow flow,
-        String backgroundPath,
         String characterId,
-        String fullBody,
         String buildingId,
         boolean accusationMode
     ) {
         this.game = game;
         this.flow = flow;
+        String backgroundPath = game.worldLookupService.getInteriorBackgroundPath(buildingId);
+        if (backgroundPath == null || backgroundPath.isEmpty()) {
+            Gdx.app.error("CharacterInteriorScreen", "Missing interior background for building=" + buildingId);
+            backgroundPath = Assets.MAP_BACKGROUND;
+        }
+        String fullBody = game.worldLookupService.getCharacterFullBodyPath(characterId);
         this.background = new ScaledBackground(backgroundPath, true, false);
         this.characterId = characterId;
         this.buildingId = buildingId;

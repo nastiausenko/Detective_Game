@@ -110,8 +110,8 @@ public class GameFlowController implements GameFlow {
     }
 
     @Override
-    public void enterInterior(String backgroundPath, String npcId, String fullBodyPath, String buildingId) {
-        navigator.enterInterior(backgroundPath, npcId, fullBodyPath, buildingId, this);
+    public void enterInterior(String npcId, String buildingId) {
+        navigator.enterInterior(npcId, buildingId, this);
     }
 
     @Override

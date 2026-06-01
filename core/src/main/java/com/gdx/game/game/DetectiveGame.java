@@ -18,6 +18,7 @@ import com.gdx.game.screen.MenuScreen;
 import com.gdx.game.ui.component.UIButtonFactory;
 import com.gdx.game.service.investigation.EpilogueService;
 import com.gdx.game.service.world.NpcLocationService;
+import com.gdx.game.service.world.WorldLookupService;
 
 public class DetectiveGame extends Game {
     private SpriteBatch batch;
@@ -35,6 +36,7 @@ public class DetectiveGame extends Game {
     private InvestigationState investigationState;
     private EpilogueService epilogueService;
     private NpcLocationService npcLocationService;
+    private WorldLookupService worldLookupService;
     private CrimeSceneService crimeSceneService;
     private FactRevealService factRevealService;
 
@@ -73,6 +75,7 @@ public class DetectiveGame extends Game {
         investigationState = new InvestigationState();
         epilogueService = new EpilogueService(llmClient, loreDb, dossierDb, npcDialogueService);
         npcLocationService = new NpcLocationService();
+        worldLookupService = new WorldLookupService();
         crimeSceneService = new CrimeSceneService(loreDb, npcDialogueService);
         factRevealService = new FactRevealService(npcDialogueService, dossierDb, crimeSceneService);
 
@@ -86,6 +89,7 @@ public class DetectiveGame extends Game {
             investigationState,
             epilogueService,
             npcLocationService,
+            worldLookupService,
             crimeSceneService,
             factRevealService
         );
