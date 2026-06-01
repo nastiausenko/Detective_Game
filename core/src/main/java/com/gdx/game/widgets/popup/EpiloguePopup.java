@@ -9,7 +9,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.ui.UiStyles;
 import com.gdx.game.shared.ui.TypewriterText;
@@ -21,7 +22,8 @@ public class EpiloguePopup extends AbstractPopup {
     private final Label epilogueLabel;
     private final Image continueButton;
 
-    private final DetectiveGame game;
+    private final GameContext game;
+    private final GameFlow flow;
     private final GlyphLayout layout;
 
     private String fullText = "";
@@ -32,9 +34,10 @@ public class EpiloguePopup extends AbstractPopup {
     private float visibleTextHeight = 0f;
     private final TypewriterText typewriterText;
 
-    public EpiloguePopup(Stage stage, DetectiveGame game) {
+    public EpiloguePopup(Stage stage, GameContext game, GameFlow flow) {
         super(stage);
         this.game = game;
+        this.flow = flow;
         layout = new GlyphLayout();
 
         epilogueTexture = new Texture(Assets.EPILOGUE);
@@ -45,7 +48,7 @@ public class EpiloguePopup extends AbstractPopup {
         epilogueLabel.setAlignment(Align.center);
         typewriterText = new TypewriterText(epilogueLabel);
 
-        continueButton = game.getButtonFactory().createButton(
+        continueButton = game.buttonFactory.createButton(
             Assets.CONTINUE_BUTTON, 60, 60,
             this::onContinueClicked
         );
@@ -69,7 +72,7 @@ public class EpiloguePopup extends AbstractPopup {
             showPage(currentPageIndex + 1);
         } else {
             remove();
-            game.overlay.showTheEnd();
+            flow.showTheEnd();
         }
     }
 

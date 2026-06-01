@@ -5,7 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.config.UiLayout;
 import com.gdx.game.shared.config.UiLayoutProfile;
@@ -18,12 +19,14 @@ public class SettingsPopup extends AbstractPopup {
     private final Image continueBtn;
     private final Image soundBtn;
 
-    private final DetectiveGame game;
+    private final GameContext game;
+    private final GameFlow flow;
     private SoundPopup soundPopup;
 
-    public SettingsPopup(Stage stage, DetectiveGame game) {
+    public SettingsPopup(Stage stage, GameContext game, GameFlow flow) {
         super(stage);
         this.game = game;
+        this.flow = flow;
 
         settTexture = new Texture(Assets.SETTINGS);
         settImage = new Image(settTexture);
@@ -34,15 +37,15 @@ public class SettingsPopup extends AbstractPopup {
             }
         });
 
-        continueBtn = game.getButtonFactory().createButton(Assets.CONTINUE_BUTTON, 0, 0, this::remove);
-        exitBtn = game.getButtonFactory().createButton(Assets.EXIT_BUTTON, 0, 0, this::handleExit);
-        soundBtn = game.getButtonFactory().createButton(Assets.SOUND_SETTINGS_BUTTON, 0, 0, this::showSound);
+        continueBtn = game.buttonFactory.createButton(Assets.CONTINUE_BUTTON, 0, 0, this::remove);
+        exitBtn = game.buttonFactory.createButton(Assets.EXIT_BUTTON, 0, 0, this::handleExit);
+        soundBtn = game.buttonFactory.createButton(Assets.SOUND_SETTINGS_BUTTON, 0, 0, this::showSound);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
 
     private void handleExit() {
-        game.getNavigator().showMenu();
+        flow.showMenu();
     }
 
     private void showSound() {

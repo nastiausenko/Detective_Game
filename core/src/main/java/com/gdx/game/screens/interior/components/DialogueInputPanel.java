@@ -50,7 +50,7 @@ public class DialogueInputPanel {
 
         backgroundTexture = new Texture(Assets.QUESTION_AREA);
         backgroundImage = new Image(createBackgroundDrawable());
-        sendButton = game.getButtonFactory().createButton(Assets.SEND_BUTTON, 40, 40, this::submit);
+        sendButton = game.buttonFactory.createButton(Assets.SEND_BUTTON, 40, 40, this::submit);
 
         lastQuestionLabel = new Label("", skin);
         lastQuestionLabel.setWrap(false);

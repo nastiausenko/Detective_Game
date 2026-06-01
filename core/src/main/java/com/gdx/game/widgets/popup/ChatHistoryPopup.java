@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
 import com.gdx.game.model.DialogueHistory;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.ui.FontScaler;
@@ -44,7 +44,7 @@ public class ChatHistoryPopup extends AbstractPopup {
 
     private float maxBubbleWidth;
 
-    protected ChatHistoryPopup(Stage stage, DetectiveGame game, String npcId) {
+    protected ChatHistoryPopup(Stage stage, GameContext game, String npcId) {
         super(stage);
         this.npcId = npcId;
 
@@ -57,7 +57,7 @@ public class ChatHistoryPopup extends AbstractPopup {
             }
         });
 
-        closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, ChatHistoryPopup.this::remove);
+        closeBtn = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, ChatHistoryPopup.this::remove);
 
         bubbleLabelStyle = new Label.LabelStyle();
         bubbleLabelStyle.font = skin.getFont("default-font");

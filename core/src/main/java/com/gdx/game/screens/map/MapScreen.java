@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.model.BuildingData;
 import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.features.worldmap.model.BuildingLoader;
 import com.gdx.game.features.worldmap.ui.CharacterIcon;
 import com.gdx.game.features.worldmap.model.CharacterLoader;
@@ -39,6 +40,7 @@ public class MapScreen implements Screen {
     private static final int NIGHT_START_MINUTE = 20 * 60;
 
     private final GameContext game;
+    private final GameFlow flow;
     private final ScaledBackground mapBackground;
 
     private final OrthographicCamera camera;
@@ -66,8 +68,9 @@ public class MapScreen implements Screen {
 
     private boolean firstShow = true;
 
-    public MapScreen(GameContext game) {
+    public MapScreen(GameContext game, GameFlow flow) {
         this.game = game;
+        this.flow = flow;
 
         mapBackground = new ScaledBackground(Assets.MAP_BACKGROUND, true, true);
         lightOverlayTexture = new Texture(Assets.MAP_LIGHT_OVERLAY);
@@ -94,9 +97,10 @@ public class MapScreen implements Screen {
 
         inputController = new MapInputController(camera, viewport);
 
-        icons = CharacterLoader.loadMarkers(game, "characters.json");
+        icons = CharacterLoader.loadMarkers(game, flow, "characters.json");
         crimeSceneIcon = new CharacterIcon(
             game,
+            flow,
             "crime_scene",
             Assets.CRIME_SCENE_ICON,
             null,
@@ -110,14 +114,14 @@ public class MapScreen implements Screen {
 
     @Override
     public void show() {
-        game.overlay.setVisible(true);
-        game.getAudioManager().playAmbience(Assets.SOUND_MAP);
+        flow.setOverlayVisible(true);
+        game.audioManager.playAmbience(Assets.SOUND_MAP);
 
         if (!firstShow) return;
         firstShow = false;
 
         GestureDetector gestureDetector = new GestureDetector(inputController);
-        Gdx.input.setInputProcessor(new InputMultiplexer(game.overlay.getStage(), mapStage, gestureDetector, inputController));
+        Gdx.input.setInputProcessor(new InputMultiplexer(flow.overlayStage(), mapStage, gestureDetector, inputController));
 
         for (CharacterIcon icon : icons) {
             applyNpcLocation(icon);
@@ -129,7 +133,7 @@ public class MapScreen implements Screen {
         mapStage.addActor(crimeSceneIcon);
         mapStage.addActor(crimeSceneBadge);
 
-        game.overlay.showPrologue();
+        flow.showPrologue();
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
@@ -156,7 +160,7 @@ public class MapScreen implements Screen {
         mapStage.act(delta);
         mapStage.draw();
 
-        game.overlay.render(delta);
+        flow.renderOverlay(delta);
 
     }
 
@@ -168,7 +172,7 @@ public class MapScreen implements Screen {
         float relativeY = camera.position.y / (drawHeight == 0 ? 1 : drawHeight);
 
         viewport.update(width, height);
-        game.overlay.resize(width, height);
+        flow.resizeOverlay(width, height);
 
         mapBackground.resizeToCover(viewport.getWorldWidth(), viewport.getWorldHeight());
         drawWidth = mapBackground.getDrawWidth();
@@ -208,12 +212,12 @@ public class MapScreen implements Screen {
     @Override public void pause() {}
     @Override public void resume() {}
     @Override public void hide() {
-        game.overlay.hideAllPopups();
+        flow.hideAllPopups();
     }
 
     private void syncIconsWithNpcLocations() {
         for (CharacterIcon icon : icons) {
-            String targetBuildingId = game.getNpcLocationService().getCurrentBuildingId(icon.getId());
+            String targetBuildingId = game.npcLocationService.getCurrentBuildingId(icon.getId());
             if (Objects.equals(icon.getBuildingId(), targetBuildingId)) {
                 continue;
             }
@@ -228,15 +232,15 @@ public class MapScreen implements Screen {
     }
 
     private void applyNpcLocation(CharacterIcon icon) {
-        String buildingId = game.getNpcLocationService().getCurrentBuildingId(icon.getId());
+        String buildingId = game.npcLocationService.getCurrentBuildingId(icon.getId());
         BuildingData building = buildingMap.get(buildingId);
         icon.setBuilding(building);
     }
 
     private void updateCrimeSceneBadge() {
         boolean hasPendingCrimeSceneHints =
-            game.getCrimeSceneService() != null
-                && game.getCrimeSceneService().hasPendingHints(CRIME_SCENE_BUILDING_ID);
+            game.crimeSceneService != null
+                && game.crimeSceneService.hasPendingHints(CRIME_SCENE_BUILDING_ID);
 
         crimeSceneBadge.setVisible(hasPendingCrimeSceneHints);
         if (hasPendingCrimeSceneHints) {
@@ -317,7 +321,7 @@ public class MapScreen implements Screen {
     }
 
     private float calculateNightProgress() {
-        int minute = game.overlay.getTimer().getMinutesOfCurrentDay();
+        int minute = flow.timer().getMinutesOfCurrentDay();
 
         if (minute >= NIGHT_START_MINUTE || minute < DAWN_START_MINUTE) {
             return 1f;

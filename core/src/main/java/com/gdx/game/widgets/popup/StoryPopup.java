@@ -7,7 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.ui.UiStyles;
 import com.gdx.game.shared.ui.TypewriterText;
@@ -36,7 +36,7 @@ public class StoryPopup extends AbstractPopup {
     private final GlyphLayout layout;
     private final TypewriterText typewriterText;
 
-    public StoryPopup(Stage stage, DetectiveGame game) {
+    public StoryPopup(Stage stage, GameContext game) {
         super(stage);
         layout = new GlyphLayout();
 
@@ -48,7 +48,7 @@ public class StoryPopup extends AbstractPopup {
         storyLabel.setAlignment(Align.center);
         typewriterText = new TypewriterText(storyLabel);
 
-        continueButton = game.getButtonFactory().createButton(
+        continueButton = game.buttonFactory.createButton(
             Assets.CONTINUE_BUTTON, 60, 60,
             () -> {
                 if (!typewriterText.isFinished()) {

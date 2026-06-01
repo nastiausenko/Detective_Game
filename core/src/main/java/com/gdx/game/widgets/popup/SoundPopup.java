@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.math.MathUtils;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
 import com.gdx.game.shared.audio.AudioManager;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.config.UiLayout;
@@ -31,7 +31,7 @@ public class SoundPopup extends AbstractPopup {
     private final TextureRegionDrawable checkedDrawable;
     private final TextureRegionDrawable uncheckedDrawable;
 
-    private final DetectiveGame game;
+    private final GameContext game;
     private final Image popupImage;
     private final Image musicToggle;
     private final Image soundEffectsToggle;
@@ -44,7 +44,7 @@ public class SoundPopup extends AbstractPopup {
     private float sliderTrackWidth;
     private float sliderKnobWidth;
 
-    public SoundPopup(Stage stage, DetectiveGame game) {
+    public SoundPopup(Stage stage, GameContext game) {
         super(stage);
         this.game = game;
 
@@ -80,7 +80,7 @@ public class SoundPopup extends AbstractPopup {
         addVolumeSliderListener(volumeSliderFill);
         addVolumeSliderListener(volumeSliderKnob);
 
-        closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
+        closeBtn = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
@@ -178,19 +178,19 @@ public class SoundPopup extends AbstractPopup {
 
         if (!updateAudio) return;
 
-        AudioManager audioManager = game.getAudioManager();
+        AudioManager audioManager = game.audioManager;
         if (audioManager != null) {
             audioManager.setMasterVolume(volume);
         }
     }
 
     private float currentVolume() {
-        AudioManager audioManager = game.getAudioManager();
+        AudioManager audioManager = game.audioManager;
         return audioManager == null ? 1f : audioManager.getMasterVolume();
     }
 
     private void toggleMusic() {
-        AudioManager audioManager = game.getAudioManager();
+        AudioManager audioManager = game.audioManager;
         if (audioManager == null) return;
 
         audioManager.playButtonClick();
@@ -199,7 +199,7 @@ public class SoundPopup extends AbstractPopup {
     }
 
     private void toggleSoundEffects() {
-        AudioManager audioManager = game.getAudioManager();
+        AudioManager audioManager = game.audioManager;
         if (audioManager == null) return;
 
         boolean enableSoundEffects = !audioManager.isSoundEffectsEnabled();
@@ -217,7 +217,7 @@ public class SoundPopup extends AbstractPopup {
     }
 
     private void updateToggleState() {
-        AudioManager audioManager = game.getAudioManager();
+        AudioManager audioManager = game.audioManager;
         if (audioManager == null) {
             musicToggle.setDrawable(uncheckedDrawable);
             soundEffectsToggle.setDrawable(uncheckedDrawable);

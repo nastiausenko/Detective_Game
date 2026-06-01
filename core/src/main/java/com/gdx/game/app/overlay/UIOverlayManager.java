@@ -6,7 +6,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.model.InvestigationState;
 import com.gdx.game.widgets.popup.*;
 import com.gdx.game.widgets.timer.GameTimer;
@@ -16,7 +17,8 @@ import com.gdx.game.shared.config.UiLayoutProfile;
 import com.gdx.game.shared.lib.ScreenUtilsHelper;
 
 public class UIOverlayManager {
-    private final DetectiveGame game;
+    private final GameContext game;
+    private final GameFlow flow;
     public final Stage uiStage;
 
     private final Image toggleButton;
@@ -54,20 +56,21 @@ public class UIOverlayManager {
     private boolean inInterior = false;
     private boolean timeOverPopupShown = false;
 
-    public UIOverlayManager(DetectiveGame game) {
+    public UIOverlayManager(GameContext game, GameFlow flow) {
         this.game = game;
+        this.flow = flow;
         this.uiStage = new Stage(new ScreenViewport(), game.batch);
 
         arrowDownTexture = new Texture(Assets.TOGGLE_BUTTON_DOWN);
         arrowUpTexture = new Texture(Assets.TOGGLE_BUTTON_UP);
 
-        toggleButton = game.getButtonFactory().createButton(Assets.TOGGLE_BUTTON_DOWN, 64, 64, this::toggleMenu);
-        notesButton = game.getButtonFactory().createButton(Assets.NOTE_ICON, 64, 64, this::showNotes);
-        dossierButton = game.getButtonFactory().createButton(Assets.DOSSIER_BUTTON, 64, 64, this::showDossier);
-        settingsButton = game.getButtonFactory().createButton(Assets.SETTINGS_BUTTON, 64, 64, this::showSettings);
-        accuseButton = game.getButtonFactory().createButton(Assets.ACCUSATION_BUTTON, 64, 64, this::showAccusation);
-        homeButton = game.getButtonFactory().createButton(Assets.HOME_BUTTON, 64, 64, this::backToMap, false);
-        chatButton = game.getButtonFactory().createButton(Assets.CHAT_BUTTON, 64, 64, this::showChatHistory);
+        toggleButton = game.buttonFactory.createButton(Assets.TOGGLE_BUTTON_DOWN, 64, 64, this::toggleMenu);
+        notesButton = game.buttonFactory.createButton(Assets.NOTE_ICON, 64, 64, this::showNotes);
+        dossierButton = game.buttonFactory.createButton(Assets.DOSSIER_BUTTON, 64, 64, this::showDossier);
+        settingsButton = game.buttonFactory.createButton(Assets.SETTINGS_BUTTON, 64, 64, this::showSettings);
+        accuseButton = game.buttonFactory.createButton(Assets.ACCUSATION_BUTTON, 64, 64, this::showAccusation);
+        homeButton = game.buttonFactory.createButton(Assets.HOME_BUTTON, 64, 64, this::backToMap, false);
+        chatButton = game.buttonFactory.createButton(Assets.CHAT_BUTTON, 64, 64, this::showChatHistory);
 
         dossierBadge = new Image(new Texture(Assets.BADGE));
         toggleBadge  = new Image(new Texture(Assets.BADGE));
@@ -87,7 +90,7 @@ public class UIOverlayManager {
         uiStage.addActor(dossierBadge);
         uiStage.addActor(toggleBadge);
 
-        popupFactory = new PopupFactory(uiStage, game);
+        popupFactory = new PopupFactory(uiStage, game, flow);
         timer = new GameTimer(uiStage, Assets.TOTAL_TIME);
     }
 
@@ -104,7 +107,7 @@ public class UIOverlayManager {
     private void backToMap() {
         if (!inInterior) return;
 
-        game.getNavigator().returnToMapFromInterior(currentInteriorBuildingId);
+        flow.returnToMapFromInterior(currentInteriorBuildingId);
     }
 
     private void showNotes() {
@@ -116,7 +119,7 @@ public class UIOverlayManager {
         if (dossierPopup == null)
             dossierPopup = popupFactory.createDossierPopup();
 
-        dossierPopup.loadDatabase(game.getDossierDb());
+        dossierPopup.loadDatabase(game.dossierDb);
         dossierPopup.show();
 
         onDossierOpened();
@@ -158,8 +161,8 @@ public class UIOverlayManager {
             epiloguePopup = popupFactory.createEpiloguePopup();
         }
 
-        final InvestigationState inv = game.getInvestigationState();
-        String cachedText = game.getEpilogueService().getCachedEpilogue(inv);
+        final InvestigationState inv = game.investigationState;
+        String cachedText = game.epilogueService.getCachedEpilogue(inv);
         epiloguePopup.setFullText(cachedText != null ? cachedText : "…");
         epiloguePopup.show();
 
@@ -170,7 +173,7 @@ public class UIOverlayManager {
         new Thread(() -> {
             String text;
             try {
-                text = game.getEpilogueService().generateEpilogue(inv);
+                text = game.epilogueService.generateEpilogue(inv);
             } catch (Exception e) {
                 e.printStackTrace();
                 text = "Щось пішло не так з епілогом. "
@@ -225,7 +228,7 @@ public class UIOverlayManager {
         }
 
         timer.update(delta);
-        game.getNpcLocationService().updateForGameMinutes(timer.getElapsedGameMinutes());
+        game.npcLocationService.updateForGameMinutes(timer.getElapsedGameMinutes());
 
         checkTimeOverPopup();
     }
@@ -234,7 +237,7 @@ public class UIOverlayManager {
         if (timeOverPopupShown) return;
         if (!timer.isTimeOver()) return;
 
-        InvestigationState inv = game.getInvestigationState();
+        InvestigationState inv = game.investigationState;
         if (inv != null && inv.accusationDone) return;
         if (epiloguePopup != null && epiloguePopup.isVisible()) return;
 
@@ -450,7 +453,7 @@ public class UIOverlayManager {
         updateBadgeVisibility();
     }
 
-    public GameTimer getTimer() {
+    public GameTimer timer() {
         return timer;
     }
 

@@ -11,6 +11,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.ui.BackgroundFactory;
 import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.shared.config.UiLayout;
 import com.gdx.game.shared.config.UiLayoutProfile;
 import com.gdx.game.shared.ui.rendering.ScaledBackground;
@@ -18,6 +19,7 @@ import com.gdx.game.shared.lib.ScreenUtilsHelper;
 
 public class MenuScreen implements Screen {
     private final GameContext game;
+    private final GameFlow flow;
 
     private final OrthographicCamera camera;
     private final ScreenViewport viewport;
@@ -31,8 +33,9 @@ public class MenuScreen implements Screen {
     private final Texture startTexture;
     private final Texture gameTitleTexture;
 
-    public MenuScreen(GameContext game) {
+    public MenuScreen(GameContext game, GameFlow flow) {
         this.game = game;
+        this.flow = flow;
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -64,21 +67,21 @@ public class MenuScreen implements Screen {
     }
 
     private Image createStartButton() {
-        return game.getButtonFactory().createButton(
+        return game.buttonFactory.createButton(
             Assets.START_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
-            () -> game.getNavigator().resumeOrStartGame()
+            flow::resumeOrStartGame
         );
     }
 
     private Image createNewGameButton() {
-        return game.getButtonFactory().createButton(
+        return game.buttonFactory.createButton(
             Assets.NEW_GAME_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
-            () -> game.getNavigator().startNewGame()
+            flow::startNewGame
         );
     }
 
     private Image createExitButton() {
-        return game.getButtonFactory().createButton(
+        return game.buttonFactory.createButton(
             Assets.EXIT_MENU_BUTTON, startTexture.getWidth(), startTexture.getHeight(),
             () -> Gdx.app.exit()
         );
@@ -86,7 +89,7 @@ public class MenuScreen implements Screen {
 
     @Override
     public void show() {
-        game.overlay.setVisible(false);
+        flow.setOverlayVisible(false);
 
         Gdx.input.setInputProcessor(stage);
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());

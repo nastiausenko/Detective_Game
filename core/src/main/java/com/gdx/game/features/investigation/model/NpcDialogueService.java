@@ -44,12 +44,10 @@ public class NpcDialogueService {
     private static final float CALM_PAUSE_SECONDS = 60f;
     private static final String NPC_PREFS_NAME = "npc_state";
     private static final String GLOBAL_RULES =
-        "NPC in Rosenfeld detective story. Canon: Walter is dead, found in his home office, not hospital; public version exhaustion/guilt/suicide; real killer Liam Becker. " +
-            "Never say Walter lives or another person is certainly the killer. Setting: 1940s small town; people live in houses, not apartments. " +
-            "Never use modern apartment-building words like під'їзд, квартира, ліфт, поверх;\n" +
-            "Reply in natural Ukrainian, 1-2 short spoken sentences, first person. No headings/lists/labels/AI talk. " +
-            "Answer only the question; do not volunteer name, role, location, alibi, backstory, or case facts. " +
-            "For greetings/small talk: brief human reply only. Use only known/provided named people; invent no names.\n";
+        "Rosenfeld NPC, 1940s small town. Walter is dead, found in his home office; public story is exhaustion/guilt/suicide; true killer is Liam Becker. " +
+            "Never say Walter lives or name another certain killer. Houses, not apartments; avoid під'їзд/квартира/ліфт/поверх. " +
+            "Answer in natural Ukrainian, first person, 1-2 short spoken sentences. No labels/lists/AI talk. " +
+            "Answer only what was asked; do not volunteer identity, alibi, backstory, location, or case facts. Greetings stay brief. Use only known names.\n";
 
     private final LlmClient llmClient;
     private final DossierDatabase dossierDb;
@@ -242,11 +240,9 @@ public class NpcDialogueService {
 
             appendHiddenTruths(sb, dossier, state);
 
-            sb.append("SECRET_RULE: SECRET_TRUE facts are true and known by you. ")
-                .append("If Q asks directly or asks about the same person/place/time/event, do not deny, move to another day, or contradict person/place/time. ")
-                .append("If Q asks whether you saw anyone at a secret place/time, name the person from the secret instead of saying no one. ")
-                .append("Give a brief guarded admission or partial truth containing the core fact. ")
-                .append("Broad questions use PUBLIC/TRAIT/STATE/ADMITTED; low trust/fear may make you reluctant, but not say 'no' to a true secret.\n");
+            sb.append("SECRET_RULE: SECRET_TRUE facts are true/known. ")
+                .append("Direct or same person/place/time/event Q: do not deny, relocate, or contradict; give a brief guarded admission with the core fact. ")
+                .append("If asked who/anyone at a secret place/time, name the secret person. Broad Q uses PUBLIC/TRAIT/STATE/ADMITTED.\n");
         }
 
         sb.append("JSON only {\"a\":\"answer\",\"rapport\":0,\"pressure\":0,\"hostility\":0}. ")
@@ -274,17 +270,14 @@ public class NpcDialogueService {
             return FactRevealDecision.no("required concept missing from answer: " + missingConcept);
         }
 
-        String system = "Strict textual-entailment dossier unlock classifier. Output JSON only.\n" +
-            "Split FACT into core: subject(s), predicate/relation/action/attribute, object/result, time/place if present. " +
-            "reveal=true only if NPC ANSWER entails every required core part. " +
-            "A shared name, topic, location, suspicion, or vague association is never enough. QUESTION alone never counts; use it only when ANSWER confirms/adopts it. " +
-            "False for denial, contradiction, moving the fact to another time/place/person, refusal, ambiguity, vague hint, greeting, topic change, or generic small talk. " +
-            "Presence/sighting/suspicious behavior does not support identity/experiment/patient/project facts unless the ANSWER says that relation. " +
-            "Match meaning across language, inflection, synonym, and paraphrase, but require the same core claim. Unsure=false.\n" +
-            "Examples: FACT 'Ліам був його найуспішнішим експериментом' + ANSWER 'бачила Ліама вночі' => predicateSupported=false, reveal=false. " +
-            "Same FACT + ANSWER 'Вальтер називав Ліама доказом успіху дослідів' => predicateSupported=true, reveal=true. " +
-            "FACT 'приховував нічні візити Вальтера й гостей' + ANSWER 'сторожу лікарню по ночах, щоб зайві не шастали' => predicateSupported=false, reveal=false. " +
-            "FACT 'Бачила Ліама біля будинку Вальтера після опівночі' + ANSWER 'вночі біля дому бачила Ліама' => reveal=true.\n" +
+        String system = "Strict dossier-unlock entailment classifier. JSON only.\n" +
+            "Reveal only when ANSWER entails FACT's core subject, predicate/relation/action/attribute, object/result, and time/place if present. " +
+            "QUESTION is context only, unless ANSWER confirms/adopts it. Shared name/topic/location/suspicion is insufficient. Denial, contradiction, refusal, vague hint, greeting, or topic change=false. " +
+            "Sighting/presence/suspicious behavior never proves identity/experiment/patient/project relation unless ANSWER states that relation. Paraphrases and inflections count; unsure=false.\n" +
+            "Examples: FACT 'Ліам був його найуспішнішим експериментом' + ANSWER 'бачила Ліама вночі' => false. " +
+            "Same FACT + ANSWER 'Вальтер називав Ліама доказом успіху дослідів' => true. " +
+            "FACT 'приховував нічні візити Вальтера й гостей' + ANSWER 'сторожу лікарню по ночах' => false. " +
+            "FACT 'Бачила Ліама біля будинку Вальтера після опівночі' + ANSWER 'після опівночі біля дому бачила Ліама' => true.\n" +
             "{\"reveal\":false,\"subjectSupported\":false,\"predicateSupported\":false,\"objectSupported\":false,\"timePlaceSupported\":true,\"evidenceSatisfied\":false,\"reason\":\"short reason\",\"matchedEvidence\":\"short evidence summary\"}";
 
         String user = "FACT: \"" + safeText(hiddenFact.text) + "\"\n"

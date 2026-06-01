@@ -1,8 +1,8 @@
 package com.gdx.game.app.navigation;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.utils.Json;
-import com.gdx.game.app.DetectiveGame;
 import com.gdx.game.model.BuildingData;
 import com.gdx.game.model.CharacterData;
 import com.gdx.game.app.model.GameData;
@@ -16,74 +16,73 @@ import com.gdx.game.screens.menu.MenuScreen;
 public class ScreenNavigator {
     private static final float DEFAULT_FADE_SECONDS = 0.7f;
 
-    private final DetectiveGame game;
+    private final Game game;
     private final FadeTransition transition;
-    private GameContext context;
+    private final GameContext context;
 
-    public ScreenNavigator(DetectiveGame game, FadeTransition transition) {
+    public ScreenNavigator(Game game, FadeTransition transition, GameContext context) {
         this.game = game;
         this.transition = transition;
-    }
-
-    public void setContext(GameContext context) {
         this.context = context;
     }
 
-    public void resumeOrStartGame() {
+    public void resumeOrStartGame(GameFlow flow) {
         if (transition.isTransitioning()) return;
 
         transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
-            if (shouldStartFreshGame()) {
-                resetNewGameState();
+            if (shouldStartFreshGame(flow)) {
+                resetNewGameState(flow);
             }
-            showMapAfterFadeOut();
+            showMapAfterFadeOut(flow);
         });
     }
 
-    public void startNewGame() {
+    public void startNewGame(GameFlow flow) {
         if (transition.isTransitioning()) return;
 
         transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
-            resetNewGameState();
-            showMapAfterFadeOut();
+            resetNewGameState(flow);
+            showMapAfterFadeOut(flow);
         });
     }
 
-    public void showMenu() {
+    public void showMenu(GameFlow flow) {
         if (transition.isTransitioning()) return;
 
         transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
-            game.setScreen(new MenuScreen(context));
+            game.setScreen(new MenuScreen(context, flow));
             transition.startFadeIn(DEFAULT_FADE_SECONDS);
         });
     }
 
-    public void returnToMapFromInterior(String buildingId) {
+    public void returnToMapFromInterior(String buildingId, GameFlow flow) {
         if (transition.isTransitioning()) return;
 
-        if (game.getAudioManager() != null) {
-            game.getAudioManager().playLocationTransition(buildingId);
+        if (context.audioManager != null) {
+            context.audioManager.playLocationTransition(buildingId);
         }
 
-        transition.startFadeOut(DEFAULT_FADE_SECONDS, this::showMapAfterFadeOut);
+        transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> showMapAfterFadeOut(flow));
     }
 
     public void enterInterior(
         String backgroundPath,
         String npcId,
         String fullBodyPath,
-        String buildingId
+        String buildingId,
+        GameFlow flow
     ) {
         if (transition.isTransitioning()) return;
 
-        if (game.getAudioManager() != null) {
-            game.getAudioManager().stopAmbience();
-            game.getAudioManager().playLocationTransition(buildingId);
+        if (context.audioManager != null) {
+            context.audioManager.stopAmbience();
+            context.audioManager.playLocationTransition(buildingId);
         }
 
         transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
             game.setScreen(new CharacterInteriorScreen(
                 context,
+                flow,
                 backgroundPath,
                 npcId,
                 fullBodyPath,
@@ -93,17 +92,17 @@ public class ScreenNavigator {
         });
     }
 
-    public void enterAccusationConfrontation(String npcId) {
+    public void enterAccusationConfrontation(String npcId, GameFlow flow) {
         if (transition.isTransitioning()) return;
 
         CharacterData character = findCharacter(npcId);
         if (character == null) {
-            game.overlay.showEpilogue();
+            flow.showEpilogue();
             return;
         }
 
-        String buildingId = game.getNpcLocationService() != null
-            ? game.getNpcLocationService().getCurrentBuildingId(npcId)
+        String buildingId = context.npcLocationService != null
+            ? context.npcLocationService.getCurrentBuildingId(npcId)
             : null;
         if (buildingId == null || buildingId.isEmpty()) {
             buildingId = character.buildingId;
@@ -117,14 +116,15 @@ public class ScreenNavigator {
         final String finalBuildingId = buildingId;
         final String finalBackgroundPath = backgroundPath;
 
-        if (game.getAudioManager() != null) {
-            game.getAudioManager().stopAmbience();
-            game.getAudioManager().playLocationTransition(finalBuildingId);
+        if (context.audioManager != null) {
+            context.audioManager.stopAmbience();
+            context.audioManager.playLocationTransition(finalBuildingId);
         }
 
         transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
             game.setScreen(new CharacterInteriorScreen(
                 context,
+                flow,
                 finalBackgroundPath,
                 character.id,
                 character.fullBody,
@@ -135,20 +135,20 @@ public class ScreenNavigator {
         });
     }
 
-    public void returnToMapThenShowEpilogue() {
+    public void returnToMapThenShowEpilogue(GameFlow flow) {
         if (transition.isTransitioning()) {
-            Gdx.app.postRunnable(this::returnToMapThenShowEpilogue);
+            Gdx.app.postRunnable(() -> returnToMapThenShowEpilogue(flow));
             return;
         }
 
         transition.startFadeOut(DEFAULT_FADE_SECONDS, () -> {
-            showMapAfterFadeOut();
-            Gdx.app.postRunnable(() -> game.overlay.showEpilogue());
+            showMapAfterFadeOut(flow);
+            Gdx.app.postRunnable(flow::showEpilogue);
         });
     }
 
-    private void showMapAfterFadeOut() {
-        game.setScreen(new MapScreen(context));
+    private void showMapAfterFadeOut(GameFlow flow) {
+        game.setScreen(new MapScreen(context, flow));
         transition.startFadeIn(DEFAULT_FADE_SECONDS);
     }
 
@@ -182,24 +182,24 @@ public class ScreenNavigator {
         return "";
     }
 
-    private void resetNewGameState() {
+    private void resetNewGameState(GameFlow flow) {
         GameData.clearAll();
-        game.getNpcDialogueService().resetAllNpcState();
-        game.getNpcLocationService().reset();
-        game.getCrimeSceneService().reset();
-        game.getEpilogueService().clearCache();
-        game.overlay.resetForNewGame();
+        context.npcDialogueService.resetAllNpcState();
+        context.npcLocationService.reset();
+        context.crimeSceneService.reset();
+        context.epilogueService.clearCache();
+        flow.resetForNewGame();
 
-        InvestigationState inv = game.getInvestigationState();
+        InvestigationState inv = context.investigationState;
         if (inv != null) {
             inv.accusationDone = false;
             inv.accusedNpcId = null;
         }
     }
 
-    private boolean shouldStartFreshGame() {
-        InvestigationState inv = game.getInvestigationState();
-        return game.overlay.getTimer().isTimeOver()
+    private boolean shouldStartFreshGame(GameFlow flow) {
+        InvestigationState inv = context.investigationState;
+        return flow.timer().isTimeOver()
             || (inv != null && inv.accusationDone);
     }
 }

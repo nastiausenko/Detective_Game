@@ -14,7 +14,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.model.InvestigationState;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.ui.FontScaler;
@@ -29,7 +30,8 @@ public class AccusationPopup extends AbstractPopup {
     private final Image accuseButton;
     private final Image closeButton;
 
-    private final DetectiveGame game;
+    private final GameContext game;
+    private final GameFlow flow;
 
     private final Image[] portraits;
     private final Label[] names;
@@ -54,15 +56,16 @@ public class AccusationPopup extends AbstractPopup {
 
     private int selectedIndex = -1;
 
-    public AccusationPopup(Stage stage, DetectiveGame game) {
+    public AccusationPopup(Stage stage, GameContext game, GameFlow flow) {
         super(stage);
         this.game = game;
+        this.flow = flow;
 
         accusationTexture = new Texture(Assets.ACCUSATION_POPUP);
         accusationBackground = new Image(accusationTexture);
 
-        accuseButton = game.getButtonFactory().createButton(Assets.ACCUSE, 60, 60, this::accuse);
-        closeButton = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
+        accuseButton = game.buttonFactory.createButton(Assets.ACCUSE, 60, 60, this::accuse);
+        closeButton = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
 
         labelStyle = UiStyles.label(skin, UiStyles.parchmentText());
 
@@ -235,20 +238,20 @@ public class AccusationPopup extends AbstractPopup {
         String accusedNpcId = npcIds[selectedIndex];
         Gdx.app.log("ACCUSATION", "Accuse button clicked, npcId=" + accusedNpcId);
 
-        if (game.getInvestigationState() != null) {
-            InvestigationState inv = game.getInvestigationState();
+        if (game.investigationState != null) {
+            InvestigationState inv = game.investigationState;
             inv.accusedNpcId = accusedNpcId;
             inv.accusationDone = true;
         }
 
         remove();
-        game.getNavigator().enterAccusationConfrontation(accusedNpcId);
+        flow.enterAccusationConfrontation(accusedNpcId);
     }
 
     private void updateCloseButtonState() {
         boolean timeOver = false;
-        if (game.overlay.getTimer() != null) {
-            timeOver = game.overlay.getTimer().isTimeOver();
+        if (flow.timer() != null) {
+            timeOver = flow.timer().isTimeOver();
         }
 
         closeButton.setVisible(!timeOver);
@@ -256,11 +259,11 @@ public class AccusationPopup extends AbstractPopup {
 
     private void updateAccuseButtonState() {
         boolean timeOver = false;
-        if (game.overlay.getTimer() != null) {
-            timeOver = game.overlay.getTimer().isTimeOver();
+        if (flow.timer() != null) {
+            timeOver = flow.timer().isTimeOver();
         }
 
-        int revealed = game.getNpcDialogueService().getTotalRevealedFacts();
+        int revealed = game.npcDialogueService.getTotalRevealedFacts();
 
         boolean enoughFacts = revealed >= Assets.FACTS_TO_REVEAL;
 

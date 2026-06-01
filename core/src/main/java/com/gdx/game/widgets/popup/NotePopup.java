@@ -6,7 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.ui.NotePages;
 import com.gdx.game.shared.config.UiLayout;
@@ -22,7 +22,7 @@ public class NotePopup extends AbstractPopup {
     private final Image btnPrev;
     private final Image closeBtn;
 
-    public NotePopup(Stage stage, DetectiveGame game) {
+    public NotePopup(Stage stage, GameContext game) {
         super(stage);
         this.pages = new NotePages(stage, skin);
 
@@ -44,9 +44,9 @@ public class NotePopup extends AbstractPopup {
             }
         });
 
-        btnPrev = game.getButtonFactory().createButton(Assets.ARROW_LEFT, 64, 64, pages::prevPage);
-        btnNext = game.getButtonFactory().createButton(Assets.ARROW_RIGHT, 64, 64, pages::nextPage);
-        closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, () -> {
+        btnPrev = game.buttonFactory.createButton(Assets.ARROW_LEFT, 64, 64, pages::prevPage);
+        btnNext = game.buttonFactory.createButton(Assets.ARROW_RIGHT, 64, 64, pages::nextPage);
+        closeBtn = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, () -> {
             pages.onExit();
             remove();
         });

@@ -14,21 +14,20 @@ import com.gdx.game.features.investigation.model.NpcDialogueService;
 import com.gdx.game.shared.audio.AudioManager;
 import com.gdx.game.app.model.GameContext;
 import com.gdx.game.shared.ui.effects.FadeTransition;
+import com.gdx.game.app.navigation.GameFlowController;
 import com.gdx.game.app.navigation.ScreenNavigator;
 import com.gdx.game.screens.menu.MenuScreen;
 import com.gdx.game.shared.ui.UIButtonFactory;
 import com.gdx.game.features.investigation.model.EpilogueService;
 import com.gdx.game.features.worldmap.model.NpcLocationService;
-import com.gdx.game.app.overlay.UIOverlayManager;
 
 public class DetectiveGame extends Game {
-    public SpriteBatch batch;
-    public UIOverlayManager overlay;
-    public AudioManager audioManager;
+    private SpriteBatch batch;
+    private GameFlowController flow;
+    private AudioManager audioManager;
 
     private UIButtonFactory buttonFactory;
     private FadeTransition transition;
-    private ScreenNavigator navigator;
     private GameContext gameContext;
 
     private DossierDatabase dossierDb;
@@ -78,25 +77,25 @@ public class DetectiveGame extends Game {
         npcLocationService = new NpcLocationService();
         crimeSceneService = new CrimeSceneService(loreDb, npcDialogueService);
         factRevealService = new FactRevealService(npcDialogueService, dossierDb, crimeSceneService);
-        overlay = new UIOverlayManager(this);
-        navigator = new ScreenNavigator(this, transition);
+
         gameContext = new GameContext(
             batch,
-            overlay,
             buttonFactory,
             audioManager,
             dossierDb,
+            loreDb,
             npcDialogueService,
             investigationState,
             epilogueService,
             npcLocationService,
             crimeSceneService,
-            factRevealService,
-            navigator
+            factRevealService
         );
-        navigator.setContext(gameContext);
 
-        setScreen(new MenuScreen(gameContext));
+        ScreenNavigator navigator = new ScreenNavigator(this, transition, gameContext);
+        flow = new GameFlowController(gameContext, navigator);
+
+        setScreen(new MenuScreen(gameContext, flow));
     }
 
     @Override
@@ -108,57 +107,9 @@ public class DetectiveGame extends Game {
 
     @Override
     public void dispose() {
-        if (overlay != null) overlay.dispose();
+        if (flow != null) flow.dispose();
         if (npcDialogueService != null) npcDialogueService.dispose();
         if (batch != null) batch.dispose();
         if (audioManager != null) audioManager.dispose();
-    }
-
-    public UIButtonFactory getButtonFactory() {
-        return buttonFactory;
-    }
-
-    public FadeTransition getTransition() {
-        return transition;
-    }
-
-    public ScreenNavigator getNavigator() {
-        return navigator;
-    }
-
-    public GameContext getContext() {
-        return gameContext;
-    }
-
-    public DossierDatabase getDossierDb() {
-        return dossierDb;
-    }
-
-    public AudioManager getAudioManager() {
-        return audioManager;
-    }
-
-    public NpcDialogueService getNpcDialogueService() {
-        return npcDialogueService;
-    }
-
-    public InvestigationState getInvestigationState() {
-        return investigationState;
-    }
-
-    public EpilogueService getEpilogueService() {
-        return epilogueService;
-    }
-
-    public NpcLocationService getNpcLocationService() {
-        return npcLocationService;
-    }
-
-    public CrimeSceneService getCrimeSceneService() {
-        return crimeSceneService;
-    }
-
-    public FactRevealService getFactRevealService() {
-        return factRevealService;
     }
 }

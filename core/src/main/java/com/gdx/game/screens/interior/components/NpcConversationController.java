@@ -52,7 +52,7 @@ public class NpcConversationController {
             });
         }, ANSWER_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
-        game.getNpcDialogueService().askNpcAsync(characterId, q, buildingId, (answer, error) -> {
+        game.npcDialogueService.askNpcAsync(characterId, q, buildingId, (answer, error) -> {
             if (!completed.compareAndSet(false, true)) return;
 
             String response = answer != null ? answer : "";
@@ -76,7 +76,7 @@ public class NpcConversationController {
     }
 
     private void revealFacts(String question, String answer, Listener listener) {
-        game.getFactRevealService().revealFactsAfterExchangeAsync(characterId, question, answer,
+        game.factRevealService.revealFactsAfterExchangeAsync(characterId, question, answer,
             count -> {
                 if (count <= 0) return;
                 Gdx.app.postRunnable(() -> {

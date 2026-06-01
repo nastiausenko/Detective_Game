@@ -3,16 +3,19 @@ package com.gdx.game.widgets.popup;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 
 public class PopupFactory {
     private final Stage stage;
-    private final DetectiveGame game;
+    private final GameContext game;
+    private final GameFlow flow;
 
 
-    public PopupFactory(Stage stage, DetectiveGame game) {
+    public PopupFactory(Stage stage, GameContext game, GameFlow flow) {
         this.stage = stage;
         this.game = game;
+        this.flow = flow;
         new Skin(Gdx.files.internal("ui/uiskin.json"));
     }
 
@@ -21,7 +24,7 @@ public class PopupFactory {
     }
 
     public SettingsPopup createSettingsPopup() {
-        return new SettingsPopup(stage, game);
+        return new SettingsPopup(stage, game, flow);
     }
 
     public StoryPopup createStoryPopup() {
@@ -33,7 +36,7 @@ public class PopupFactory {
     }
 
     public AccusationPopup createAccusationPopup() {
-        return new AccusationPopup(stage, game);
+        return new AccusationPopup(stage, game, flow);
     }
 
     public ChatHistoryPopup createChatHistoryPopup(String npcId) {
@@ -41,14 +44,14 @@ public class PopupFactory {
     }
 
     public EpiloguePopup createEpiloguePopup() {
-        return new EpiloguePopup(stage, game);
+        return new EpiloguePopup(stage, game, flow);
     }
 
     public TimeOverPopup createTimeOverPopup() {
-        return new TimeOverPopup(stage, game);
+        return new TimeOverPopup(stage, game, flow);
     }
 
     public TheEndPopup createTheEndPopup() {
-        return new TheEndPopup(stage, game);
+        return new TheEndPopup(stage, game, flow);
     }
 }

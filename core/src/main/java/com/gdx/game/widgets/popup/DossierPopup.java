@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
 import com.gdx.game.model.DossierData;
 import com.gdx.game.model.DossierDatabase;
 import com.gdx.game.model.NpcState;
@@ -33,7 +33,7 @@ public class DossierPopup extends AbstractPopup {
     private final Image btnPrev;
     private final Image closeBtn;
 
-    private final DetectiveGame game;
+    private final GameContext game;
 
     private final Label nameLabel;
     private final Label roleLabel;
@@ -49,7 +49,7 @@ public class DossierPopup extends AbstractPopup {
 
     private int currentPage = 0;
 
-    public DossierPopup(Stage stage, DetectiveGame game) {
+    public DossierPopup(Stage stage, GameContext game) {
         super(stage);
         this.game = game;
 
@@ -72,9 +72,9 @@ public class DossierPopup extends AbstractPopup {
             }
         });
 
-        btnPrev = game.getButtonFactory().createButton(Assets.ARROW_LEFT, 64, 64, this::prevPage);
-        btnNext = game.getButtonFactory().createButton(Assets.ARROW_RIGHT, 64, 64, this::nextPage);
-        closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
+        btnPrev = game.buttonFactory.createButton(Assets.ARROW_LEFT, 64, 64, this::prevPage);
+        btnNext = game.buttonFactory.createButton(Assets.ARROW_RIGHT, 64, 64, this::nextPage);
+        closeBtn = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
 
         styleLeft = new Label.LabelStyle();
         styleLeft.font = leftFont;
@@ -152,7 +152,7 @@ public class DossierPopup extends AbstractPopup {
             }
         }
 
-        NpcState state = game.getNpcDialogueService().getStateForUi(npcId);
+        NpcState state = game.npcDialogueService.getStateForUi(npcId);
 
         if (data.hiddenFacts != null) {
             boolean[] revealed = (state != null) ? state.hiddenRevealed : null;

@@ -8,91 +8,46 @@ import com.gdx.game.features.investigation.model.FactRevealService;
 import com.gdx.game.features.investigation.model.NpcDialogueService;
 import com.gdx.game.model.DossierDatabase;
 import com.gdx.game.model.InvestigationState;
+import com.gdx.game.model.LoreDatabase;
 import com.gdx.game.features.investigation.model.CrimeSceneService;
 import com.gdx.game.features.worldmap.model.NpcLocationService;
-import com.gdx.game.app.navigation.ScreenNavigator;
-import com.gdx.game.app.overlay.UIOverlayManager;
 
 public class GameContext {
     public final SpriteBatch batch;
-    public final UIOverlayManager overlay;
-
-    private final UIButtonFactory buttonFactory;
-    private final AudioManager audioManager;
-    private final DossierDatabase dossierDb;
-    private final NpcDialogueService npcDialogueService;
-    private final InvestigationState investigationState;
-    private final EpilogueService epilogueService;
-    private final NpcLocationService npcLocationService;
-    private final CrimeSceneService crimeSceneService;
-    private final FactRevealService factRevealService;
-    private final ScreenNavigator navigator;
+    public final UIButtonFactory buttonFactory;
+    public final AudioManager audioManager;
+    public final DossierDatabase dossierDb;
+    public final LoreDatabase loreDb;
+    public final NpcDialogueService npcDialogueService;
+    public final InvestigationState investigationState;
+    public final EpilogueService epilogueService;
+    public final NpcLocationService npcLocationService;
+    public final CrimeSceneService crimeSceneService;
+    public final FactRevealService factRevealService;
 
     public GameContext(
         SpriteBatch batch,
-        UIOverlayManager overlay,
         UIButtonFactory buttonFactory,
         AudioManager audioManager,
         DossierDatabase dossierDb,
+        LoreDatabase loreDb,
         NpcDialogueService npcDialogueService,
         InvestigationState investigationState,
         EpilogueService epilogueService,
         NpcLocationService npcLocationService,
         CrimeSceneService crimeSceneService,
-        FactRevealService factRevealService,
-        ScreenNavigator navigator
+        FactRevealService factRevealService
     ) {
         this.batch = batch;
-        this.overlay = overlay;
         this.buttonFactory = buttonFactory;
         this.audioManager = audioManager;
         this.dossierDb = dossierDb;
+        this.loreDb = loreDb;
         this.npcDialogueService = npcDialogueService;
         this.investigationState = investigationState;
         this.epilogueService = epilogueService;
         this.npcLocationService = npcLocationService;
         this.crimeSceneService = crimeSceneService;
         this.factRevealService = factRevealService;
-        this.navigator = navigator;
-    }
-
-    public UIButtonFactory getButtonFactory() {
-        return buttonFactory;
-    }
-
-    public AudioManager getAudioManager() {
-        return audioManager;
-    }
-
-    public DossierDatabase getDossierDb() {
-        return dossierDb;
-    }
-
-    public NpcDialogueService getNpcDialogueService() {
-        return npcDialogueService;
-    }
-
-    public InvestigationState getInvestigationState() {
-        return investigationState;
-    }
-
-    public EpilogueService getEpilogueService() {
-        return epilogueService;
-    }
-
-    public NpcLocationService getNpcLocationService() {
-        return npcLocationService;
-    }
-
-    public CrimeSceneService getCrimeSceneService() {
-        return crimeSceneService;
-    }
-
-    public FactRevealService getFactRevealService() {
-        return factRevealService;
-    }
-
-    public ScreenNavigator getNavigator() {
-        return navigator;
     }
 }

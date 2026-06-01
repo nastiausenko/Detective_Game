@@ -6,7 +6,8 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.model.InvestigationState;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.ui.UiStyles;
@@ -20,7 +21,7 @@ public class TimeOverPopup extends AbstractPopup {
     private final Image yesButton;
     private final Image noButton;
 
-    public TimeOverPopup(Stage stage, DetectiveGame game) {
+    public TimeOverPopup(Stage stage, GameContext game, GameFlow flow) {
         super(stage);
 
         backgroundTexture = new Texture(Assets.TIME_OVER_POPUP);
@@ -31,21 +32,21 @@ public class TimeOverPopup extends AbstractPopup {
         messageLabel.setAlignment(Align.center);
         messageLabel.setWrap(true);
 
-        yesButton = game.getButtonFactory().createButton(Assets.YES_BUTTON, 60, 60, () -> {
+        yesButton = game.buttonFactory.createButton(Assets.YES_BUTTON, 60, 60, () -> {
             remove();
-            game.overlay.showAccusation();
+            flow.showAccusation();
         });
 
-        noButton = game.getButtonFactory().createButton(Assets.NO_BUTTON, 60, 60, () -> {
+        noButton = game.buttonFactory.createButton(Assets.NO_BUTTON, 60, 60, () -> {
             remove();
 
-            InvestigationState inv = game.getInvestigationState();
+            InvestigationState inv = game.investigationState;
             if (inv != null) {
                 inv.accusedNpcId = null;
                 inv.accusationDone = true;
             }
 
-            game.overlay.showEpilogue();
+            flow.showEpilogue();
         });
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());

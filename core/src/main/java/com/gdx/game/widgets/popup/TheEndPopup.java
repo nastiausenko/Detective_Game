@@ -6,7 +6,8 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.app.DetectiveGame;
+import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.shared.ui.UiStyles;
 
@@ -19,7 +20,7 @@ public class TheEndPopup extends AbstractPopup {
     private final Image yesButton;
     private final Image noButton;
 
-    public TheEndPopup(Stage stage, DetectiveGame game) {
+    public TheEndPopup(Stage stage, GameContext game, GameFlow flow) {
         super(stage);
 
         backgroundTexture = new Texture(Assets.TIME_OVER_POPUP);
@@ -30,19 +31,19 @@ public class TheEndPopup extends AbstractPopup {
         messageLabel.setAlignment(Align.center);
         messageLabel.setWrap(true);
 
-        yesButton = game.getButtonFactory().createButton(
+        yesButton = game.buttonFactory.createButton(
             Assets.YES_BUTTON, 60, 60,
             () -> {
                 remove();
-                game.getNavigator().startNewGame();
+                flow.startNewGame();
             }
         );
 
-        noButton = game.getButtonFactory().createButton(
+        noButton = game.buttonFactory.createButton(
             Assets.NO_BUTTON, 60, 60,
             () -> {
                 remove();
-                game.getNavigator().showMenu();
+                flow.showMenu();
             }
         );
 

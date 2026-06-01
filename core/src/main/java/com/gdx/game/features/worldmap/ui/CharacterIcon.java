@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.gdx.game.model.BuildingData;
 import com.gdx.game.app.model.GameContext;
+import com.gdx.game.app.navigation.GameFlow;
 
 public class CharacterIcon extends Image {
     private static final float MIN_MOVEMENT_DURATION = 0.75f;
@@ -18,6 +19,7 @@ public class CharacterIcon extends Image {
     private static final float MOVEMENT_SPEED = 520f;
 
     private final String id;
+    private final GameFlow flow;
     private final String fullBodyPath;
     private final boolean opensInterior;
     private String buildingId;
@@ -34,12 +36,13 @@ public class CharacterIcon extends Image {
     private float targetX;
     private float targetY;
 
-    public CharacterIcon(GameContext game, String id, String iconPath, String fullBodyPath, String buildingId) {
-        this(game, id, iconPath, fullBodyPath, buildingId, true);
+    public CharacterIcon(GameContext game, GameFlow flow, String id, String iconPath, String fullBodyPath, String buildingId) {
+        this(game, flow, id, iconPath, fullBodyPath, buildingId, true);
     }
 
     public CharacterIcon(
         GameContext game,
+        GameFlow flow,
         String id,
         String iconPath,
         String fullBodyPath,
@@ -48,6 +51,7 @@ public class CharacterIcon extends Image {
     ) {
         super(new Texture(iconPath));
         this.id = id;
+        this.flow = flow;
         this.fullBodyPath = fullBodyPath;
         this.buildingId = buildingId;
         this.opensInterior = opensInterior;
@@ -86,7 +90,7 @@ public class CharacterIcon extends Image {
                     }
 
                     String interiorNpcId = CharacterIcon.this.fullBodyPath != null ? id : null;
-                    game.getNavigator().enterInterior(
+                    CharacterIcon.this.flow.enterInterior(
                         backgroundPath,
                         interiorNpcId,
                         CharacterIcon.this.fullBodyPath,

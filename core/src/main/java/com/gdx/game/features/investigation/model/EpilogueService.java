@@ -195,15 +195,14 @@ public class EpilogueService {
         EvidenceSummary evidence = buildEvidenceSummary(realKillerId);
 
         String system =
-            "Напиши пряму відповідь обвинуваченого українською.\n" +
-                "Формат: 2-3 короткі репліки від першої особи, по 1 реченню, розділені тільки |||.\n" +
-                "Стиль: проста жива українська мова. Так, ніби людина говорить уголос, а не читає перекладений роман.\n" +
-                "Без канцеляриту, без пафосу, без метафор, без дивних слів і без пояснювальної прози.\n" +
-                "Не пиши ярлики на кшталт «зізнання», «правда», «репліка». Не додавай нових фактів.\n" +
-                "Якщо обвинувачення хибне: запереч і відреагуй особисто, не натякай на справжнього вбивцю.\n" +
-                "Якщо вбивцю названо, але доказів мало: ухиляйся або говори сухо, без прямого зізнання.\n" +
-                "Якщо доказів достатньо: реакція може бути різкою; пряме зізнання тільки якщо це вже підтримано DISCOVERED або KEY_DIALOGUE.\n" +
-                "Не використовуй: «я усвідомлюю», «тягар правди», «мої вчинки», «доля», «тіні», «порожнеча».";
+            "Write the accused character's direct response in Ukrainian.\n" +
+                "Format: 2-3 first-person speech bubbles, one sentence each, separated only by |||.\n" +
+                "Style: plain spoken Ukrainian, like a person talking aloud, not translated literary prose.\n" +
+                "No labels, narration, metaphors, melodrama, bureaucratic phrasing, or new facts.\n" +
+                "Wrong accusation: deny it personally; never hint at the real killer.\n" +
+                "Correct but weak evidence: evade or answer dryly; no direct confession.\n" +
+                "Correct with enough evidence: react sharply; confess only if DISCOVERED or KEY_DIALOGUE supports it.\n" +
+                "Avoid Ukrainian phrases equivalent to: burden of truth, my deeds, fate, shadows, emptiness.";
 
         String user = buildConfrontationUserMessage(accusedId, correct, evidence);
         return llmClient.ask(system, user, CONFRONTATION_MAX_TOKENS, LlmClient.ModelTier.SMART);
@@ -212,18 +211,15 @@ public class EpilogueService {
     private String buildSystemPrompt() {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("Напиши короткий фінальний епілог українською: 2 абзаци, разом 45-75 слів.\n")
-            .append("Стиль: проста природна українська, короткі речення. Не роби текст поетичним.\n")
-            .append("Пиши конкретно: кого відсторонили, кого виправдали, хто замовк, що перевірили, що залишилось під підозрою.\n")
-            .append("Не переказуй загальновідомі факти й не цитуй досьє. PUBLIC-факти не озвучуй як відкриття.\n")
-            .append("Пиши тільки наслідки: що сталося з обвинуваченим, містом і тими, кого зачепили розкриті факти.\n")
-            .append("Не відкривай секретів, яких немає в DISCOVERED або KEY_DIALOGUE.\n")
-            .append("Якщо обвинувачення хибне або відсутнє: не називай і не натякай на справжнього вбивцю; покажи неповну справедливість.\n")
-            .append("Якщо вбивцю названо, але доказів мало: підозра лишається, але публічного зізнання й повної правди немає.\n")
-            .append("Якщо доказів достатньо: дай чіткий наслідок обвинувачення; зізнання згадуй лише якщо KEY_DIALOGUE/DISCOVERED це дозволяє.\n")
-            .append("Заборонено: метафори, символічні образи, пасивні кальки, вигадані сцени, «тіні», «світло», «площа», «вікна», «тягар», «калюжа», «фарба».\n")
-            .append("Не використовуй фрази: «єдина нормальна людина», «загальновідомо», «як відомо», «це призвело до того, що».\n")
-            .append("Добрий тон: «Ернста відсторонили від служби. Архіви перевірили. Клара кілька днів не виходила з дому.»\n");
+        sb.append("Write a short final epilogue in Ukrainian: 2 paragraphs, 45-75 words total.\n")
+            .append("Use plain natural Ukrainian and short sentences. Do not sound poetic or translated.\n")
+            .append("Use WORLD and CAST only as grounding; do not recite known dossier facts as discoveries.\n")
+            .append("Write consequences only: what happens to the accused, the town, and people affected by DISCOVERED facts.\n")
+            .append("Use only WORLD, CAST, FINAL, DISCOVERED, DIRECT_EVIDENCE, and KEY_DIALOGUE. Invent nothing.\n")
+            .append("Wrong or no accusation: do not name or imply the real killer; show incomplete justice.\n")
+            .append("Correct but weak evidence: suspicion remains, with no public confession or full truth.\n")
+            .append("Correct with enough evidence: make the accusation outcome clear; mention confession only if supported.\n")
+            .append("Ban metaphors, symbolic imagery, invented scenes, and Ukrainian equivalents of shadows/light/square/windows/burden/puddle/paint.\n");
 
         return sb.toString();
     }
@@ -235,10 +231,12 @@ public class EpilogueService {
         StringBuilder sb = new StringBuilder();
 
         if (loreDb != null && loreDb.setting != null) {
-            sb.append("CITY:\n");
-            sb.append("Name: ").append(loreDb.setting.townName).append("\n");
-            sb.append("Tone: ").append(loreDb.setting.tone).append("\n\n");
+            sb.append("WORLD:\n");
+            sb.append(buildWorldContextSummary()).append("\n");
         }
+
+        sb.append("CAST:\n");
+        sb.append(buildCastContextSummary()).append("\n");
 
         sb.append("FINAL:\n");
         sb.append("Accused: ").append(formatNpcName(accusedId)).append("\n");
@@ -265,7 +263,7 @@ public class EpilogueService {
             }
         }
 
-        sb.append("TASK: Напиши тільки епілог. Не списком. Не додавай нерозкритих таємниць, нових мотивів, нових злочинів чи нових фактів.\n");
+        sb.append("TASK: Return only the epilogue prose. No list. No unrevealed secrets, new motives, new crimes, or new facts.\n");
 
         return sb.toString();
     }
@@ -281,6 +279,60 @@ public class EpilogueService {
             return "CORRECT_WITH_ENOUGH_EVIDENCE";
         }
         return "CORRECT_BUT_WEAK_EVIDENCE";
+    }
+
+    private String buildWorldContextSummary() {
+        if (loreDb == null || loreDb.setting == null) {
+            return "- Setting: 1940s Rosenfeld, a small town shaped by medical-school authority and rumor.\n";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("- Town: ").append(nonEmpty(loreDb.setting.townName, "Rosenfeld")).append(".\n");
+        if (loreDb.setting.summary != null && !loreDb.setting.summary.isEmpty()) {
+            sb.append("- Setting summary: ").append(loreDb.setting.summary).append("\n");
+        }
+        if (loreDb.setting.tone != null && !loreDb.setting.tone.isEmpty()) {
+            sb.append("- Tone: ").append(loreDb.setting.tone).append("\n");
+        }
+        if (loreDb.murder != null) {
+            sb.append("- Case: Walter was found dead in his home office");
+            if (loreDb.murder.timeApprox != null && !loreDb.murder.timeApprox.isEmpty()) {
+                sb.append(" around ").append(loreDb.murder.timeApprox);
+            }
+            if (loreDb.murder.weapon != null && !loreDb.murder.weapon.isEmpty()) {
+                sb.append("; weapon: ").append(loreDb.murder.weapon);
+            }
+            sb.append(".\n");
+            if (loreDb.murder.officialStory != null && !loreDb.murder.officialStory.isEmpty()) {
+                sb.append("- Public story: ").append(loreDb.murder.officialStory).append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    private String buildCastContextSummary() {
+        if (dossierDb == null || dossierDb.characters == null || dossierDb.characters.isEmpty()) {
+            return "- No cast data.\n";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        Array<String> ids = dossierDb.characters.orderedKeys();
+        for (int i = 0; i < ids.size; i++) {
+            String id = ids.get(i);
+            DossierData data = dossierDb.characters.get(id);
+            if (data == null) continue;
+
+            sb.append("- ").append(nonEmpty(data.name, id));
+            if (data.role != null && !data.role.isEmpty()) {
+                sb.append(": ").append(data.role);
+            }
+            sb.append(".\n");
+        }
+        return sb.toString();
+    }
+
+    private String nonEmpty(String value, String fallback) {
+        return value != null && !value.isEmpty() ? value : fallback;
     }
 
     private String buildConfrontationUserMessage(String accusedId, boolean correct, EvidenceSummary evidence) {
@@ -304,7 +356,7 @@ public class EpilogueService {
             }
         }
 
-        sb.append("TASK: Поверни лише репліки, розділені |||. Без лапок навколо всього тексту.\n");
+        sb.append("TASK: Return only the speech bubbles separated by |||. Do not wrap the whole answer in quotes.\n");
 
         return sb.toString();
     }

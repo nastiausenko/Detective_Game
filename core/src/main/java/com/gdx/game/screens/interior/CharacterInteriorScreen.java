@@ -25,6 +25,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.gdx.game.model.LoreDatabase;
 import com.gdx.game.features.investigation.model.NpcDialogueService;
+import com.gdx.game.app.navigation.GameFlow;
 import com.gdx.game.shared.config.Assets;
 import com.gdx.game.app.model.GameContext;
 import com.gdx.game.shared.config.UiLayout;
@@ -43,6 +44,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private static final float HINT_ICON_HOVER_ALPHA = 0.95f;
 
     private final GameContext game;
+    private final GameFlow flow;
     private final NpcDialogueService npcService;
 
     private final ScaledBackground background;
@@ -80,13 +82,14 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     private boolean accusationAdvancing = false;
     private int accusationLineIndex = 0;
 
-    public CharacterInteriorScreen(GameContext game, String backgroundPath, String characterId, String fullBody,
+    public CharacterInteriorScreen(GameContext game, GameFlow flow, String backgroundPath, String characterId, String fullBody,
                                    String buildingId) {
-        this(game, backgroundPath, characterId, fullBody, buildingId, false);
+        this(game, flow, backgroundPath, characterId, fullBody, buildingId, false);
     }
 
     public CharacterInteriorScreen(
         GameContext game,
+        GameFlow flow,
         String backgroundPath,
         String characterId,
         String fullBody,
@@ -94,6 +97,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         boolean accusationMode
     ) {
         this.game = game;
+        this.flow = flow;
         this.background = new ScaledBackground(backgroundPath, true, false);
         this.characterId = characterId;
         this.buildingId = buildingId;
@@ -101,7 +105,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         this.characterTexture = fullBody != null && !fullBody.isEmpty()
             ? new Texture(fullBody)
             : null;
-        this.npcService = game.getNpcDialogueService();
+        this.npcService = game.npcDialogueService;
 
         camera = new OrthographicCamera();
         viewport = new ScreenViewport(camera);
@@ -143,12 +147,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
     public void show() {
         screenActive = true;
         conversationController.setActive(!accusationMode);
-        game.overlay.setVisible(!accusationMode);
-        game.overlay.setInInterior(true);
-        game.overlay.setCurrentNpcId(hasInteractiveNpc() ? characterId : null);
-        game.overlay.setCurrentInteriorBuildingId(buildingId);
-        if (game.getAudioManager() != null) {
-            game.getAudioManager().playAmbienceForLocation(buildingId);
+        flow.setOverlayVisible(!accusationMode);
+        flow.setInInterior(true);
+        flow.setCurrentNpcId(hasInteractiveNpc() ? characterId : null);
+        flow.setCurrentInteriorBuildingId(buildingId);
+        if (game.audioManager != null) {
+            game.audioManager.playAmbienceForLocation(buildingId);
         }
 
         if (!hasInteractiveNpc()) {
@@ -164,8 +168,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
         if (isCrimeSceneScreen()) {
             setupCrimeSceneHints();
-            if (game.getCrimeSceneService() != null) {
-                game.getCrimeSceneService().clearPendingForLocation(buildingId);
+            if (game.crimeSceneService != null) {
+                game.crimeSceneService.clearPendingForLocation(buildingId);
             }
         }
 
@@ -176,7 +180,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         }
 
         Gdx.input.setInputProcessor(new InputMultiplexer(
-            game.overlay.getStage(),
+            flow.overlayStage(),
             dialogueStage,
             new GestureDetector(this)
         ));
@@ -196,10 +200,10 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         cluePopupLabel.setVisible(false);
         dialogueStage.addActor(cluePopupLabel);
 
-        Array<LoreDatabase.CrimeSceneHint> visibleHints = game.getCrimeSceneService() != null
+        Array<LoreDatabase.CrimeSceneHint> visibleHints = game.crimeSceneService != null
             ? (DEBUG_SHOW_ALL_CRIME_SCENE_HINTS
-                ? game.getCrimeSceneService().getHintsForLocation(buildingId)
-                : game.getCrimeSceneService().getUnlockedHintsForLocation(buildingId))
+                ? game.crimeSceneService.getHintsForLocation(buildingId)
+                : game.crimeSceneService.getUnlockedHintsForLocation(buildingId))
             : new Array<>();
 
         for (LoreDatabase.CrimeSceneHint hint : visibleHints) {
@@ -302,7 +306,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         dialogueStage.act(delta);
         dialogueStage.draw();
 
-        game.overlay.render(delta);
+        flow.renderOverlay(delta);
     }
 
     private void updateNpcStateHud() {
@@ -347,7 +351,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         camera.update();
         updateCrimeSceneHintLayout(width, height);
 
-        game.overlay.resize(width, height);
+        flow.resizeOverlay(width, height);
     }
 
     @Override
@@ -387,8 +391,8 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         screenActive = false;
         conversationController.setActive(false);
         hideCrimeSceneHintPopup();
-        game.overlay.hideAllPopups();
-        game.overlay.setInInterior(false);
+        flow.hideAllPopups();
+        flow.setInInterior(false);
     }
 
     @Override
@@ -429,7 +433,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
 
             @Override
             public void onFactsDiscovered(int count) {
-                game.overlay.onNewFactsDiscovered(count);
+                flow.onNewFactsDiscovered(count);
             }
         });
     }
@@ -438,12 +442,12 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         if (accusationStarted) return;
         accusationStarted = true;
 
-        game.getEpilogueService().prewarmEpilogue(game.getInvestigationState());
+        game.epilogueService.prewarmEpilogue(game.investigationState);
 
         new Thread(() -> {
             String text;
             try {
-                text = game.getEpilogueService().generateAccusationConfrontation(game.getInvestigationState());
+                text = game.epilogueService.generateAccusationConfrontation(game.investigationState);
             } catch (Exception e) {
                 e.printStackTrace();
                 text = "Я сказав усе, що міг.|||Тепер робіть із цим що хочете.";
@@ -533,7 +537,7 @@ public class CharacterInteriorScreen implements Screen, GestureDetector.GestureL
         }
 
         accusationAdvancing = true;
-        game.getNavigator().returnToMapThenShowEpilogue();
+        flow.returnToMapThenShowEpilogue();
     }
 
     private void updateCrimeSceneHintLayout(int screenWidth, int screenHeight) {
