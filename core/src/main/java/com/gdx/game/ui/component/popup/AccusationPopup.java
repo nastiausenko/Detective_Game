@@ -1,7 +1,6 @@
 package com.gdx.game.ui.component.popup;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
@@ -12,15 +11,18 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.DetectiveGame;
+import com.gdx.game.infrastructure.GameContext;
+import com.gdx.game.game.GameFlow;
 import com.gdx.game.domain.investigation.InvestigationState;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.infra.assets.FontScaler;
-import com.gdx.game.utils.ScreenUtilsHelper;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.ui.style.FontScaler;
+import com.gdx.game.ui.style.UiLayout;
+import com.gdx.game.ui.style.UiLayoutProfile;
+import com.gdx.game.ui.style.UiStyles;
+import com.gdx.game.render.ScreenUtilsHelper;
 
 public class AccusationPopup extends AbstractPopup {
     private final Image accusationBackground;
@@ -28,11 +30,12 @@ public class AccusationPopup extends AbstractPopup {
     private final Image accuseButton;
     private final Image closeButton;
 
-    private final DetectiveGame game;
-    private final Skin skin;
+    private final GameContext game;
+    private final GameFlow flow;
 
     private final Image[] portraits;
     private final Label[] names;
+    private final Label.LabelStyle labelStyle;
 
     private final String[] characterNames = {"Мара", "Ернст", "Ліам", "Клара", "Елена"};
     private final String[] characterTextures = {
@@ -44,121 +47,38 @@ public class AccusationPopup extends AbstractPopup {
     };
 
     private final String[] npcIds = {
-        "doctor",
-        "officer",
-        "student",
-        "sister",
-        "cashier"
+        "mara",
+        "ernst",
+        "liam",
+        "clara",
+        "elena"
     };
 
     private int selectedIndex = -1;
 
-    public AccusationPopup(Stage stage, DetectiveGame game) {
+    public AccusationPopup(Stage stage, GameContext game, GameFlow flow) {
         super(stage);
         this.game = game;
+        this.flow = flow;
 
         accusationTexture = new Texture(Assets.ACCUSATION_POPUP);
         accusationBackground = new Image(accusationTexture);
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
-        accuseButton = game.getButtonFactory().createButton(Assets.ACCUSE, 60, 60, this::accuse);
-        closeButton = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
+        accuseButton = game.buttonFactory.createButton(Assets.ACCUSE, 60, 60, this::accuse);
+        closeButton = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
 
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default-font");
-        labelStyle.fontColor = new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f);
+        labelStyle = UiStyles.label(skin, UiStyles.parchmentText());
 
         portraits = new Image[characterNames.length];
         names = new Label[characterNames.length];
 
-        for (int i = 0; i < characterNames.length; i++) {
-            portraits[i] = new Image(new Texture(characterTextures[i]));
-            names[i] = new Label(characterNames[i], labelStyle);
-            names[i].setAlignment(Align.center);
-
-            final int idx = i;
-            portraits[i].addListener(new ClickListener() {
-                @Override
-                public void clicked(InputEvent event, float x, float y) {
-                    onPortraitSelected(idx);
-                    event.stop();
-                }
-
-                @Override
-                public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
-                    Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
-                }
-
-                @Override
-                public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
-                    Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
-                }
-            });
-        }
+        createPortraitGrid(portraits, names);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
 
-    private void onPortraitSelected(int index) {
-        selectedIndex = index;
-
-        for (int i = 0; i < portraits.length; i++) {
-            if (i == selectedIndex) {
-                portraits[i].setColor(1f, 1f, 1f, 1f);
-                portraits[i].setScale(1.05f);
-            } else {
-                portraits[i].setColor(1f, 1f, 1f, 0.55f);
-                portraits[i].setScale(1f);
-            }
-        }
-    }
-
-    private void accuse() {
-        if (selectedIndex < 0) {
-            Gdx.app.log("ACCUSATION", "No suspect selected, ignoring.");
-            return;
-        }
-
-        String accusedNpcId = npcIds[selectedIndex];
-        Gdx.app.log("ACCUSATION", "Accuse button clicked, npcId=" + accusedNpcId);
-
-        if (game.getInvestigationState() != null) {
-            InvestigationState inv = game.getInvestigationState();
-            inv.accusedNpcId = accusedNpcId;
-            inv.accusationDone = true;
-        }
-
-        remove();
-        game.overlay.showEpiloguePublic();
-    }
-
-    private void updateCloseButtonState() {
-        boolean timeOver = false;
-        if (game.overlay.getTimer() != null) {
-            timeOver = game.overlay.getTimer().isTimeOver();
-        }
-
-        closeButton.setVisible(!timeOver);
-    }
-
-    private void updateAccuseButtonState() {
-        boolean timeOver = false;
-        if (game.overlay.getTimer() != null) {
-            timeOver = game.overlay.getTimer().isTimeOver();
-        }
-
-        int revealed = game.getNpcDialogueService().getTotalRevealedFacts();
-
-        boolean enoughFacts = revealed >= Assets.FACTS_TO_REVEAL;
-
-        boolean canAccuse = timeOver || enoughFacts;
-
-        accuseButton.setTouchable(canAccuse ? Touchable.enabled : Touchable.disabled);
-        accuseButton.setColor(1f, 1f, 1f, canAccuse ? 1f : 0.4f);
-    }
-
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
         resizeCentered(accusationBackground, accusationTexture, screenWidth, screenHeight);
 
         FontScaler.applyScale(skin.getFont("default-font"));
@@ -168,7 +88,7 @@ public class AccusationPopup extends AbstractPopup {
 
         float maxPortraitHeight = availableHeight * 0.4f;
 
-        float spacingX = maxPortraitHeight * 0.3f;
+        float spacingX = maxPortraitHeight * 0.2f;
         float spacingY = maxPortraitHeight * 0.3f;
 
         int[][] rows = {{0, 1, 2}, {3, 4}};
@@ -221,18 +141,14 @@ public class AccusationPopup extends AbstractPopup {
             currentY -= maxPortraitHeight + spacingY + maxPortraitHeight * 0.1f;
         }
 
-        float btnWidth = accusationBackground.getWidth() * 0.5f;
-        float btnHeight = accusationBackground.getHeight() * 0.1f;
-        float paddingBottom = accusationBackground.getHeight() * 0.1f;
+        ScreenUtilsHelper.scaleNavButton(accuseButton, accusationBackground);
 
-        accuseButton.setSize(btnWidth, btnHeight);
-        accuseButton.setPosition(
-            accusationBackground.getX() + (accusationBackground.getWidth() - btnWidth) / 2f,
-            accusationBackground.getY() + paddingBottom
-        );
 
-        ScreenUtilsHelper.scaleButton(closeButton, screenHeight * 0.12f, stage);
-        closeButton.setPosition(10, screenHeight - closeButton.getHeight() - 10);
+        float targetHeight = screenHeight * profile.getPopupButtonHeightRatio();
+        float margin = profile.scale(10f);
+
+        ScreenUtilsHelper.scaleButton(closeButton, targetHeight, stage);
+        closeButton.setPosition(margin, screenHeight - closeButton.getHeight() - margin);
     }
 
     @Override
@@ -245,15 +161,13 @@ public class AccusationPopup extends AbstractPopup {
             portrait.setScale(1f);
         }
 
-        stage.addActor(accusationBackground);
+        addPopupActors(accusationBackground);
 
         for (int i = 0; i < portraits.length; i++) {
-            stage.addActor(portraits[i]);
-            stage.addActor(names[i]);
+            addPopupActors(portraits[i], names[i]);
         }
 
-        stage.addActor(accuseButton);
-        stage.addActor(closeButton);
+        addPopupActors(accuseButton, closeButton);
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
 
         updateAccuseButtonState();
@@ -263,15 +177,99 @@ public class AccusationPopup extends AbstractPopup {
     @Override
     public void remove() {
         super.remove();
-        accusationBackground.remove();
-        for (Image portrait : portraits) portrait.remove();
-        for (Label name : names) name.remove();
-        accuseButton.remove();
-        closeButton.remove();
+        removePopupActors(accusationBackground);
+        for (Image portrait : portraits) removePopupActors(portrait);
+        for (Label name : names) removePopupActors(name);
+        removePopupActors(accuseButton, closeButton);
     }
 
     public void dispose() {
         accusationTexture.dispose();
         skin.dispose();
+    }
+
+    private void createPortraitGrid(Image[] portraits, Label[] names) {
+        for (int i = 0; i < characterNames.length; i++) {
+            portraits[i] = new Image(new Texture(characterTextures[i]));
+            names[i] = new Label(characterNames[i], labelStyle);
+            names[i].setAlignment(Align.center);
+
+            final int idx = i;
+            portraits[i].addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    onPortraitSelected(idx);
+                    event.stop();
+                }
+
+                @Override
+                public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
+                    Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
+                }
+
+                @Override
+                public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
+                    Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
+                }
+            });
+        }
+    }
+
+    private void onPortraitSelected(int index) {
+        selectedIndex = index;
+
+        for (int i = 0; i < portraits.length; i++) {
+            if (i == selectedIndex) {
+                portraits[i].setColor(1f, 1f, 1f, 1f);
+                portraits[i].setScale(1.05f);
+            } else {
+                portraits[i].setColor(1f, 1f, 1f, 0.55f);
+                portraits[i].setScale(1f);
+            }
+        }
+    }
+
+    private void accuse() {
+        if (selectedIndex < 0) {
+            Gdx.app.log("ACCUSATION", "No suspect selected, ignoring.");
+            return;
+        }
+
+        String accusedNpcId = npcIds[selectedIndex];
+        Gdx.app.log("ACCUSATION", "Accuse button clicked, npcId=" + accusedNpcId);
+
+        if (game.investigationState != null) {
+            InvestigationState inv = game.investigationState;
+            inv.accusedNpcId = accusedNpcId;
+            inv.accusationDone = true;
+        }
+
+        remove();
+        flow.enterAccusationConfrontation(accusedNpcId);
+    }
+
+    private void updateCloseButtonState() {
+        boolean timeOver = false;
+        if (flow.timer() != null) {
+            timeOver = flow.timer().isTimeOver();
+        }
+
+        closeButton.setVisible(!timeOver);
+    }
+
+    private void updateAccuseButtonState() {
+        boolean timeOver = false;
+        if (flow.timer() != null) {
+            timeOver = flow.timer().isTimeOver();
+        }
+
+        int revealed = game.npcDialogueService.getTotalRevealedFacts();
+
+        boolean enoughFacts = revealed >= Assets.FACTS_TO_REVEAL;
+
+        boolean canAccuse = timeOver || enoughFacts;
+
+        accuseButton.setTouchable(canAccuse ? Touchable.enabled : Touchable.disabled);
+        accuseButton.setColor(1f, 1f, 1f, canAccuse ? 1f : 0.4f);
     }
 }

@@ -1,16 +1,24 @@
 package com.gdx.game.ui.component.popup;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.gdx.game.infra.assets.BackgroundFactory;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.gdx.game.ui.component.BackgroundFactory;
+import com.gdx.game.ui.style.UiLayout;
+import com.gdx.game.ui.style.UiLayoutProfile;
 
 public abstract class AbstractPopup {
     protected final Stage stage;
     protected final Image background;
+    protected final Skin skin;
 
     protected AbstractPopup(Stage stage) {
         this.stage = stage;
+        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
+
         this.background = BackgroundFactory.createDimBackground(
             stage.getViewport().getWorldWidth(),
             stage.getViewport().getWorldHeight(),
@@ -19,8 +27,11 @@ public abstract class AbstractPopup {
     }
 
     protected void resizeCentered(Image image, Texture texture, float screenWidth, float screenHeight) {
-        float maxWidth = screenWidth * 0.9f;
-        float maxHeight = screenHeight * 0.9f;
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
+        background.setSize(screenWidth, screenHeight);
+
+        float maxWidth = screenWidth * profile.getPopupMaxWidthRatio();
+        float maxHeight = screenHeight * profile.getPopupMaxHeightRatio();
         float aspect = texture.getWidth() / (float) texture.getHeight();
 
         float width = texture.getWidth();
@@ -47,7 +58,30 @@ public abstract class AbstractPopup {
         background.remove();
     }
 
+    protected void addPopupActors(Actor... actors) {
+        for (Actor actor : actors) {
+            if (actor != null) {
+                stage.addActor(actor);
+            }
+        }
+    }
+
+    protected void removePopupActors(Actor... actors) {
+        for (Actor actor : actors) {
+            if (actor != null) {
+                actor.remove();
+            }
+        }
+    }
+
     public boolean isVisible() {
         return background.hasParent();
+    }
+
+    public void resize(float screenWidth, float screenHeight) {
+        background.setSize(screenWidth, screenHeight);
+    }
+
+    public void dispose() {
     }
 }

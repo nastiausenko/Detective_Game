@@ -1,18 +1,17 @@
 package com.gdx.game.ui.component.popup;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.DetectiveGame;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.GameContext;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.ui.style.UiStyles;
+import com.gdx.game.ui.component.TypewriterText;
+import com.gdx.game.render.ScreenUtilsHelper;
 
 public class StoryPopup extends AbstractPopup {
     private final Image storyImage;
@@ -21,57 +20,39 @@ public class StoryPopup extends AbstractPopup {
     private final Image continueButton;
 
     private final String[] pages = new String[] {
-        "Розенфельд завжди здавався спокійним провінційним містечком: тихі вулички, охайні фасади, люди, які вітаються по імені. " +
-            "У центрі цієї ідилії стояла лікарня доктора Адріана Вальтера - місце, де рятували життя і будували легенди. " +
-            "Для міста він був \"совістю Розенфельда\": лікар, що не відмовляв у допомозі, викладач, який виховував нове " +
-            "покоління медиків, і людина, якій довіряли навіть свої найтемніші страхи.",
+        "Розенфельд — невелике провінційне місто, де більшість людей знають одне одного. " +
+            "Одним із найвідоміших його мешканців був доктор Адріан Вальтер: лікар, викладач і власник приватної лікарні.",
 
-        "Три ночі тому Вальтера знайшли мертвим у його кабінеті у старому крилі лікарні. " +
-            "Він сидів у кріслі, наче просто заснув посеред роботи. Зброї поруч не було. " +
-            "На стіні за його спиною кров'ю було виведено: \"Він був тут\". " +
-            "Офіційно все намагаються назвати нещасним випадком або виснаженням. " +
-            "Але лікарі говорять пошепки, свідки плутаються в деталях, а місто занадто поспішно хоче забути цю ніч.",
+        "У ніч перед твоїм приїздом його знайшли мертвим у кабінеті власного будинку. " +
+            "Слідів злому немає, зі столу зникли частина документів, а поруч залишився напис: \"It was not a cure.\"",
 
-        "Тебе викликали сюди не для того, щоб погодитись з офіційною версією. " +
-            "Мер боїться скандалу й дає тобі лише три дні - не більше. " +
-            "За цей час ти маєш поговорити з тими, хто був найближчим до Вальтера: його сестрою, колегами, учнем та його знайомими. " +
-            "Тут кожне запитання має ціну. І кожна відповідь може наблизити тебе або до правди, або до чужої версії реальності."
+        "Місту зручніше вважати це особистою трагедією, ніж починати гучне розслідування. " +
+            "Тобі потрібно з’ясувати, що сталося насправді, перш ніж справу закриють. " +
+            "Для цього доведеться поговорити з тими, хто знав Вальтера найближче, зіставити їхні слова й вирішити, кому можна довіряти."
     };
 
-    private final StringBuilder sb = new StringBuilder();
-    private float charTimer = 0f;
-    private final float charDelay = 0.04f;
-    private int charIndex = 0;
     private int currentPage = 0;
-    private boolean finishedPage = false;
 
-    private final DetectiveGame game;
-    private final Skin skin;
     private final GlyphLayout layout;
+    private final TypewriterText typewriterText;
 
-    public StoryPopup(Stage stage, DetectiveGame game) {
+    public StoryPopup(Stage stage, GameContext game) {
         super(stage);
-        this.game = game;
         layout = new GlyphLayout();
 
         storyTexture = new Texture(Assets.PROLOGUE);
         storyImage = new Image(storyTexture);
 
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
-
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default-font");
-        labelStyle.fontColor = new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f);
-
-        storyLabel = new Label("", labelStyle);
+        storyLabel = new Label("", UiStyles.label(skin, UiStyles.parchmentText()));
         storyLabel.setWrap(true);
         storyLabel.setAlignment(Align.center);
+        typewriterText = new TypewriterText(storyLabel);
 
-        continueButton = game.getButtonFactory().createButton(
+        continueButton = game.buttonFactory.createButton(
             Assets.CONTINUE_BUTTON, 60, 60,
             () -> {
-                if (!finishedPage) {
-                    finishCurrentPageText();
+                if (!typewriterText.isFinished()) {
+                    typewriterText.finish();
                 } else if (currentPage < pages.length - 1) {
                     nextPage();
                 } else {
@@ -86,30 +67,7 @@ public class StoryPopup extends AbstractPopup {
     }
 
     public void update(float delta) {
-        if (finishedPage) return;
-
-        charTimer += delta;
-        String fullText = getCurrentPageText();
-
-        while (charTimer >= charDelay && charIndex < fullText.length()) {
-            sb.append(fullText.charAt(charIndex));
-            charIndex++;
-            storyLabel.setText(sb.toString());
-            charTimer -= charDelay;
-        }
-
-        if (charIndex >= fullText.length()) {
-            finishedPage = true;
-        }
-    }
-
-    private void finishCurrentPageText() {
-        String fullText = getCurrentPageText();
-        sb.setLength(0);
-        sb.append(fullText);
-        storyLabel.setText(fullText);
-        finishedPage = true;
-        charIndex = fullText.length();
+        typewriterText.update(delta);
     }
 
     private void nextPage() {
@@ -119,11 +77,7 @@ public class StoryPopup extends AbstractPopup {
             return;
         }
 
-        sb.setLength(0);
-        storyLabel.setText("");
-        charIndex = 0;
-        charTimer = 0f;
-        finishedPage = false;
+        typewriterText.start(getCurrentPageText());
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
@@ -131,34 +85,15 @@ public class StoryPopup extends AbstractPopup {
     private void rescaleFontToFit() {
         if (storyImage.getWidth() == 0 || storyImage.getHeight() == 0) return;
 
-        Label.LabelStyle style = storyLabel.getStyle();
-        BitmapFont font = style.font;
-
         float labelWidth = storyImage.getWidth() * 0.7f;
         float availableHeight = storyImage.getHeight() * 0.35f;
-
-        String fullText = getCurrentPageText();
-
-        font.getData().setScale(1f);
-
-        layout.setText(font, fullText, style.fontColor, labelWidth, Align.center, true);
-        float prefHeight = layout.height;
-        if (prefHeight <= 0f) prefHeight = font.getCapHeight();
-
-        float scale = availableHeight / prefHeight;
-        scale = MathUtils.clamp(scale, 0.6f, 1.4f);
-
-        font.getData().setScale(scale);
-        storyLabel.invalidateHierarchy();
+        PopupTextScaler.scaleToFitCentered(storyLabel, layout, getCurrentPageText(), labelWidth, availableHeight);
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
         resizeCentered(storyImage, storyTexture, screenWidth, screenHeight);
 
-        float btnWidth = storyImage.getWidth() * 0.5f;
-        float btnHeight = storyImage.getHeight() * 0.1f;
-        float paddingBottom = storyImage.getHeight() * 0.1f;
+        ScreenUtilsHelper.scaleNavButton(continueButton, storyImage);
 
         float labelWidth = storyImage.getWidth() * 0.7f;
         storyLabel.setWidth(labelWidth);
@@ -168,12 +103,6 @@ public class StoryPopup extends AbstractPopup {
         );
 
         rescaleFontToFit();
-
-        continueButton.setSize(btnWidth, btnHeight);
-        continueButton.setPosition(
-            storyImage.getX() + (storyImage.getWidth() - btnWidth) / 2f,
-            storyImage.getY() + paddingBottom
-        );
     }
 
     @Override
@@ -181,15 +110,9 @@ public class StoryPopup extends AbstractPopup {
         super.show();
 
         currentPage = 0;
-        sb.setLength(0);
-        storyLabel.setText("");
-        charIndex = 0;
-        charTimer = 0f;
-        finishedPage = false;
+        typewriterText.start(getCurrentPageText());
 
-        stage.addActor(storyImage);
-        stage.addActor(storyLabel);
-        stage.addActor(continueButton);
+        addPopupActors(storyImage, storyLabel, continueButton);
 
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
@@ -197,8 +120,6 @@ public class StoryPopup extends AbstractPopup {
     @Override
     public void remove() {
         super.remove();
-        storyImage.remove();
-        storyLabel.remove();
-        continueButton.remove();
+        removePopupActors(storyImage, storyLabel, continueButton);
     }
 }

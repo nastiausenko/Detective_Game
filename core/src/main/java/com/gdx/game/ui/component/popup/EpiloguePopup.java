@@ -1,19 +1,20 @@
 package com.gdx.game.ui.component.popup;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
-import com.gdx.game.DetectiveGame;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.GameContext;
+import com.gdx.game.game.GameFlow;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.ui.style.UiStyles;
+import com.gdx.game.ui.component.TypewriterText;
+import com.gdx.game.render.ScreenUtilsHelper;
 
 public class EpiloguePopup extends AbstractPopup {
     private final Image epilogueImage;
@@ -21,8 +22,8 @@ public class EpiloguePopup extends AbstractPopup {
     private final Label epilogueLabel;
     private final Image continueButton;
 
-    private final DetectiveGame game;
-    private final Skin skin;
+    private final GameContext game;
+    private final GameFlow flow;
     private final GlyphLayout layout;
 
     private String fullText = "";
@@ -31,31 +32,23 @@ public class EpiloguePopup extends AbstractPopup {
     private int currentPageIndex = 0;
 
     private float visibleTextHeight = 0f;
+    private final TypewriterText typewriterText;
 
-    private float charTimer = 0f;
-    private final float charDelay = 0.04f;
-    private int charIndex = 0;
-    private boolean pageFinished = false;
-
-    public EpiloguePopup(Stage stage, DetectiveGame game) {
+    public EpiloguePopup(Stage stage, GameContext game, GameFlow flow) {
         super(stage);
         this.game = game;
+        this.flow = flow;
         layout = new GlyphLayout();
 
         epilogueTexture = new Texture(Assets.EPILOGUE);
         epilogueImage = new Image(epilogueTexture);
 
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
-
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = skin.getFont("default-font");
-        labelStyle.fontColor = new Color(154 / 255f, 109 / 255f, 69 / 255f, 1f);
-
-        epilogueLabel = new Label("", labelStyle);
+        epilogueLabel = new Label("", UiStyles.label(skin, UiStyles.parchmentText()));
         epilogueLabel.setWrap(true);
         epilogueLabel.setAlignment(Align.center);
+        typewriterText = new TypewriterText(epilogueLabel);
 
-        continueButton = game.getButtonFactory().createButton(
+        continueButton = game.buttonFactory.createButton(
             Assets.CONTINUE_BUTTON, 60, 60,
             this::onContinueClicked
         );
@@ -70,11 +63,8 @@ public class EpiloguePopup extends AbstractPopup {
     }
 
     private void onContinueClicked() {
-        if (!pageFinished && pages.size > 0) {
-            String pageText = pages.get(currentPageIndex);
-            epilogueLabel.setText(pageText);
-            charIndex = pageText.length();
-            pageFinished = true;
+        if (!typewriterText.isFinished() && pages.size > 0) {
+            typewriterText.finish();
             return;
         }
 
@@ -82,18 +72,14 @@ public class EpiloguePopup extends AbstractPopup {
             showPage(currentPageIndex + 1);
         } else {
             remove();
-            game.overlay.showTheEndPublic();
+            flow.showTheEnd();
         }
     }
 
     private void showPage(int index) {
         if (index < 0 || index >= pages.size) return;
         currentPageIndex = index;
-
-        charTimer = 0f;
-        charIndex = 0;
-        pageFinished = false;
-        epilogueLabel.setText("");
+        typewriterText.start(pages.get(currentPageIndex));
     }
 
     private void rebuildPages() {
@@ -143,29 +129,11 @@ public class EpiloguePopup extends AbstractPopup {
     }
 
     public void update(float delta) {
-        if (pages.size == 0) return;
-
-        if (pageFinished) return;
-
-        String pageText = pages.get(currentPageIndex);
-        if (pageText == null) pageText = "";
-
-        charTimer += delta;
-
-        while (charTimer >= charDelay && charIndex < pageText.length()) {
-            charTimer -= charDelay;
-            charIndex++;
-            epilogueLabel.setText(pageText.substring(0, charIndex));
-        }
-
-        if (charIndex >= pageText.length()) {
-            pageFinished = true;
-        }
+        typewriterText.update(delta);
     }
 
     public void resize(float screenWidth, float screenHeight) {
         epilogueImage.setWidth(screenWidth);
-        background.setSize(screenWidth, screenHeight);
         resizeCentered(epilogueImage, epilogueTexture, screenWidth, screenHeight);
 
         float textAreaWidth  = epilogueImage.getWidth() * 0.7f;
@@ -177,15 +145,7 @@ public class EpiloguePopup extends AbstractPopup {
         epilogueLabel.setHeight(visibleTextHeight);
         epilogueLabel.setPosition(textAreaX, textAreaY);
 
-        float btnWidth = epilogueImage.getWidth() * 0.5f;
-        float btnHeight = epilogueImage.getHeight() * 0.1f;
-        float paddingBottom = epilogueImage.getHeight() * 0.1f;
-
-        continueButton.setSize(btnWidth, btnHeight);
-        continueButton.setPosition(
-            epilogueImage.getX() + (epilogueImage.getWidth() - btnWidth) / 2f,
-            epilogueImage.getY() + paddingBottom
-        );
+        ScreenUtilsHelper.scaleNavButton(continueButton, epilogueImage);
 
         if (fullText != null && !fullText.isEmpty()) {
             rescaleFontToFit();
@@ -198,42 +158,20 @@ public class EpiloguePopup extends AbstractPopup {
     @Override
     public void show() {
         super.show();
-        stage.addActor(epilogueImage);
-        stage.addActor(epilogueLabel);
-        stage.addActor(continueButton);
+        addPopupActors(epilogueImage, epilogueLabel, continueButton);
     }
 
     @Override
     public void remove() {
         super.remove();
-        epilogueImage.remove();
-        epilogueLabel.remove();
-        continueButton.remove();
+        removePopupActors(epilogueImage, epilogueLabel, continueButton);
     }
 
     private void rescaleFontToFit() {
         if (epilogueImage.getWidth() == 0 || epilogueImage.getHeight() == 0) return;
 
-        Label.LabelStyle style = epilogueLabel.getStyle();
-        BitmapFont font = style.font;
-
         float labelWidth = epilogueLabel.getWidth();
         float availableHeight = visibleTextHeight > 0 ? visibleTextHeight : epilogueLabel.getHeight();
-
-        String textToMeasure = (fullText != null && !fullText.isEmpty())
-            ? fullText
-            : "Т";
-
-        font.getData().setScale(1f);
-
-        layout.setText(font, textToMeasure, style.fontColor, labelWidth, Align.left, true);
-        float prefHeight = layout.height;
-        if (prefHeight <= 0f) prefHeight = font.getCapHeight();
-
-        float scale = availableHeight / prefHeight;
-        scale = MathUtils.clamp(scale, 0.6f, 1.4f);
-
-        font.getData().setScale(scale);
-        epilogueLabel.invalidateHierarchy();
+        PopupTextScaler.scaleToFitLeft(epilogueLabel, layout, fullText, labelWidth, availableHeight);
     }
 }

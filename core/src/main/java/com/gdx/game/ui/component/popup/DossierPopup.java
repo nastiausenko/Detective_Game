@@ -9,17 +9,18 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
-import com.gdx.game.DetectiveGame;
+import com.gdx.game.infrastructure.GameContext;
 import com.gdx.game.domain.character.DossierData;
 import com.gdx.game.domain.character.DossierDatabase;
 import com.gdx.game.domain.character.NpcState;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.utils.ScreenUtilsHelper;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.ui.style.UiLayout;
+import com.gdx.game.ui.style.UiLayoutProfile;
+import com.gdx.game.render.ScreenUtilsHelper;
 
 import java.util.Arrays;
 
@@ -32,8 +33,7 @@ public class DossierPopup extends AbstractPopup {
     private final Image btnPrev;
     private final Image closeBtn;
 
-    private final DetectiveGame game;
-    private final Skin skin;
+    private final GameContext game;
 
     private final Label nameLabel;
     private final Label roleLabel;
@@ -49,10 +49,9 @@ public class DossierPopup extends AbstractPopup {
 
     private int currentPage = 0;
 
-    public DossierPopup(Stage stage, DetectiveGame game) {
+    public DossierPopup(Stage stage, GameContext game) {
         super(stage);
         this.game = game;
-        skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
 
         BitmapFont leftFont = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
         BitmapFont rightFont = new BitmapFont(Gdx.files.internal("fonts/8bold.fnt"));
@@ -73,9 +72,9 @@ public class DossierPopup extends AbstractPopup {
             }
         });
 
-        btnPrev = game.getButtonFactory().createButton(Assets.ARROW_LEFT, 64, 64, this::prevPage);
-        btnNext = game.getButtonFactory().createButton(Assets.ARROW_RIGHT, 64, 64, this::nextPage);
-        closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
+        btnPrev = game.buttonFactory.createButton(Assets.ARROW_LEFT, 64, 64, this::prevPage);
+        btnNext = game.buttonFactory.createButton(Assets.ARROW_RIGHT, 64, 64, this::nextPage);
+        closeBtn = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, this::remove);
 
         styleLeft = new Label.LabelStyle();
         styleLeft.font = leftFont;
@@ -153,7 +152,7 @@ public class DossierPopup extends AbstractPopup {
             }
         }
 
-        NpcState state = game.getNpcDialogueService().getStateForUi(npcId);
+        NpcState state = game.npcDialogueService.getStateForUi(npcId);
 
         if (data.hiddenFacts != null) {
             boolean[] revealed = (state != null) ? state.hiddenRevealed : null;
@@ -163,7 +162,7 @@ public class DossierPopup extends AbstractPopup {
             }
 
             for (int i = 0; i < data.hiddenFacts.size(); i++) {
-                String fact = data.hiddenFacts.get(i);
+                String fact = data.getHiddenFactText(i);
 
                 boolean isRevealed =
                     revealed != null &&
@@ -184,18 +183,14 @@ public class DossierPopup extends AbstractPopup {
     @Override
     public void show() {
         super.show();
-        stage.addActor(pageImage);
-        stage.addActor(textTable);
-        stage.addActor(btnPrev);
-        stage.addActor(btnNext);
-        stage.addActor(closeBtn);
+        addPopupActors(pageImage, textTable, btnPrev, btnNext, closeBtn);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
         updateContent();
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
         resizeCentered(pageImage, pages[0], screenWidth, screenHeight);
 
         float w = pageImage.getWidth();
@@ -255,11 +250,12 @@ public class DossierPopup extends AbstractPopup {
             .fillY();
         textTable.row();
 
-        float btnSize = screenHeight * 0.12f;
+        float targetHeight = screenHeight * profile.getPopupButtonHeightRatio();
+        float margin = profile.scale(10f);
 
-        ScreenUtilsHelper.scaleButton(btnPrev, btnSize, stage);
-        ScreenUtilsHelper.scaleButton(btnNext, btnSize, stage);
-        ScreenUtilsHelper.scaleButton(closeBtn, btnSize, stage);
+        ScreenUtilsHelper.scaleButton(btnPrev, targetHeight, stage);
+        ScreenUtilsHelper.scaleButton(btnNext, targetHeight, stage);
+        ScreenUtilsHelper.scaleButton(closeBtn, targetHeight, stage);
 
         btnPrev.setPosition(
             pageImage.getX() - btnPrev.getWidth() * 0.4f,
@@ -269,17 +265,13 @@ public class DossierPopup extends AbstractPopup {
             pageImage.getX() + w - btnNext.getWidth() * 0.6f,
             pageImage.getY() + h / 2f - btnNext.getHeight() / 2f
         );
-        closeBtn.setPosition(10, screenHeight - closeBtn.getHeight() - 10);
+        closeBtn.setPosition(margin, screenHeight - closeBtn.getHeight() - margin);
     }
 
     @Override
     public void remove() {
         super.remove();
-        pageImage.remove();
-        textTable.remove();
-        btnPrev.remove();
-        btnNext.remove();
-        closeBtn.remove();
+        removePopupActors(pageImage, textTable, btnPrev, btnNext, closeBtn);
     }
 
     public void dispose() {

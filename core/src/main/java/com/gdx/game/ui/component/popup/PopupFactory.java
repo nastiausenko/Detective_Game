@@ -3,29 +3,28 @@ package com.gdx.game.ui.component.popup;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.gdx.game.DetectiveGame;
-import com.gdx.game.ui.overlay.FadeTransition;
+import com.gdx.game.infrastructure.GameContext;
+import com.gdx.game.game.GameFlow;
 
 public class PopupFactory {
     private final Stage stage;
-    private final DetectiveGame game;
-    private final FadeTransition transition;
-    private final Skin skin;
+    private final GameContext game;
+    private final GameFlow flow;
 
 
-    public PopupFactory(Stage stage, DetectiveGame game, FadeTransition transition) {
+    public PopupFactory(Stage stage, GameContext game, GameFlow flow) {
         this.stage = stage;
         this.game = game;
-        this.transition = transition;
-        this.skin = new Skin(Gdx.files.internal("ui/uiskin.json"));
+        this.flow = flow;
+        new Skin(Gdx.files.internal("ui/uiskin.json"));
     }
 
     public NotePopup createNotePopup() {
-        return new NotePopup(stage, skin, game);
+        return new NotePopup(stage, game);
     }
 
     public SettingsPopup createSettingsPopup() {
-        return new SettingsPopup(stage, game, transition);
+        return new SettingsPopup(stage, game, flow);
     }
 
     public StoryPopup createStoryPopup() {
@@ -37,22 +36,22 @@ public class PopupFactory {
     }
 
     public AccusationPopup createAccusationPopup() {
-        return new AccusationPopup(stage, game);
+        return new AccusationPopup(stage, game, flow);
     }
 
     public ChatHistoryPopup createChatHistoryPopup(String npcId) {
-        return new ChatHistoryPopup(stage, skin, game, npcId);
+        return new ChatHistoryPopup(stage, game, npcId);
     }
 
     public EpiloguePopup createEpiloguePopup() {
-        return new EpiloguePopup(stage, game);
+        return new EpiloguePopup(stage, game, flow);
     }
 
     public TimeOverPopup createTimeOverPopup() {
-        return new TimeOverPopup(stage, game);
+        return new TimeOverPopup(stage, game, flow);
     }
 
     public TheEndPopup createTheEndPopup() {
-        return new TheEndPopup(stage, game);
+        return new TheEndPopup(stage, game, flow);
     }
 }

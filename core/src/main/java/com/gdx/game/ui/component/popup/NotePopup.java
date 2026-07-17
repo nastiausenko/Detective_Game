@@ -1,44 +1,52 @@
 package com.gdx.game.ui.component.popup;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.gdx.game.DetectiveGame;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.infra.assets.NotePages;
-import com.gdx.game.utils.ScreenUtilsHelper;
+import com.gdx.game.infrastructure.GameContext;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.ui.component.NotePages;
+import com.gdx.game.ui.style.UiLayout;
+import com.gdx.game.ui.style.UiLayoutProfile;
+import com.gdx.game.render.ScreenUtilsHelper;
 
 public class NotePopup extends AbstractPopup {
     private final Texture noteTexture;
     private final Image noteImage;
-    private final Skin skin;
     private final NotePages pages;
 
     private final Image btnNext;
     private final Image btnPrev;
     private final Image closeBtn;
 
-    public NotePopup(Stage stage, Skin skin, DetectiveGame game) {
+    public NotePopup(Stage stage, GameContext game) {
         super(stage);
-        this.skin = skin;
         this.pages = new NotePages(stage, skin);
+
+        background.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                clearTextFocus();
+                event.stop();
+            }
+        });
 
         noteTexture = new Texture(Assets.NOTES);
         noteImage = new Image(noteTexture);
         noteImage.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                clearTextFocus();
                 event.stop();
             }
         });
 
-
-        btnPrev = game.getButtonFactory().createButton(Assets.ARROW_LEFT, 64, 64, pages::prevPage);
-        btnNext = game.getButtonFactory().createButton(Assets.ARROW_RIGHT, 64, 64, pages::nextPage);
-        closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, () -> {
+        btnPrev = game.buttonFactory.createButton(Assets.ARROW_LEFT, 64, 64, pages::prevPage);
+        btnNext = game.buttonFactory.createButton(Assets.ARROW_RIGHT, 64, 64, pages::nextPage);
+        closeBtn = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, () -> {
             pages.onExit();
             remove();
         });
@@ -47,7 +55,7 @@ public class NotePopup extends AbstractPopup {
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
         resizeCentered(noteImage, noteTexture, screenWidth, screenHeight);
 
         float width = noteImage.getWidth();
@@ -70,7 +78,8 @@ public class NotePopup extends AbstractPopup {
                 innerPadding
         );
 
-        float targetHeight = screenHeight * 0.12f;
+        float targetHeight = screenHeight * profile.getPopupButtonHeightRatio();
+        float margin = profile.scale(10f);
 
         ScreenUtilsHelper.scaleButton(btnPrev, targetHeight, stage);
         ScreenUtilsHelper.scaleButton(btnNext, targetHeight, stage);
@@ -80,34 +89,36 @@ public class NotePopup extends AbstractPopup {
             noteImage.getY() + height / 2 - btnPrev.getHeight() / 2);
         btnNext.setPosition(noteImage.getX() + width - btnNext.getWidth() * 0.5f,
             noteImage.getY() + height / 2 - btnNext.getHeight() / 2);
-        closeBtn.setPosition(10,
-            screenHeight - closeBtn.getHeight() - 10);
+        closeBtn.setPosition(margin,
+            screenHeight - closeBtn.getHeight() - margin);
     }
 
     @Override
     public void show() {
         super.show();
-        stage.addActor(noteImage);
+        addPopupActors(noteImage);
         pages.show();
-        stage.addActor(btnPrev);
-        stage.addActor(btnNext);
-        stage.addActor(closeBtn);
+        addPopupActors(btnPrev, btnNext, closeBtn);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
 
     @Override
     public void remove() {
+        clearTextFocus();
         super.remove();
-        noteImage.remove();
         pages.remove();
-        btnPrev.remove();
-        btnNext.remove();
-        closeBtn.remove();
+        removePopupActors(noteImage, btnPrev, btnNext, closeBtn);
     }
 
     public void dispose() {
         noteTexture.dispose();
         skin.dispose();
+    }
+
+    private void clearTextFocus() {
+        stage.setKeyboardFocus(null);
+        stage.setScrollFocus(null);
+        Gdx.input.setOnscreenKeyboardVisible(false);
     }
 }

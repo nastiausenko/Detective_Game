@@ -13,12 +13,14 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.gdx.game.DetectiveGame;
+import com.gdx.game.infrastructure.GameContext;
 import com.gdx.game.domain.investigation.DialogueHistory;
-import com.gdx.game.infra.assets.Assets;
-import com.gdx.game.infra.assets.FontScaler;
-import com.gdx.game.utils.NoMinNinePatchDrawable;
-import com.gdx.game.utils.ScreenUtilsHelper;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.ui.style.FontScaler;
+import com.gdx.game.ui.style.UiLayout;
+import com.gdx.game.ui.style.UiLayoutProfile;
+import com.gdx.game.render.NoMinNinePatchDrawable;
+import com.gdx.game.render.ScreenUtilsHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +44,7 @@ public class ChatHistoryPopup extends AbstractPopup {
 
     private float maxBubbleWidth;
 
-    protected ChatHistoryPopup(Stage stage, Skin skin, DetectiveGame game, String npcId) {
+    protected ChatHistoryPopup(Stage stage, GameContext game, String npcId) {
         super(stage);
         this.npcId = npcId;
 
@@ -55,18 +57,18 @@ public class ChatHistoryPopup extends AbstractPopup {
             }
         });
 
-        closeBtn = game.getButtonFactory().createButton(Assets.CLOSE_BUTTON, 64, 64, ChatHistoryPopup.this::remove);
+        closeBtn = game.buttonFactory.createButton(Assets.CLOSE_BUTTON, 64, 64, ChatHistoryPopup.this::remove);
 
         bubbleLabelStyle = new Label.LabelStyle();
         bubbleLabelStyle.font = skin.getFont("default-font");
         bubbleLabelStyle.fontColor = Color.BLACK;
         bubbleLabelStyle.font.getData().setScale(0.5f);
 
-        Texture bubbleTex = new Texture(Assets.QUESTION_AREA);
-        int right = 40;
-        int left = 40;
-        int top = 0;
-        int bottom = 0;
+        Texture bubbleTex = new Texture(Assets.STATISTICS);
+        int right = 20;
+        int left = 20;
+        int top = 20;
+        int bottom = 20;
 
         NinePatch npcPatch = new NinePatch(bubbleTex, left, right, top, bottom);
         NinePatch playerPatch = new NinePatch(bubbleTex, left, right, top, bottom);
@@ -108,8 +110,8 @@ public class ChatHistoryPopup extends AbstractPopup {
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
-    public void resize(int width, int height) {
-        background.setSize(width, height);
+    public void resize(float width, float height) {
+        UiLayoutProfile profile = UiLayout.current(width, height);
         resizeCentered(chatHistoryImage, chatHistoryTexture, width, height);
 
         float popupX = chatHistoryImage.getX();
@@ -117,9 +119,12 @@ public class ChatHistoryPopup extends AbstractPopup {
         float popupWidth = chatHistoryImage.getWidth();
         float popupHeight = chatHistoryImage.getHeight();
 
-        float btnSize = height * 0.12f;
-        ScreenUtilsHelper.scaleButton(closeBtn, btnSize, stage);
-        closeBtn.setPosition(10, height - closeBtn.getHeight() - 10);
+        float targetHeight = height * profile.getPopupButtonHeightRatio();
+        float margin = profile.scale(10f);
+
+        ScreenUtilsHelper.scaleButton(closeBtn, targetHeight, stage);
+
+        closeBtn.setPosition(margin, height - closeBtn.getHeight() - margin);
 
         FontScaler.applyScale(bubbleLabelStyle.font);
 
@@ -141,18 +146,14 @@ public class ChatHistoryPopup extends AbstractPopup {
     @Override
     public void show() {
         super.show();
-        stage.addActor(chatHistoryImage);
-        stage.addActor(scrollPane);
-        stage.addActor(closeBtn);
+        addPopupActors(chatHistoryImage, scrollPane, closeBtn);
         rebuildHistory();
     }
 
     @Override
     public void remove() {
         super.remove();
-        chatHistoryImage.remove();
-        scrollPane.remove();
-        closeBtn.remove();
+        removePopupActors(chatHistoryImage, scrollPane, closeBtn);
     }
 
     public void dispose() {

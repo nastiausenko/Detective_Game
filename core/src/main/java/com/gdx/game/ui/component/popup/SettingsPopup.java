@@ -5,10 +5,11 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.gdx.game.DetectiveGame;
-import com.gdx.game.ui.overlay.FadeTransition;
-import com.gdx.game.ui.screens.MenuScreen;
-import com.gdx.game.infra.assets.Assets;
+import com.gdx.game.infrastructure.GameContext;
+import com.gdx.game.game.GameFlow;
+import com.gdx.game.infrastructure.Assets;
+import com.gdx.game.ui.style.UiLayout;
+import com.gdx.game.ui.style.UiLayoutProfile;
 
 public class SettingsPopup extends AbstractPopup {
     private final Texture settTexture;
@@ -16,14 +17,16 @@ public class SettingsPopup extends AbstractPopup {
 
     private final Image exitBtn;
     private final Image continueBtn;
+    private final Image soundBtn;
 
-    private final DetectiveGame game;
-    private final FadeTransition transition;
+    private final GameContext game;
+    private final GameFlow flow;
+    private SoundPopup soundPopup;
 
-    public SettingsPopup(Stage stage, DetectiveGame game, FadeTransition transition) {
+    public SettingsPopup(Stage stage, GameContext game, GameFlow flow) {
         super(stage);
         this.game = game;
-        this.transition = transition;
+        this.flow = flow;
 
         settTexture = new Texture(Assets.SETTINGS);
         settImage = new Image(settTexture);
@@ -34,28 +37,33 @@ public class SettingsPopup extends AbstractPopup {
             }
         });
 
-        continueBtn = game.getButtonFactory().createButton(Assets.CONTINUE_BUTTON, 0, 0, this::remove);
-        exitBtn = game.getButtonFactory().createButton(Assets.EXIT_BUTTON, 0, 0, this::handleExit);
+        continueBtn = game.buttonFactory.createButton(Assets.CONTINUE_BUTTON, 0, 0, this::remove);
+        exitBtn = game.buttonFactory.createButton(Assets.EXIT_BUTTON, 0, 0, this::handleExit);
+        soundBtn = game.buttonFactory.createButton(Assets.SOUND_SETTINGS_BUTTON, 0, 0, this::showSound);
 
         resize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
     }
 
     private void handleExit() {
-        if (!transition.isTransitioning()) {
-            transition.startFadeOut(0.7f, () -> {
-                game.setScreen(new MenuScreen(game, transition));
-                transition.startFadeIn(0.7f);
-            });
+        flow.showMenu();
+    }
+
+    private void showSound() {
+        if (soundPopup == null) {
+            soundPopup = new SoundPopup(stage, game);
         }
+
+        soundPopup.show();
     }
 
     public void resize(float screenWidth, float screenHeight) {
-        background.setSize(screenWidth, screenHeight);
+        UiLayoutProfile profile = UiLayout.current(screenWidth, screenHeight);
         resizeCentered(settImage, settTexture, screenWidth, screenHeight);
 
         float btnWidth = settImage.getWidth() * 0.75f;
         float btnHeight = settImage.getHeight() * 0.15f;
         float paddingBottom = settImage.getHeight() * 0.43f;
+        float buttonGap = Math.max(settImage.getHeight() / 45f, profile.scale(8f));
 
         exitBtn.setSize(btnWidth, btnHeight);
         exitBtn.setPosition(settImage.getX() + (settImage.getWidth() - btnWidth) / 2f, settImage.getY() + paddingBottom);
@@ -63,27 +71,42 @@ public class SettingsPopup extends AbstractPopup {
         continueBtn.setSize(btnWidth, btnHeight);
         continueBtn.setPosition(
             settImage.getX() + (settImage.getWidth() - btnWidth) / 2f,
-            exitBtn.getY() + btnHeight + settImage.getHeight() / 45f
+            exitBtn.getY() + btnHeight + buttonGap
         );
+
+        float soundBtnWidth = settImage.getWidth() * (565f / 753f);
+        float soundBtnHeight = settImage.getHeight() * (149f / 1024f);
+        soundBtn.setSize(soundBtnWidth, soundBtnHeight);
+        soundBtn.setPosition(
+            settImage.getX() + (settImage.getWidth() - soundBtnWidth) / 2f,
+            settImage.getY() + settImage.getHeight() * (96f / 1024f)
+        );
+
+        if (soundPopup != null) {
+            soundPopup.resize(screenWidth, screenHeight);
+        }
     }
 
     @Override
     public void show() {
         super.show();
-        stage.addActor(settImage);
-        stage.addActor(continueBtn);
-        stage.addActor(exitBtn);
+        addPopupActors(settImage, continueBtn, exitBtn, soundBtn);
     }
 
     @Override
     public void remove() {
+        if (soundPopup != null) {
+            soundPopup.remove();
+        }
+
         super.remove();
-        settImage.remove();
-        continueBtn.remove();
-        exitBtn.remove();
+        removePopupActors(settImage, continueBtn, exitBtn, soundBtn);
     }
 
     public void dispose() {
         settTexture.dispose();
+        if (soundPopup != null) {
+            soundPopup.dispose();
+        }
     }
 }

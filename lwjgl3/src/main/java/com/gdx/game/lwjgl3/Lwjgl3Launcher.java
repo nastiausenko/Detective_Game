@@ -2,7 +2,7 @@ package com.gdx.game.lwjgl3;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.gdx.game.DetectiveGame;
+import com.gdx.game.game.DetectiveGame;
 import io.github.cdimascio.dotenv.Dotenv;
 
 /** Launches the desktop (LWJGL3) application. */

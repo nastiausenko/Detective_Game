@@ -35,8 +35,13 @@
       <pattern>com.gdx.game.domain.world.LoreDatabase</pattern>
       <pattern>com.gdx.game.domain.world.LoreDatabase$Setting</pattern>
       <pattern>com.gdx.game.domain.world.LoreDatabase$Murder</pattern>
+      <pattern>com.gdx.game.domain.world.LoreDatabase$CrimeSceneHint</pattern>
       <pattern>com.gdx.game.domain.world.LoreDatabase$KillerView</pattern>
       <pattern>com.gdx.game.domain.world.LoreDatabase$Relationship</pattern>
+      <pattern>com.gdx.game.domain.world.LoreDatabase$Location</pattern>
+      <pattern>com.gdx.game.domain.character.DossierDatabase</pattern>
+      <pattern>com.gdx.game.domain.character.DossierData</pattern>
+      <pattern>com.gdx.game.domain.character.DossierData$HiddenFactData</pattern>
   </forceLinkClasses>
   <libs>
       <lib>z</lib>
